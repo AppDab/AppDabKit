@@ -1,2 +1,2 @@
 # AppDabKit
-Foundational services and tools for shipping apps faster
+Foundational services and tools for shipping apps faster.
