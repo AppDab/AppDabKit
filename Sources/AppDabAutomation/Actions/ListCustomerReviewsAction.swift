@@ -1,0 +1,55 @@
+import AppDabServices
+
+public struct ListCustomerReviewsAction: AutomationAction {
+    public static let descriptor = AutomationActionDescriptor(
+        id: .listCustomerReviews,
+        title: "List Customer Reviews",
+        description: "List recent customer reviews for an app in a configured App Store Connect account.",
+        inputSchema: Schema.object(
+            properties: [
+                "account_id": Schema.string(description: "The AppDab account identifier."),
+                "app_id": Schema.string(description: "The App Store Connect app identifier."),
+                "cursor": Schema.paginationCursor,
+                "limit": Schema.integer(
+                    description: "Maximum reviews to return, from 1 through 200.",
+                    minimum: 1,
+                    maximum: PaginationRequest.maximumLimit,
+                    default: PaginationRequest.defaultLimit
+                )
+            ],
+            required: ["account_id", "app_id"]
+        ),
+        outputSchema: Schema.object(
+            properties: [
+                "app_id": Schema.string(description: "The App Store Connect app identifier."),
+                "reviews": .object(["type": .string("array")]),
+                "pagination": Schema.paginationOutput
+            ],
+            required: ["app_id", "reviews", "pagination"]
+        ),
+        outputType: "customer_reviews",
+        supportedSurfaces: [.mcp, .cli, .appIntents],
+        safety: .read
+    )
+
+    public init() {}
+
+    public func perform(
+        input: ListCustomerReviewsInput,
+        dataProvider: any AutomationDataProviding
+    ) async throws -> ReviewList {
+        try await dataProvider.listCustomerReviews(
+            accountID: input.accountID,
+            appID: input.appID,
+            pagination: input.pagination
+        )
+    }
+
+    public func summary(for output: ReviewList) -> String {
+        AutomationActionSummary.foundReviews(output.reviews.count)
+    }
+
+    public func data(for output: ReviewList) throws -> JSONValue {
+        try JSONValue.fromEncodable(output)
+    }
+}
