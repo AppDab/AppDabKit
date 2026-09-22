@@ -25,7 +25,7 @@ struct StoredAccountProviderTests {
         #expect(accounts.map(\.name) == ["Alpha", "Zulu"])
     }
 
-    @Test func resolvesStoredAccountByIdentifier() throws {
+    @Test func resolvesStoredAccountByIdentifier() async throws {
         let apiKey = try APIKey(
             name: "Preview",
             keyId: "AAAAAAAAAA",
@@ -34,7 +34,7 @@ struct StoredAccountProviderTests {
         )
         let provider = StoredAccountProvider(loadAPIKeys: { [apiKey] })
 
-        let resolvedKey = try provider.apiKey(forAccountID: apiKey.id)
+        let resolvedKey = try await provider.apiKey(forAccountID: apiKey.id)
 
         #expect(resolvedKey.id == apiKey.id)
     }

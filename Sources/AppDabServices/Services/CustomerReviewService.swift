@@ -32,7 +32,7 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
     }
 
     public func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
-        let apiKey = try accountProvider.apiKey(forAccountID: accountID)
+        let apiKey = try await accountProvider.apiKey(forAccountID: accountID)
         do {
             return try await getReviewHandler(apiKey, reviewID)
         } catch {
@@ -45,7 +45,7 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
         appID: String,
         pagination: PaginationRequest
     ) async throws -> ReviewList {
-        let apiKey = try accountProvider.apiKey(forAccountID: accountID)
+        let apiKey = try await accountProvider.apiKey(forAccountID: accountID)
         do {
             return try await listReviewsHandler(apiKey, appID, pagination)
         } catch {

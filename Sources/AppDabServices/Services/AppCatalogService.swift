@@ -62,7 +62,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         guard !version.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ServiceError.invalidArguments("Argument version must be a nonempty string.")
         }
-        let apiKey = try accountProvider.apiKey(forAccountID: accountID)
+        let apiKey = try await accountProvider.apiKey(forAccountID: accountID)
         do {
             return try await createAppVersionHandler(apiKey, appID, platform, version)
         } catch {
@@ -71,7 +71,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
     }
 
     private func fetchApps(accountID: String, pagination: PaginationRequest) async throws -> CursorPage<AppDetail> {
-        let apiKey = try accountProvider.apiKey(forAccountID: accountID)
+        let apiKey = try await accountProvider.apiKey(forAccountID: accountID)
         do {
             return try await fetchAppsHandler(apiKey, pagination)
         } catch {
@@ -80,7 +80,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
     }
 
     private func fetchApp(accountID: String, appID: String) async throws -> AppDetail {
-        let apiKey = try accountProvider.apiKey(forAccountID: accountID)
+        let apiKey = try await accountProvider.apiKey(forAccountID: accountID)
         do {
             return try await fetchAppHandler(apiKey, appID)
         } catch {

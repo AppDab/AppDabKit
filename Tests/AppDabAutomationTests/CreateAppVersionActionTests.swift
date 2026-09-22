@@ -1,4 +1,5 @@
 @testable import AppDabAutomation
+import AppDabKitTestSupport
 import AppDabServices
 import Foundation
 import Testing

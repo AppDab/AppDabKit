@@ -1,13 +1,17 @@
-@testable import AppDabAutomation
+import AppDabAutomation
 
-struct CreateVersionHarness {
+public struct CreateVersionHarness {
     let executor: Executor
 
-    func preview() async throws -> AutomationResponse {
+    public init(executor: Executor) {
+        self.executor = executor
+    }
+
+    public func preview() async throws -> AutomationResponse {
         try await execute(context: .init(mode: .preview))
     }
 
-    func commit(plan: AutomationMutationPlan, key: String) async throws -> AutomationResponse {
+    public func commit(plan: AutomationMutationPlan, key: String) async throws -> AutomationResponse {
         try await execute(context: .init(
             mode: .commit,
             confirmationFingerprint: plan.confirmationFingerprint,
@@ -15,7 +19,7 @@ struct CreateVersionHarness {
         ))
     }
 
-    func reconcile(plan: AutomationMutationPlan, key: String) async throws -> AutomationResponse {
+    public func reconcile(plan: AutomationMutationPlan, key: String) async throws -> AutomationResponse {
         try await execute(context: .init(
             mode: .reconcile,
             confirmationFingerprint: plan.confirmationFingerprint,

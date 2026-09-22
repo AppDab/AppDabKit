@@ -8,10 +8,11 @@ let package = Package(
     products: [
         .library(name: "AppDabAutomation", targets: ["AppDabAutomation"]),
         .library(name: "AppDabServices", targets: ["AppDabServices"]),
-        .library(name: "AppDabBagbutikExtensions", targets: ["AppDabBagbutikExtensions"])
+        .library(name: "AppDabBagbutikExtensions", targets: ["AppDabBagbutikExtensions"]),
+        .library(name: "AppDabKitTestSupport", targets: ["AppDabKitTestSupport"])
     ],
     dependencies: [
-        .package(url: "https://github.com/MortenGregersen/AppStoreConnectKit", from: "4.0.0"),
+        .package(url: "https://github.com/MortenGregersen/AppStoreConnectKit", from: "4.1.0"),
         .package(url: "https://github.com/MortenGregersen/Bagbutik", from: "24.0.3")
     ],
     targets: [
@@ -30,9 +31,14 @@ let package = Package(
         .target(name: "AppDabBagbutikExtensions", dependencies: [
             .product(name: "BagbutikAppStore", package: "Bagbutik")
         ]),
+        .target(name: "AppDabKitTestSupport", dependencies: [
+            "AppDabAutomation",
+            "AppDabServices",
+        ]),
         // Tests
         .testTarget(name: "AppDabAutomationTests", dependencies: [
-            "AppDabAutomation"
+            "AppDabAutomation",
+            "AppDabKitTestSupport"
         ]),
         .testTarget(name: "AppDabServicesTests", dependencies: [
             "AppDabServices",

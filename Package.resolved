@@ -1,13 +1,13 @@
 {
-  "originHash" : "446884101ba3c1caf913595fa6864c3a054e5e29c22c94d8a0992c8cac00e2dc",
+  "originHash" : "0f6994ea805536a6c8b02efbeda37d3461e996af492b340bf0cbc984d18a5738",
   "pins" : [
     {
       "identity" : "appstoreconnectkit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/MortenGregersen/AppStoreConnectKit",
       "state" : {
-        "revision" : "fc3bb0e2af1c7d2964fbbc9e5d2815137b77e8af",
-        "version" : "4.0.0"
+        "revision" : "9d247652ad533e4797367c0e8a03b394d42de619",
+        "version" : "4.1.0"
       }
     },
     {

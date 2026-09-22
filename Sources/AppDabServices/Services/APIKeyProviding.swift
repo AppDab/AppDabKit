@@ -1,5 +1,5 @@
 import ConnectAccounts
 
 public protocol APIKeyProviding: Sendable {
-    func apiKey(forAccountID accountID: String) throws -> APIKey
+    func apiKey(forAccountID accountID: String) async throws -> APIKey
 }

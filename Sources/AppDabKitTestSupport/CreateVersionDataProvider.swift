@@ -2,12 +2,12 @@
 import AppDabServices
 import Foundation
 
-actor CreateVersionDataProvider: AutomationDataProviding {
+public actor CreateVersionDataProvider: AutomationDataProviding {
     private var versions: [String]
     private let failure: CreateVersionFailure?
-    private(set) var createAttempts = 0
+    public private(set) var createAttempts = 0
 
-    init(
+    public init(
         versions: [String] = ["1.0"],
         failure: CreateVersionFailure? = nil
     ) {
@@ -15,16 +15,19 @@ actor CreateVersionDataProvider: AutomationDataProviding {
         self.failure = failure
     }
 
-    func addVersion(_ version: String) {
+    public func addVersion(_ version: String) {
         versions.append(version)
     }
 
-    func listAccounts() async throws -> [AccountSummary] { [] }
-    func listApps(accountID: String, pagination: PaginationRequest) async throws -> AppList {
-        .init(apps: [], pagination: .init(limit: try pagination.resolvedLimit(), total: 0, nextCursor: nil))
+    public func listAccounts() async throws -> [AccountSummary] {
+        []
     }
 
-    func getApp(accountID: String, appID: String) async throws -> AppDetail {
+    public func listApps(accountID: String, pagination: PaginationRequest) async throws -> AppList {
+        try .init(apps: [], pagination: .init(limit: pagination.resolvedLimit(), total: 0, nextCursor: nil))
+    }
+
+    public func getApp(accountID: String, appID: String) async throws -> AppDetail {
         .init(
             appID: appID,
             name: "AppDab",
@@ -46,11 +49,11 @@ actor CreateVersionDataProvider: AutomationDataProviding {
         )
     }
 
-    func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
+    public func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
         throw ServiceError.upstream("Customer review lookup is unavailable in this fixture.")
     }
 
-    func createAppVersion(
+    public func createAppVersion(
         accountID: String,
         appID: String,
         platform: String,
@@ -74,11 +77,11 @@ actor CreateVersionDataProvider: AutomationDataProviding {
         )
     }
 
-    func listCustomerReviews(accountID: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
-        .init(
+    public func listCustomerReviews(accountID: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
+        try .init(
             appID: appID,
             reviews: [],
-            pagination: .init(limit: try pagination.resolvedLimit(), total: 0, nextCursor: nil)
+            pagination: .init(limit: pagination.resolvedLimit(), total: 0, nextCursor: nil)
         )
     }
 }
