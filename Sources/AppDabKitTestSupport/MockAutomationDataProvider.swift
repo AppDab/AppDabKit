@@ -118,7 +118,23 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
     }
 
     public func getCustomerReview(accountID: String, reviewID: String) async throws -> AppDabServices.CustomerReview {
-        throw ServiceError.upstream("Customer review lookup is unavailable in this fixture.")
+        .init(
+            reviewID: reviewID,
+            title: "Great",
+            body: "Love it",
+            createdDate: Date(timeIntervalSince1970: 100),
+            rating: reviewRating,
+            reviewerNickname: "Taylor",
+            territory: "USA",
+            response: includesReviewResponse
+                ? .init(
+                    responseID: "response-1",
+                    lastModifiedDate: Date(timeIntervalSince1970: 300),
+                    responseBody: "Thank you!",
+                    state: "PUBLISHED"
+                )
+                : nil
+        )
     }
 
     private var appVersion: AppVersion {

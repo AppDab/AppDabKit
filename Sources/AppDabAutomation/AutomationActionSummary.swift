@@ -14,4 +14,8 @@ public enum AutomationActionSummary {
     public static func foundReviews(_ count: Int) -> String {
         "Found \(count) reviews."
     }
+
+    public static func fetchedReview(title: String) -> String {
+        "Fetched customer review \(title)."
+    }
 }

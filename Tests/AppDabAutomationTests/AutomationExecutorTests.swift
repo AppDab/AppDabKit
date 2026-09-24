@@ -50,6 +50,23 @@ struct AutomationExecutorTests {
         }
     }
 
+    @Test func getCustomerReviewReturnsItsPublishedResponse() async throws {
+        let executor = Executor(dataProvider: MockAutomationDataProvider())
+
+        let result = try await executor.execute(request(
+            actionID: .getCustomerReview,
+            arguments: [
+                "account_id": .string("account-1"),
+                "review_id": .string("review-1")
+            ]
+        ))
+
+        let review = result.structuredContent.objectValue?["review"]?.objectValue
+        #expect(result.text == "Fetched customer review Great.")
+        #expect(review?["review_id"] == .string("review-1"))
+        #expect(review?["response"]?.objectValue?["response_body"] == .string("Thank you!"))
+    }
+
     @Test func listAppsUsesSharedLimitValidation() async throws {
         let executor = Executor(dataProvider: MockAutomationDataProvider())
 

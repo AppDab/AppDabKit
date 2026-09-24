@@ -7,6 +7,7 @@ public struct AutomationActionID: RawRepresentable, Codable, Equatable, Hashable
     public static let getApp = AutomationActionID(rawValue: "get_app")
     public static let createAppVersion = AutomationActionID(rawValue: "create_app_version")
     public static let listCustomerReviews = AutomationActionID(rawValue: "list_customer_reviews")
+    public static let getCustomerReview = AutomationActionID(rawValue: "get_customer_review")
 
     public let rawValue: String
 
