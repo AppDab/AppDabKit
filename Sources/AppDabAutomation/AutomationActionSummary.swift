@@ -16,6 +16,6 @@ public enum AutomationActionSummary {
     }
 
     public static func fetchedReview(title: String) -> String {
-        "Fetched customer review \(title)."
+        "Fetched customer review titled \"\(title)\"."
     }
 }

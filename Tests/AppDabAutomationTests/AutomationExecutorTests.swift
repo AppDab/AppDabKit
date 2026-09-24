@@ -62,7 +62,7 @@ struct AutomationExecutorTests {
         ))
 
         let review = result.structuredContent.objectValue?["review"]?.objectValue
-        #expect(result.text == "Fetched customer review Great.")
+        #expect(result.text == "Fetched customer review titled \"Great\".")
         #expect(review?["review_id"] == .string("review-1"))
         #expect(review?["response"]?.objectValue?["response_body"] == .string("Thank you!"))
     }
