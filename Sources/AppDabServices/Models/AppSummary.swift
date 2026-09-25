@@ -35,7 +35,7 @@ public struct AppSummary: Codable, Equatable, Hashable, Sendable {
             sku: detail.sku,
             primaryLocale: detail.primaryLocale,
             iconURL: detail.iconURL,
-            versions: detail.versions
+            versions: detail.displayVersions
         )
     }
 }

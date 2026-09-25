@@ -36,17 +36,22 @@ public actor CreateVersionDataProvider: AutomationDataProviding {
             primaryLocale: "en-US",
             iconURL: nil,
             contentRightsDeclaration: nil,
-            versions: versions.enumerated().map { index, version in
-                .init(
-                    versionID: "version-\(index)",
-                    platform: "iOS",
-                    state: "Ready for Distribution",
-                    version: version,
-                    createdDate: Date(timeIntervalSince1970: TimeInterval(index)),
-                    isFirstVersion: index == 0
-                )
-            }
+            displayVersions: []
         )
+    }
+
+    public func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList {
+        let offset = Int(pagination.cursor ?? "0") ?? 0
+        let matches = versions.enumerated().filter { filter.versions.isEmpty || filter.versions.contains($0.element) }
+        // Small pages ensure write preconditions exercise pagination in tests.
+        let items = matches.dropFirst(offset).prefix(1).map { index, version in
+            AppVersion(versionID: "version-\(index)", platform: "iOS", state: "Ready for Distribution",
+                       version: version, createdDate: Date(timeIntervalSince1970: TimeInterval(index)), isFirstVersion: index == 0)
+        }
+        return try .init(appID: appID, versions: items, pagination: .init(
+            limit: pagination.resolvedLimit(), total: matches.count,
+            nextCursor: offset + items.count < matches.count ? String(offset + items.count) : nil
+        ))
     }
 
     public func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
@@ -93,6 +98,14 @@ public extension AutomationDataProviding {
 
     func verifyAccount(accountID: String) async throws -> AccountVerification {
         throw ServiceError.accountNotFound(accountID)
+    }
+
+    func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList {
+        throw ServiceError.upstream("Version listing is unavailable in this fixture.")
+    }
+
+    func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion {
+        throw ServiceError.upstream("Version lookup is unavailable in this fixture.")
     }
 
     func createAppVersion(

@@ -7,7 +7,7 @@ struct AutomationActionCatalogTests {
     @Test func exposesStableActionDescriptors() {
         let descriptors = AutomationActionCatalog.all
 
-        #expect(descriptors.map(\.id) == [.listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp, .createAppVersion, .listCustomerReviews, .getCustomerReview])
+        #expect(descriptors.map(\.id) == [.listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp, .listAppVersions, .getAppVersion, .createAppVersion, .listCustomerReviews, .getCustomerReview])
         #expect(descriptors.filter { ![.addAccount, .removeAccount, .createAppVersion].contains($0.id) }.allSatisfy { $0.safety == .read })
         #expect(descriptors.filter { [.addAccount, .removeAccount, .createAppVersion].contains($0.id) }.allSatisfy { $0.safety == .write })
         #expect(descriptors.filter { [.addAccount, .removeAccount].contains($0.id) }.allSatisfy { $0.supportedSurfaces == [.cli] })

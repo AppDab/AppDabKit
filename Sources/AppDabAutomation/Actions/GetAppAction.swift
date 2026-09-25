@@ -4,7 +4,7 @@ public struct GetAppAction: AutomationAction {
     public static let descriptor = AutomationActionDescriptor(
         id: .getApp,
         title: "Get App",
-        description: "Fetch a specific app and its version details for a configured App Store Connect account.",
+        description: "Fetch app details and a reduced display version summary. Use list_app_versions or get_app_version for authoritative versions.",
         inputSchema: Schema.object(
             properties: [
                 "accountID": Schema.string(description: "The AppDab account identifier."),
