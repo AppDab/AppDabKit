@@ -285,8 +285,22 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         )
     }
 
+    // Confirmation expiry only limits new commits. Keep the plan needed to recover
+    // an unresolved operation until it is resolved or the store is explicitly cleared.
+    private static let hasNoUnresolvedOperation = """
+        NOT EXISTS (
+            SELECT 1 FROM mutation_audits
+            WHERE json_extract(record, '$.confirmationFingerprint') = mutation_previews.fingerprint
+                AND json_extract(record, '$.status') IN ('pending', 'indeterminate')
+        )
+        """
+
     private func pruneExpiredPreviews(now: Date, excluding fingerprint: String? = nil) throws {
-        var sql = "DELETE FROM mutation_previews WHERE CAST(expires_at AS REAL) <= CAST(? AS REAL)"
+        var sql = """
+            DELETE FROM mutation_previews
+            WHERE CAST(expires_at AS REAL) <= CAST(? AS REAL)
+                AND \(Self.hasNoUnresolvedOperation)
+            """
         var bindings: [SQLiteBinding] = [.text(String(now.timeIntervalSince1970))]
         if let fingerprint {
             sql += " AND fingerprint != ?"
@@ -297,7 +311,10 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
 
     private func deletePreview(confirmationFingerprint: String) throws {
         try execute(
-            "DELETE FROM mutation_previews WHERE fingerprint = ?",
+            """
+            DELETE FROM mutation_previews
+            WHERE fingerprint = ? AND \(Self.hasNoUnresolvedOperation)
+            """,
             bindings: [.text(confirmationFingerprint)]
         )
     }

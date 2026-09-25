@@ -49,6 +49,85 @@ struct AutomationWriteExecutionTests {
         ) == current)
     }
 
+    @Test(arguments: ["pending", "indeterminate", "reconciling"])
+    func recoverySurvivesExpiryAndUnrelatedPreview(state: String) async throws {
+        let databaseURL = temporaryDatabaseURL()
+        let provider = FixtureMutationDataProvider(failure: .afterApplying)
+        let harness = try makeHarness(
+            provider: provider,
+            store: AutomationSQLiteAuditStore(databaseURL: databaseURL)
+        )
+        let arguments = fixtureArguments()
+        let plan = try #require(try await harness.preview(arguments: arguments).plan)
+        if state == "pending" {
+            _ = try await harness.store.beginCommit(
+                actionID: plan.actionID,
+                confirmationFingerprint: plan.confirmationFingerprint,
+                idempotencyKey: "recover",
+                now: plan.createdAt
+            )
+        } else {
+            await #expect(throws: AutomationExecutionError.indeterminate) {
+                try await harness.commit(arguments: arguments, plan: plan, key: "recover")
+            }
+        }
+
+        var reconciliationClaimID: String?
+        if state == "reconciling" {
+            let claim = try await harness.store.beginReconciliation(
+                confirmationFingerprint: plan.confirmationFingerprint,
+                idempotencyKey: "recover",
+                now: plan.expiresAt,
+                pendingLeaseDuration: 600
+            )
+            guard case .reconcile(let claimID) = claim else {
+                Issue.record("Expected reconciliation ownership.")
+                return
+            }
+            reconciliationClaimID = claimID
+        }
+
+        // Reopen the database after confirmation expiry, as after an app restart.
+        let later = try makeHarness(
+            now: plan.expiresAt.addingTimeInterval(1),
+            provider: provider,
+            store: AutomationSQLiteAuditStore(databaseURL: databaseURL)
+        )
+        _ = try await later.preview(arguments: fixtureArguments(value: "unrelated"))
+
+        // A different key still cannot use an expired confirmation. Rejecting it
+        // must not discard the plan belonging to the original operation.
+        await #expect(throws: AutomationExecutionError.previewExpired) {
+            try await later.commit(arguments: arguments, plan: plan, key: "different")
+        }
+        if let reconciliationClaimID {
+            await #expect(throws: AutomationExecutionError.commitBlocked(.indeterminate)) {
+                try await later.reconcile(arguments: arguments, plan: plan, key: "recover")
+            }
+            try await harness.store.releaseReconciliation(
+                idempotencyKey: "recover",
+                claimID: reconciliationClaimID
+            )
+        }
+        let result = try await later.reconcile(arguments: arguments, plan: plan, key: "recover")
+        if state == "pending" {
+            #expect(result.receipt == nil)
+            #expect(try await later.store.auditRecord(idempotencyKey: "recover") == nil)
+            #expect(await provider.mutationAttempts == 0)
+            // Once resolved as not applied, the expired plan is eligible for pruning.
+            _ = try await later.preview(arguments: fixtureArguments(value: "another"))
+        } else {
+            #expect(result.receipt != nil)
+            let replay = try await later.commit(arguments: arguments, plan: plan, key: "recover")
+            #expect(replay.receipt == result.receipt)
+            #expect(await provider.mutationAttempts == 1)
+        }
+        #expect(try await later.store.preview(
+            confirmationFingerprint: plan.confirmationFingerprint,
+            now: plan.expiresAt.addingTimeInterval(1)
+        ) == nil)
+    }
+
     @Test func commitRequiresOriginalInputAndFreshConfirmation() async throws {
         let previewTime = Date(timeIntervalSince1970: 1_000)
         let harness = try makeHarness(now: previewTime)
