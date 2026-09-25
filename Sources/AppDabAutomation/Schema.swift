@@ -47,7 +47,7 @@ enum Schema {
     static let paginationOutput = object(properties: [
         "limit": .object(["type": .string("integer")]),
         "total": .object(["type": .string("integer")]),
-        "has_more": .object(["type": .string("boolean")]),
-        "next_cursor": .object(["type": .string("string")])
-    ], required: ["limit", "total", "has_more"])
+        "hasMore": .object(["type": .string("boolean")]),
+        "nextCursor": .object(["type": .string("string")])
+    ], required: ["limit", "total", "hasMore"])
 }

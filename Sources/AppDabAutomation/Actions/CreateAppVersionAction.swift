@@ -1,15 +1,16 @@
 import AppDabServices
 import BagbutikCore
+import Foundation
 
-public struct CreateAppVersionAction: GuardedAutomationAction {
+public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
     public static let descriptor = AutomationActionDescriptor(
         id: .createAppVersion,
         title: "Create App Version",
         description: "Create a new App Store Connect version for one app and platform.",
         inputSchema: Schema.object(
             properties: [
-                "account_id": Schema.string(description: "The AppDab account identifier."),
-                "app_id": Schema.string(description: "The App Store Connect app identifier."),
+                "accountID": Schema.string(description: "The AppDab account identifier."),
+                "appID": Schema.string(description: "The App Store Connect app identifier."),
                 "platform": .object([
                     "type": .string("string"),
                     "description": .string("The App Store Connect platform."),
@@ -17,7 +18,7 @@ public struct CreateAppVersionAction: GuardedAutomationAction {
                 ]),
                 "version": Schema.string(description: "The new version string.")
             ],
-            required: ["account_id", "app_id", "platform", "version"]
+            required: ["accountID", "appID", "platform", "version"]
         ),
         outputSchema: Schema.object(properties: [
             "version": .object(["type": .string("object")])
@@ -113,6 +114,15 @@ public struct CreateAppVersionAction: GuardedAutomationAction {
 
     public func redactedReplayData(for output: AppVersion) throws -> JSONValue {
         try data(for: output)
+    }
+
+    public func output(fromReplayData data: JSONValue) throws -> AppVersion {
+        struct Replay: Decodable {
+            let version: AppVersion
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(Replay.self, from: JSONEncoder().encode(data)).version
     }
 
     private func targetVersions(

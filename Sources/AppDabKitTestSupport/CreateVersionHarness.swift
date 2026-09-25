@@ -31,8 +31,8 @@ public struct CreateVersionHarness {
         try await executor.execute(.init(
             actionID: .createAppVersion,
             arguments: [
-                "account_id": .string("account-1"),
-                "app_id": .string("app-1"),
+                "accountID": .string("account-1"),
+                "appID": .string("app-1"),
                 "platform": .string("IOS"),
                 "version": .string("2.0"),
             ],

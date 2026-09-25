@@ -38,3 +38,8 @@ public extension GuardedAutomationAction {
         .unresolved
     }
 }
+
+/// Opt in only when redacted receipt data can safely restore the complete native output.
+public protocol ReplayableGuardedAutomationAction: GuardedAutomationAction {
+    func output(fromReplayData data: JSONValue) throws -> Output
+}

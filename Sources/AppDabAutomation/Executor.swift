@@ -84,6 +84,73 @@ public final class Executor: Sendable {
         }
     }
 
+    /// Prepares a guarded mutation using native input while retaining the shared audit flow.
+    public func preview<Action: GuardedAutomationAction>(
+        _ actionType: Action.Type,
+        input: Action.Input,
+        surface: AutomationSurface
+    ) async throws -> AutomationMutationPlan {
+        do {
+            let request = try guardedRequest(actionType, input: input, surface: surface, context: .init(mode: .preview))
+            let response = try await execute(request)
+            guard let plan = response.plan else {
+                throw AutomationExecutionError.persistence("A mutation preview is missing its plan.")
+            }
+            return plan
+        } catch {
+            throw normalizedError(error)
+        }
+    }
+
+    /// Returns native output on a fresh commit and restores output from the redacted receipt on replay.
+    public func commit<Action: ReplayableGuardedAutomationAction>(
+        _ actionType: Action.Type,
+        input: Action.Input,
+        surface: AutomationSurface,
+        confirmationFingerprint: String,
+        idempotencyKey: String
+    ) async throws -> Action.Output {
+        do {
+            let request = try guardedRequest(actionType, input: input, surface: surface, context: .init(
+                mode: .commit,
+                confirmationFingerprint: confirmationFingerprint,
+                idempotencyKey: idempotencyKey
+            ))
+            let registered = try registry.action(for: request.actionID, surface: surface)
+            let action = actionType.init()
+            return try await commit(action: registered, request: request, perform: { plan in
+                let output = try await action.commitMutation(input: input, plan: plan, dataProvider: self.dataProvider)
+                return (try CommittedResponse(
+                    response: .init(actionID: request.actionID, summary: action.summary(for: output), data: action.data(for: output)),
+                    redactedReplayData: action.redactedReplayData(for: output)
+                ), output)
+            }, result: { _, output in output }, replay: { response in
+                try action.output(fromReplayData: response.data)
+            })
+        } catch {
+            throw normalizedError(error)
+        }
+    }
+
+    private func guardedRequest<Action: GuardedAutomationAction>(
+        _ actionType: Action.Type,
+        input: Action.Input,
+        surface: AutomationSurface,
+        context: AutomationExecutionContext
+    ) throws -> AutomationRequest {
+        let registered = try registry.action(for: actionType.descriptor.id, surface: surface)
+        guard registered.isRegistered(actionType), registered.supportsGuardedMutation else {
+            throw AutomationActionError.invalidArguments(
+                "The registered action for \(actionType.descriptor.id.rawValue) does not match the requested guarded implementation."
+            )
+        }
+        try input.validate()
+        guard let arguments = try JSONValue.fromEncodable(input).objectValue else {
+            throw AutomationActionError.invalidArguments("Mutation input must encode as an object.")
+        }
+        return .init(actionID: actionType.descriptor.id, arguments: arguments, surface: surface, executionContext: context)
+    }
+
     public func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
         do {
             return try await dataProvider.getCustomerReview(accountID: accountID, reviewID: reviewID)
@@ -149,6 +216,21 @@ public final class Executor: Sendable {
         action: AnyAutomationAction,
         request: AutomationRequest
     ) async throws -> AutomationResponse {
+        try await commit(action: action, request: request, perform: { plan in
+            let committed = try await action.commitMutation(
+                arguments: request.arguments, plan: plan, dataProvider: self.dataProvider
+            )
+            return (committed, ())
+        }, result: { response, _ in response }, replay: { $0 })
+    }
+
+    private func commit<Output, Result>(
+        action: AnyAutomationAction,
+        request: AutomationRequest,
+        perform: (AutomationMutationPlan) async throws -> (CommittedResponse, Output),
+        result: (AutomationResponse, Output) -> Result,
+        replay: (AutomationResponse) throws -> Result
+    ) async throws -> Result {
         let confirmation = try confirmation(from: request.executionContext)
 
         if let existing = try await auditStore.auditRecord(idempotencyKey: confirmation.key) {
@@ -162,7 +244,7 @@ public final class Executor: Sendable {
                         "A successful audit record is missing its receipt."
                     )
                 }
-                return try replayResponse(receipt, request: request)
+                return try replay(replayResponse(receipt, request: request))
             case .pending, .indeterminate:
                 throw AutomationExecutionError.commitBlocked(existing.status)
             }
@@ -188,17 +270,13 @@ public final class Executor: Sendable {
             now: now()
         ) {
         case .replay(let receipt):
-            return try replayResponse(receipt, request: request)
+            return try replay(replayResponse(receipt, request: request))
         case .execute(let commitClaimID):
             claimID = commitClaimID
         }
 
         do {
-            let committed = try await action.commitMutation(
-                arguments: request.arguments,
-                plan: plan,
-                dataProvider: dataProvider
-            )
+            let (committed, output) = try await perform(plan)
             let receipt = AutomationMutationReceipt(
                 actionID: committed.response.actionID,
                 confirmationFingerprint: confirmation.fingerprint,
@@ -209,12 +287,12 @@ public final class Executor: Sendable {
                 committedAt: now()
             )
             try await auditStore.completeCommit(receipt, claimID: claimID)
-            return .init(
+            return result(.init(
                 actionID: committed.response.actionID,
                 summary: committed.response.summary,
                 data: committed.response.data,
                 receipt: receipt
-            )
+            ), output)
         } catch {
             try? await auditStore.markIndeterminate(
                 actionID: request.actionID,
@@ -361,14 +439,14 @@ public final class Executor: Sendable {
         expiresAt: Date
     ) throws -> String {
         try hash(.object([
-            "plan_id": .string(planID),
+            "planID": .string(planID),
             "action": .string(actionID.rawValue),
             "targets": .array(preparation.targetIdentifiers.map(JSONValue.string)),
             "summary": .string(preparation.redactedSummary),
-            "input_hash": .string(inputHash),
+            "inputHash": .string(inputHash),
             "preconditions": .object(preparation.remotePreconditions),
-            "created_at": .double(createdAt.timeIntervalSince1970),
-            "expires_at": .double(expiresAt.timeIntervalSince1970),
+            "createdAt": .double(createdAt.timeIntervalSince1970),
+            "expiresAt": .double(expiresAt.timeIntervalSince1970),
         ]))
     }
 

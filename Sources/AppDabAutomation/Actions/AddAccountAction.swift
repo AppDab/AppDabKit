@@ -9,10 +9,10 @@ public struct AddAccountAction: GuardedAutomationAction {
         description: "Validate and add an App Store Connect API key from a local private key file.",
         inputSchema: Schema.object(properties: [
             "name": Schema.string(description: "The display name for this account."),
-            "key_id": Schema.string(description: "The App Store Connect API key identifier."),
-            "issuer_id": Schema.string(description: "The optional issuer identifier for a Team API key."),
-            "private_key_file": Schema.string(description: "The path to a local .p8 private key file.")
-        ], required: ["name", "key_id", "private_key_file"]),
+            "keyID": Schema.string(description: "The App Store Connect API key identifier."),
+            "issuerID": Schema.string(description: "The optional issuer identifier for a Team API key."),
+            "privateKeyFile": Schema.string(description: "The path to a local .p8 private key file.")
+        ], required: ["name", "keyID", "privateKeyFile"]),
         outputSchema: Schema.object(properties: [
             "account": .object(["type": .string("object")]),
             "issue": .object(["type": .string("object")])
@@ -34,7 +34,7 @@ public struct AddAccountAction: GuardedAutomationAction {
         return .init(
             targetIdentifiers: [prepared.apiKey.id],
             redactedSummary: "Add API key \(prepared.apiKey.name).",
-            remotePreconditions: ["account_id": .string(prepared.apiKey.id)]
+            remotePreconditions: ["accountID": .string(prepared.apiKey.id)]
         )
     }
 

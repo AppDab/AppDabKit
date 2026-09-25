@@ -19,7 +19,7 @@ struct AutomationActionCatalogTests {
         let descriptor = AutomationActionCatalog.descriptor(for: .listApps)
         let required = descriptor?.inputSchema.objectValue?["required"]?.arrayValue
 
-        #expect(required == [.string("account_id")])
+        #expect(required == [.string("accountID")])
     }
 
     @Test func reviewDescriptorDocumentsLimitRange() {
