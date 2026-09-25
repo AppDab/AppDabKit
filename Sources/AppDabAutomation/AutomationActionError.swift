@@ -3,13 +3,24 @@ import Foundation
 
 public enum AutomationActionError: Error, Equatable, LocalizedError, Sendable {
     case accountNotFound(String)
-    case appNotFound(String)
-    case invalidArguments(String)
+    case appNotFound(String, diagnostics: ServiceErrorDiagnostics? = nil)
+    case invalidArguments(String, diagnostics: ServiceErrorDiagnostics? = nil)
     case invalidLimit(Int)
-    case authentication(String)
-    case permissionDenied(String)
-    case network(String)
-    case upstream(String)
+    case authentication(String, diagnostics: ServiceErrorDiagnostics? = nil)
+    case permissionDenied(String, diagnostics: ServiceErrorDiagnostics? = nil)
+    case network(String, diagnostics: ServiceErrorDiagnostics? = nil)
+    case upstream(String, diagnostics: ServiceErrorDiagnostics? = nil)
+
+    public var diagnostics: ServiceErrorDiagnostics? {
+        switch self {
+        case .appNotFound(_, let diagnostics), .invalidArguments(_, let diagnostics),
+             .authentication(_, let diagnostics), .permissionDenied(_, let diagnostics),
+             .network(_, let diagnostics), .upstream(_, let diagnostics):
+            diagnostics
+        case .accountNotFound, .invalidLimit:
+            nil
+        }
+    }
 
     public var code: String {
         switch self {
@@ -27,13 +38,13 @@ public enum AutomationActionError: Error, Equatable, LocalizedError, Sendable {
         switch self {
         case .accountNotFound(let accountID):
             "Could not find account \(accountID)."
-        case .appNotFound(let appID):
+        case .appNotFound(let appID, _):
             "Could not find app \(appID)."
-        case .invalidArguments(let message):
+        case .invalidArguments(let message, _):
             message
         case .invalidLimit(let limit):
             "The review limit \(limit) is invalid. Use a value between 1 and 200."
-        case .authentication(let message), .permissionDenied(let message), .network(let message), .upstream(let message):
+        case .authentication(let message, _), .permissionDenied(let message, _), .network(let message, _), .upstream(let message, _):
             message
         }
     }
@@ -41,13 +52,13 @@ public enum AutomationActionError: Error, Equatable, LocalizedError, Sendable {
     static func from(serviceError: ServiceError) -> Self {
         switch serviceError {
         case .accountNotFound(let accountID): .accountNotFound(accountID)
-        case .appNotFound(let appID): .appNotFound(appID)
-        case .invalidArguments(let message): .invalidArguments(message)
+        case .appNotFound(let appID, let diagnostics): .appNotFound(appID, diagnostics: diagnostics)
+        case .invalidArguments(let message, let diagnostics): .invalidArguments(message, diagnostics: diagnostics)
         case .invalidLimit(let limit): .invalidLimit(limit)
-        case .authentication(let message): .authentication(message)
-        case .permissionDenied(let message): .permissionDenied(message)
-        case .network(let message): .network(message)
-        case .upstream(let message): .upstream(message)
+        case .authentication(let message, let diagnostics): .authentication(message, diagnostics: diagnostics)
+        case .permissionDenied(let message, let diagnostics): .permissionDenied(message, diagnostics: diagnostics)
+        case .network(let message, let diagnostics): .network(message, diagnostics: diagnostics)
+        case .upstream(let message, let diagnostics): .upstream(message, diagnostics: diagnostics)
         }
     }
 }

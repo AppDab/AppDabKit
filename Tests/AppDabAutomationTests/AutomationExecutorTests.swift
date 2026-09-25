@@ -169,6 +169,21 @@ struct AutomationExecutorTests {
         }
     }
 
+    @Test func executorPreservesStructuredServiceDiagnostics() async {
+        let diagnostics = ServiceErrorDiagnostics(httpStatusCode: 403, responseBody: Data([1, 2]))
+        let executor = Executor(dataProvider: MockAutomationDataProvider(
+            appError: .permissionDenied("Denied", diagnostics: diagnostics)
+        ))
+        await #expect(throws: AutomationActionError.permissionDenied("Denied", diagnostics: diagnostics)) {
+            try await executor.execute(request(actionID: .listApps, arguments: ["accountID": .string("account-1")]))
+        }
+    }
+
+    @Test func cancellationPresentationRemainsDistinct() {
+        #expect(AutomationErrorPresentation.present(CancellationError()).code == "cancelled")
+        #expect(AutomationErrorPresentation.present(URLError(.cancelled)).code == "cancelled")
+    }
+
     @Test func executorTranslatesServiceFailuresToAutomationErrors() async {
         let executor = Executor(
             dataProvider: MockAutomationDataProvider(appError: .appNotFound("missing"))
