@@ -175,7 +175,7 @@ struct AutomationExecutorTests {
             appError: .permissionDenied("Denied", diagnostics: diagnostics)
         ))
         await #expect(throws: AutomationActionError.permissionDenied("Denied", diagnostics: diagnostics)) {
-            try await executor.execute(request(actionID: .listApps, arguments: ["account_id": .string("account-1")]))
+            try await executor.execute(request(actionID: .listApps, arguments: ["accountID": .string("account-1")]))
         }
     }
 
