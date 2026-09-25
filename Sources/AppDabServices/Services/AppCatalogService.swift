@@ -65,7 +65,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         do {
             return try await listAppVersionsHandler(key, appID, filter, pagination)
         } catch {
-            throw ServiceError.classify(error)
+            throw try ServiceError.classify(error)
         }
     }
 
@@ -74,7 +74,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         do {
             return try await getAppVersionHandler(key, appID, versionID)
         } catch {
-            throw ServiceError.classify(error)
+            throw try ServiceError.classify(error)
         }
     }
 
