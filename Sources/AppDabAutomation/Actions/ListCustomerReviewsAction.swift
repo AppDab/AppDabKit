@@ -28,7 +28,6 @@ public struct ListCustomerReviewsAction: AutomationAction {
             required: ["appID", "reviews", "pagination"]
         ),
         outputType: "customer_reviews",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .read
     )
 

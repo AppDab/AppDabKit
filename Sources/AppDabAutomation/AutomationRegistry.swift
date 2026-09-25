@@ -54,34 +54,18 @@ public struct AutomationRegistry: Sendable {
         registeredActions.map(\.descriptor)
     }
 
-    public func descriptors(for surface: AutomationSurface) -> [AutomationActionDescriptor] {
-        descriptors.filter { $0.supportedSurfaces.contains(surface) }
-    }
-
     public func descriptor(for id: AutomationActionID) -> AutomationActionDescriptor? {
         actionsByID[id]?.descriptor
     }
 
-    public func descriptor(named name: String, for surface: AutomationSurface) -> AutomationActionDescriptor? {
+    public func descriptor(named name: String) -> AutomationActionDescriptor? {
         let id = AutomationActionID(rawValue: name)
-        guard let descriptor = actionsByID[id]?.descriptor,
-              descriptor.supportedSurfaces.contains(surface) else {
-            return nil
-        }
-        return descriptor
+        return actionsByID[id]?.descriptor
     }
 
-    func action(
-        for id: AutomationActionID,
-        surface: AutomationSurface
-    ) throws(AutomationActionError) -> AnyAutomationAction {
+    func action(for id: AutomationActionID) throws(AutomationActionError) -> AnyAutomationAction {
         guard let action = actionsByID[id] else {
             throw AutomationActionError.invalidArguments("Unknown automation action \(id.rawValue).")
-        }
-        guard action.descriptor.supportedSurfaces.contains(surface) else {
-            throw AutomationActionError.invalidArguments(
-                "Action \(id.rawValue) is not available on \(surface.rawValue)."
-            )
         }
         return action
     }

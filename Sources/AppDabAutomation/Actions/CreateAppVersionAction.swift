@@ -24,7 +24,6 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
             "version": .object(["type": .string("object")])
         ], required: ["version"]),
         outputType: "version",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .write
     )
 

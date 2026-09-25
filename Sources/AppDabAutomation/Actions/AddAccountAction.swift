@@ -18,7 +18,6 @@ public struct AddAccountAction: GuardedAutomationAction {
             "issue": .object(["type": .string("object")])
         ], required: ["account"]),
         outputType: "account_addition",
-        supportedSurfaces: [.cli],
         safety: .write
     )
 

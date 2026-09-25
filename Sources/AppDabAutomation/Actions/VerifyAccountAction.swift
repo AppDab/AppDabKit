@@ -13,7 +13,6 @@ public struct VerifyAccountAction: AutomationAction {
             "issue": .object(["type": .string("object")]),
         ], required: ["account"]),
         outputType: "account_verification",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .read
     )
 

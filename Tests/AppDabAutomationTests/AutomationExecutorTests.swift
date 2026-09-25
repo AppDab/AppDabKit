@@ -133,7 +133,7 @@ struct AutomationExecutorTests {
         }
     }
 
-    @Test func responseProvidesStableCrossSurfaceEnvelope() async throws {
+    @Test func responseProvidesStableCrossEnvelope() async throws {
         let executor = Executor(dataProvider: MockAutomationDataProvider())
 
         let response = try await executor.execute(request(actionID: .listAccounts, arguments: [:]))
@@ -163,8 +163,7 @@ struct AutomationExecutorTests {
         )) {
             try await executor.execute(
                 UnregisteredListAccountsAction.self,
-                input: ListAccountsInput(),
-                surface: .appIntents
+                input: ListAccountsInput()
             )
         }
     }
@@ -202,7 +201,7 @@ private func request(
     actionID: AutomationActionID,
     arguments: [String: JSONValue]
 ) -> AutomationRequest {
-    .init(actionID: actionID, arguments: arguments, surface: .mcp)
+    .init(actionID: actionID, arguments: arguments)
 }
 
 private struct UnregisteredListAccountsAction: AutomationAction {

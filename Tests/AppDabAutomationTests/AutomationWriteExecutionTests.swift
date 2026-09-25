@@ -587,7 +587,6 @@ private struct WriteHarness {
         try await executor.execute(.init(
             actionID: fixtureActionID,
             arguments: arguments,
-            surface: .cli,
             executionContext: context
         ))
     }
@@ -634,7 +633,6 @@ private struct FixtureMutationAction: GuardedAutomationAction {
             "value": Schema.string(description: "Committed value."),
         ], required: ["targetID", "value"]),
         outputType: "fixture",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .write
     )
 

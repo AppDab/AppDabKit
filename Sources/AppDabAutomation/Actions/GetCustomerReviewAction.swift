@@ -16,7 +16,6 @@ public struct GetCustomerReviewAction: AutomationAction {
             "review": .object(["type": .string("object")])
         ], required: ["review"]),
         outputType: "customer_review",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .read
     )
 

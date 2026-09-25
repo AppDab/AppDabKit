@@ -36,7 +36,6 @@ public struct CreateVersionHarness {
                 "platform": .string("IOS"),
                 "version": .string("2.0"),
             ],
-            surface: .cli,
             executionContext: context
         ))
     }

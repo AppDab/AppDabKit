@@ -31,7 +31,7 @@ public final class Executor: Sendable {
 
     public func execute(_ request: AutomationRequest) async throws -> AutomationResponse {
         do {
-            let action = try registry.action(for: request.actionID, surface: request.surface)
+            let action = try registry.action(for: request.actionID)
             switch action.descriptor.safety {
             case .read, .draft:
                 guard request.executionContext.mode == .execute else {
@@ -61,11 +61,10 @@ public final class Executor: Sendable {
 
     public func execute<Action: AutomationAction>(
         _ actionType: Action.Type,
-        input: Action.Input,
-        surface: AutomationSurface
+        input: Action.Input
     ) async throws -> Action.Output {
         do {
-            let registeredAction = try registry.action(for: actionType.descriptor.id, surface: surface)
+            let registeredAction = try registry.action(for: actionType.descriptor.id)
             guard registeredAction.isRegistered(actionType) else {
                 throw AutomationActionError.invalidArguments(
                     "The registered action for \(actionType.descriptor.id.rawValue) does not match the requested implementation."
@@ -87,11 +86,10 @@ public final class Executor: Sendable {
     /// Prepares a guarded mutation using native input while retaining the shared audit flow.
     public func preview<Action: GuardedAutomationAction>(
         _ actionType: Action.Type,
-        input: Action.Input,
-        surface: AutomationSurface
+        input: Action.Input
     ) async throws -> AutomationMutationPlan {
         do {
-            let request = try guardedRequest(actionType, input: input, surface: surface, context: .init(mode: .preview))
+            let request = try guardedRequest(actionType, input: input, context: .init(mode: .preview))
             let response = try await execute(request)
             guard let plan = response.plan else {
                 throw AutomationExecutionError.persistence("A mutation preview is missing its plan.")
@@ -106,17 +104,16 @@ public final class Executor: Sendable {
     public func commit<Action: ReplayableGuardedAutomationAction>(
         _ actionType: Action.Type,
         input: Action.Input,
-        surface: AutomationSurface,
         confirmationFingerprint: String,
         idempotencyKey: String
     ) async throws -> Action.Output {
         do {
-            let request = try guardedRequest(actionType, input: input, surface: surface, context: .init(
+            let request = try guardedRequest(actionType, input: input, context: .init(
                 mode: .commit,
                 confirmationFingerprint: confirmationFingerprint,
                 idempotencyKey: idempotencyKey
             ))
-            let registered = try registry.action(for: request.actionID, surface: surface)
+            let registered = try registry.action(for: request.actionID)
             let action = actionType.init()
             return try await commit(action: registered, request: request, perform: { plan in
                 let output = try await action.commitMutation(input: input, plan: plan, dataProvider: self.dataProvider)
@@ -135,10 +132,9 @@ public final class Executor: Sendable {
     private func guardedRequest<Action: GuardedAutomationAction>(
         _ actionType: Action.Type,
         input: Action.Input,
-        surface: AutomationSurface,
         context: AutomationExecutionContext
     ) throws -> AutomationRequest {
-        let registered = try registry.action(for: actionType.descriptor.id, surface: surface)
+        let registered = try registry.action(for: actionType.descriptor.id)
         guard registered.isRegistered(actionType), registered.supportsGuardedMutation else {
             throw AutomationActionError.invalidArguments(
                 "The registered action for \(actionType.descriptor.id.rawValue) does not match the requested guarded implementation."
@@ -148,7 +144,7 @@ public final class Executor: Sendable {
         guard let arguments = try JSONValue.fromEncodable(input).objectValue else {
             throw AutomationActionError.invalidArguments("Mutation input must encode as an object.")
         }
-        return .init(actionID: actionType.descriptor.id, arguments: arguments, surface: surface, executionContext: context)
+        return .init(actionID: actionType.descriptor.id, arguments: arguments, executionContext: context)
     }
 
     public func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
