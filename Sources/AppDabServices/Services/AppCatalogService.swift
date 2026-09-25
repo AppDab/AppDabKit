@@ -158,7 +158,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         do {
             return try await createAppVersionHandler(apiKey, appID, platform, version)
         } catch {
-            throw Self.mapCreateVersionError(error)
+            throw try Self.mapCreateVersionError(error)
         }
     }
 
@@ -167,7 +167,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         do {
             return try await fetchAppsHandler(apiKey, pagination)
         } catch {
-            throw Self.mapUpstream(error)
+            throw try Self.mapUpstream(error)
         }
     }
 
@@ -176,10 +176,11 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         do {
             return try await fetchAppHandler(apiKey, appID)
         } catch {
-            if Self.looksLikeNotFound(error) {
-                throw ServiceError.appNotFound(appID)
+            let mapped = try Self.mapUpstream(error)
+            if mapped.diagnostics?.httpStatusCode == 404 {
+                throw ServiceError.appNotFound(appID, diagnostics: mapped.diagnostics)
             }
-            throw Self.mapUpstream(error)
+            throw mapped
         }
     }
 
@@ -275,29 +276,24 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         )
     }
 
-    private static func mapUpstream(_ error: Error) -> ServiceError {
-        ServiceError.classify(error)
+    private static func mapUpstream(_ error: Error) throws -> ServiceError {
+        try ServiceError.classify(error)
     }
 
-    private static func mapCreateVersionError(_ error: Error) -> ServiceError {
+    private static func mapCreateVersionError(_ error: Error) throws -> ServiceError {
         guard let error = error as? BagbutikCore.ServiceError,
               case .conflict(let errorResponse) = error,
-              let ascError = errorResponse.errors?.first,
-              ascError.status == "409",
-              ascError.code == "ENTITY_ERROR.RELATIONSHIP.INVALID",
-              let source = ascError.source,
-              case .jsonPointer(let jsonPointer) = source,
-              jsonPointer.pointer == "/data/relationships/app" else {
-            return mapUpstream(error)
+              errorResponse.errors?.contains(where: { ascError in
+                  guard ascError.code == "ENTITY_ERROR.RELATIONSHIP.INVALID",
+                        case .jsonPointer(let pointer) = ascError.source else { return false }
+                  return pointer.pointer == "/data/relationships/app"
+              }) == true else {
+            return try mapUpstream(error)
         }
         return .invalidArguments(
-            "Apple does not allow creating a new version for this platform until the current version is ready for distribution."
+            "Apple does not allow creating a new version for this platform until the current version is ready for distribution.",
+            diagnostics: .init(httpStatusCode: 409, response: errorResponse)
         )
     }
 
-    private static func looksLikeNotFound(_ error: Error) -> Bool {
-        let loweredDescription = error.localizedDescription.lowercased()
-        return loweredDescription.contains("404")
-            || loweredDescription.contains("not found")
-    }
 }

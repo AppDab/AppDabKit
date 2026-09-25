@@ -54,7 +54,7 @@ struct StoredAccountProviderTests {
         let provider = StoredAccountProvider(loadAPIKeys: { [apiKey] }, verifyAPIKeyHandler: { _ in
             throw VerificationError(message: "HTTP status code 401")
         })
-        await #expect(throws: VerificationError(message: "HTTP status code 401")) {
+        await #expect(throws: ServiceError.upstream("HTTP status code 401")) {
             try await provider.verifyAccount(accountID: apiKey.id)
         }
     }

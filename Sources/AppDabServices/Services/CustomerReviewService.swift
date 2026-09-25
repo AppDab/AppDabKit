@@ -36,7 +36,7 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
         do {
             return try await getReviewHandler(apiKey, reviewID)
         } catch {
-            throw Self.mapUpstream(error)
+            throw try Self.mapUpstream(error)
         }
     }
 
@@ -49,7 +49,7 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
         do {
             return try await listReviewsHandler(apiKey, appID, pagination)
         } catch {
-            throw Self.mapUpstream(error)
+            throw try Self.mapUpstream(error)
         }
     }
 
@@ -110,7 +110,7 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
         return .init(customerReview: response.data, response: response.getResponse())
     }
 
-    private static func mapUpstream(_ error: Error) -> ServiceError {
-        ServiceError.classify(error)
+    private static func mapUpstream(_ error: Error) throws -> ServiceError {
+        try ServiceError.classify(error)
     }
 }
