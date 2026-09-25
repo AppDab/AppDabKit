@@ -10,8 +10,6 @@ struct AutomationActionCatalogTests {
         #expect(descriptors.map(\.id) == [.listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp, .listAppVersions, .getAppVersion, .createAppVersion, .listCustomerReviews, .getCustomerReview])
         #expect(descriptors.filter { ![.addAccount, .removeAccount, .createAppVersion].contains($0.id) }.allSatisfy { $0.safety == .read })
         #expect(descriptors.filter { [.addAccount, .removeAccount, .createAppVersion].contains($0.id) }.allSatisfy { $0.safety == .write })
-        #expect(descriptors.filter { [.addAccount, .removeAccount].contains($0.id) }.allSatisfy { $0.supportedSurfaces == [.cli] })
-        #expect(descriptors.filter { ![.addAccount, .removeAccount].contains($0.id) }.allSatisfy { $0.supportedSurfaces == [.mcp, .cli, .appIntents] })
         #expect(AutomationActionCatalog.descriptor(named: "list_apps")?.outputType == "apps")
     }
 
@@ -65,7 +63,6 @@ private struct IncompleteWriteAction: AutomationAction {
         inputSchema: Schema.object(properties: [:]),
         outputSchema: Schema.object(properties: [:]),
         outputType: "test",
-        supportedSurfaces: [.cli],
         safety: .write
     )
 

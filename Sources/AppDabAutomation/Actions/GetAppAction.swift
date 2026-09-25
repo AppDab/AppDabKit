@@ -16,7 +16,6 @@ public struct GetAppAction: AutomationAction {
             "app": .object(["type": .string("object")])
         ], required: ["app"]),
         outputType: "app",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .read
     )
 

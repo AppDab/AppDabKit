@@ -10,7 +10,6 @@ public struct ListAccountsAction: AutomationAction {
             "accounts": .object(["type": .string("array")])
         ], required: ["accounts"]),
         outputType: "accounts",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .read
     )
 

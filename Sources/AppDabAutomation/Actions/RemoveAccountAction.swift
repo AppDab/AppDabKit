@@ -12,7 +12,6 @@ public struct RemoveAccountAction: GuardedAutomationAction {
             "account": .object(["type": .string("object")])
         ], required: ["account"]),
         outputType: "account_removal",
-        supportedSurfaces: [.cli],
         safety: .write
     )
 

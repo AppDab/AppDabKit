@@ -32,7 +32,6 @@ public struct ListAppVersionsAction: AutomationAction {
             required: ["app_id", "versions", "pagination"]
         ),
         outputType: "app_versions",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .read
     )
 

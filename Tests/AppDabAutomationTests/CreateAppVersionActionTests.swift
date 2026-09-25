@@ -72,10 +72,10 @@ struct CreateAppVersionActionTests {
         }
         let input = CreateAppVersionInput(accountID: "account-1", appID: "app-1", platform: .iOS, version: "2.0")
         let firstExecutor = executor()
-        let plan = try await firstExecutor.preview(CreateAppVersionAction.self, input: input, surface: .appIntents)
+        let plan = try await firstExecutor.preview(CreateAppVersionAction.self, input: input)
         #expect(await provider.createAttempts == 0)
         let version = try await firstExecutor.commit(
-            CreateAppVersionAction.self, input: input, surface: .appIntents,
+            CreateAppVersionAction.self, input: input,
             confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "typed-create"
         )
         #expect(version == AppVersion(
@@ -84,7 +84,7 @@ struct CreateAppVersionActionTests {
         ))
         // A new executor must recover native property keys and the ISO 8601 date from disk.
         let replay = try await executor().commit(
-            CreateAppVersionAction.self, input: input, surface: .appIntents,
+            CreateAppVersionAction.self, input: input,
             confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "typed-create"
         )
         #expect(replay == version)
@@ -95,11 +95,11 @@ struct CreateAppVersionActionTests {
         let provider = CreateVersionDataProvider()
         let executor = Executor(dataProvider: provider, auditStore: AutomationSQLiteAuditStore(databaseURL: temporaryDatabaseURL()))
         let input = CreateAppVersionInput(accountID: "account-1", appID: "app-1", platform: .iOS, version: "2.0")
-        let plan = try await executor.preview(CreateAppVersionAction.self, input: input, surface: .appIntents)
+        let plan = try await executor.preview(CreateAppVersionAction.self, input: input)
         let changed = CreateAppVersionInput(accountID: "account-1", appID: "app-1", platform: .iOS, version: "3.0")
         await #expect(throws: AutomationExecutionError.inputChanged) {
             try await executor.commit(
-                CreateAppVersionAction.self, input: changed, surface: .appIntents,
+                CreateAppVersionAction.self, input: changed,
                 confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "changed-input"
             )
         }
@@ -108,7 +108,7 @@ struct CreateAppVersionActionTests {
             "The iOS versions for AppDab changed after preview."
         )) {
             try await executor.commit(
-                CreateAppVersionAction.self, input: input, surface: .appIntents,
+                CreateAppVersionAction.self, input: input,
                 confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "changed-state"
             )
         }

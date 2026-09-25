@@ -17,7 +17,6 @@ public struct GetAppVersionAction: AutomationAction {
             "version": .object(["type": .string("object")])
         ], required: ["version"]),
         outputType: "version",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .read
     )
 

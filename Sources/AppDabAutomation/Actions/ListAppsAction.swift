@@ -18,7 +18,6 @@ public struct ListAppsAction: AutomationAction {
             "pagination": Schema.paginationOutput
         ], required: ["apps", "pagination"]),
         outputType: "apps",
-        supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .read
     )
 

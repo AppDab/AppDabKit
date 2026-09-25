@@ -7,7 +7,6 @@ public struct AutomationActionDescriptor: Codable, Equatable, Sendable {
     public let inputSchema: JSONValue
     public let outputSchema: JSONValue
     public let outputType: String
-    public let supportedSurfaces: [AutomationSurface]
     public let safety: AutomationExecutionSafety
 
     public init(
@@ -17,7 +16,6 @@ public struct AutomationActionDescriptor: Codable, Equatable, Sendable {
         inputSchema: JSONValue,
         outputSchema: JSONValue,
         outputType: String,
-        supportedSurfaces: [AutomationSurface],
         safety: AutomationExecutionSafety
     ) {
         self.id = id
@@ -26,7 +24,6 @@ public struct AutomationActionDescriptor: Codable, Equatable, Sendable {
         self.inputSchema = inputSchema
         self.outputSchema = outputSchema
         self.outputType = outputType
-        self.supportedSurfaces = supportedSurfaces
         self.safety = safety
     }
 }
