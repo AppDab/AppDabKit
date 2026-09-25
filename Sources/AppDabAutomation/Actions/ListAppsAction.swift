@@ -7,11 +7,11 @@ public struct ListAppsAction: AutomationAction {
         description: "List apps for a specific configured App Store Connect account.",
         inputSchema: Schema.object(
             properties: [
-                "account_id": Schema.string(description: "The AppDab account identifier."),
+                "accountID": Schema.string(description: "The AppDab account identifier."),
                 "cursor": Schema.paginationCursor,
                 "limit": Schema.paginationLimit
             ],
-            required: ["account_id"]
+            required: ["accountID"]
         ),
         outputSchema: Schema.object(properties: [
             "apps": .object(["type": .string("array")]),

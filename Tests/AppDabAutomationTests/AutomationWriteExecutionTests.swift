@@ -431,9 +431,9 @@ struct AutomationWriteExecutionTests {
         secret: String = "secret"
     ) -> [String: JSONValue] {
         [
-            "target_id": .string("fixture-1"),
+            "targetID": .string("fixture-1"),
             "value": .string(value),
-            "sensitive_text": .string(secret),
+            "sensitiveText": .string(secret),
         ]
     }
 
@@ -524,11 +524,11 @@ private struct FixtureMutationInput: AutomationActionInput {
     init(arguments: [String: JSONValue]) throws(AutomationActionError) {
         let arguments = try Arguments(
             arguments,
-            allowedKeys: ["target_id", "value", "sensitive_text"]
+            allowedKeys: ["targetID", "value", "sensitiveText"]
         )
-        targetID = try arguments.requiredString("target_id")
+        targetID = try arguments.requiredString("targetID")
         value = try arguments.requiredString("value")
-        sensitiveText = try arguments.requiredString("sensitive_text")
+        sensitiveText = try arguments.requiredString("sensitiveText")
     }
 }
 
@@ -544,16 +544,16 @@ private struct FixtureMutationAction: GuardedAutomationAction {
         description: "Exercise guarded mutation infrastructure in tests.",
         inputSchema: Schema.object(
             properties: [
-                "target_id": Schema.string(description: "Fixture target."),
+                "targetID": Schema.string(description: "Fixture target."),
                 "value": Schema.string(description: "Fixture value."),
-                "sensitive_text": Schema.string(description: "Sensitive fixture input."),
+                "sensitiveText": Schema.string(description: "Sensitive fixture input."),
             ],
-            required: ["target_id", "value", "sensitive_text"]
+            required: ["targetID", "value", "sensitiveText"]
         ),
         outputSchema: Schema.object(properties: [
-            "target_id": Schema.string(description: "Fixture target."),
+            "targetID": Schema.string(description: "Fixture target."),
             "value": Schema.string(description: "Committed value."),
-        ], required: ["target_id", "value"]),
+        ], required: ["targetID", "value"]),
         outputType: "fixture",
         supportedSurfaces: [.mcp, .cli, .appIntents],
         safety: .write

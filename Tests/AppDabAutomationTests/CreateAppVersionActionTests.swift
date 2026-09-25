@@ -64,6 +64,57 @@ struct CreateAppVersionActionTests {
         #expect(await provider.createAttempts == 0)
     }
 
+    @Test func typedCommitReturnsNativeVersionAndReplaysPersistedReceipt() async throws {
+        let provider = CreateVersionDataProvider()
+        let databaseURL = temporaryDatabaseURL()
+        func executor() -> Executor {
+            Executor(dataProvider: provider, auditStore: AutomationSQLiteAuditStore(databaseURL: databaseURL))
+        }
+        let input = CreateAppVersionInput(accountID: "account-1", appID: "app-1", platform: .iOS, version: "2.0")
+        let firstExecutor = executor()
+        let plan = try await firstExecutor.preview(CreateAppVersionAction.self, input: input, surface: .appIntents)
+        #expect(await provider.createAttempts == 0)
+        let version = try await firstExecutor.commit(
+            CreateAppVersionAction.self, input: input, surface: .appIntents,
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "typed-create"
+        )
+        #expect(version == AppVersion(
+            versionID: "version-1", platform: "iOS", state: "Prepare for Submission",
+            version: "2.0", createdDate: Date(timeIntervalSince1970: 2), isFirstVersion: false
+        ))
+        // A new executor must recover native property keys and the ISO 8601 date from disk.
+        let replay = try await executor().commit(
+            CreateAppVersionAction.self, input: input, surface: .appIntents,
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "typed-create"
+        )
+        #expect(replay == version)
+        #expect(await provider.createAttempts == 1)
+    }
+
+    @Test func typedCommitRejectsChangedInputAndRemoteState() async throws {
+        let provider = CreateVersionDataProvider()
+        let executor = Executor(dataProvider: provider, auditStore: AutomationSQLiteAuditStore(databaseURL: temporaryDatabaseURL()))
+        let input = CreateAppVersionInput(accountID: "account-1", appID: "app-1", platform: .iOS, version: "2.0")
+        let plan = try await executor.preview(CreateAppVersionAction.self, input: input, surface: .appIntents)
+        let changed = CreateAppVersionInput(accountID: "account-1", appID: "app-1", platform: .iOS, version: "3.0")
+        await #expect(throws: AutomationExecutionError.inputChanged) {
+            try await executor.commit(
+                CreateAppVersionAction.self, input: changed, surface: .appIntents,
+                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "changed-input"
+            )
+        }
+        await provider.addVersion("1.5")
+        await #expect(throws: AutomationExecutionError.preconditionFailed(
+            "The iOS versions for AppDab changed after preview."
+        )) {
+            try await executor.commit(
+                CreateAppVersionAction.self, input: input, surface: .appIntents,
+                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "changed-state"
+            )
+        }
+        #expect(await provider.createAttempts == 0)
+    }
+
     private func makeHarness(provider: CreateVersionDataProvider) throws -> CreateVersionHarness {
         let registry = try AutomationRegistry(actions: [.guarded(CreateAppVersionAction.self)])
         let executor = Executor(

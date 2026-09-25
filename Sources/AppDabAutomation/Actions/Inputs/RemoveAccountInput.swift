@@ -8,13 +8,13 @@ public struct RemoveAccountInput: AutomationActionInput {
     }
 
     public init(arguments: [String: JSONValue]) throws(AutomationActionError) {
-        let arguments = try Arguments(arguments, allowedKeys: ["account_id"])
-        accountID = try arguments.requiredString("account_id").trimmingCharacters(in: .whitespacesAndNewlines)
+        let arguments = try Arguments(arguments, allowedKeys: ["accountID"])
+        accountID = try arguments.requiredString("accountID").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     public func validate() throws(AutomationActionError) {
         guard !accountID.isEmpty else {
-            throw .invalidArguments("Argument account_id must be a nonempty string.")
+            throw .invalidArguments("Argument accountID must be a nonempty string.")
         }
     }
 }

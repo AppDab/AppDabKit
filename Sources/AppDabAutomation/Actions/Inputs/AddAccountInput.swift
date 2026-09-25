@@ -16,12 +16,12 @@ public struct AddAccountInput: AutomationActionInput {
     public init(arguments: [String: JSONValue]) throws(AutomationActionError) {
         let arguments = try Arguments(
             arguments,
-            allowedKeys: ["name", "key_id", "issuer_id", "private_key_file"]
+            allowedKeys: ["name", "keyID", "issuerID", "privateKeyFile"]
         )
         name = try arguments.requiredString("name").trimmingCharacters(in: .whitespacesAndNewlines)
-        keyID = try arguments.requiredString("key_id").trimmingCharacters(in: .whitespacesAndNewlines)
-        issuerID = try (arguments.optionalString("issuer_id") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        privateKeyFile = try arguments.requiredString("private_key_file")
+        keyID = try arguments.requiredString("keyID").trimmingCharacters(in: .whitespacesAndNewlines)
+        issuerID = try (arguments.optionalString("issuerID") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        privateKeyFile = try arguments.requiredString("privateKeyFile")
     }
 
     public func validate() throws(AutomationActionError) {
@@ -29,10 +29,10 @@ public struct AddAccountInput: AutomationActionInput {
             throw .invalidArguments("Argument name must be a nonempty string.")
         }
         guard !keyID.isEmpty else {
-            throw .invalidArguments("Argument key_id must be a nonempty string.")
+            throw .invalidArguments("Argument keyID must be a nonempty string.")
         }
         guard !privateKeyFile.isEmpty, privateKeyFile != "-" else {
-            throw .invalidArguments("Argument private_key_file must name a local file.")
+            throw .invalidArguments("Argument privateKeyFile must name a local file.")
         }
     }
 }

@@ -6,8 +6,8 @@ public struct RemoveAccountAction: GuardedAutomationAction {
         title: "Remove Account",
         description: "Remove an App Store Connect API key from the local AppDab Keychain.",
         inputSchema: Schema.object(properties: [
-            "account_id": Schema.string(description: "The AppDab account identifier.")
-        ], required: ["account_id"]),
+            "accountID": Schema.string(description: "The AppDab account identifier.")
+        ], required: ["accountID"]),
         outputSchema: Schema.object(properties: [
             "account": .object(["type": .string("object")])
         ], required: ["account"]),

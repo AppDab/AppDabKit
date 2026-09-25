@@ -10,17 +10,17 @@ public struct GetCustomerReviewInput: AutomationActionInput {
     }
 
     public init(arguments: [String: JSONValue]) throws(AutomationActionError) {
-        let arguments = try Arguments(arguments, allowedKeys: ["account_id", "review_id"])
-        accountID = try arguments.requiredString("account_id")
-        reviewID = try arguments.requiredString("review_id")
+        let arguments = try Arguments(arguments, allowedKeys: ["accountID", "reviewID"])
+        accountID = try arguments.requiredString("accountID")
+        reviewID = try arguments.requiredString("reviewID")
     }
 
     public func validate() throws(AutomationActionError) {
         guard !accountID.isEmpty else {
-            throw AutomationActionError.invalidArguments("Argument account_id must be a nonempty string.")
+            throw AutomationActionError.invalidArguments("Argument accountID must be a nonempty string.")
         }
         guard !reviewID.isEmpty else {
-            throw AutomationActionError.invalidArguments("Argument review_id must be a nonempty string.")
+            throw AutomationActionError.invalidArguments("Argument reviewID must be a nonempty string.")
         }
     }
 }

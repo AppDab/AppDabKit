@@ -18,10 +18,10 @@ public struct CreateAppVersionInput: AutomationActionInput {
     public init(arguments: [String: JSONValue]) throws(AutomationActionError) {
         let arguments = try Arguments(
             arguments,
-            allowedKeys: ["account_id", "app_id", "platform", "version"]
+            allowedKeys: ["accountID", "appID", "platform", "version"]
         )
-        accountID = try arguments.requiredString("account_id")
-        appID = try arguments.requiredString("app_id")
+        accountID = try arguments.requiredString("accountID")
+        appID = try arguments.requiredString("appID")
         let platformValue = try arguments.requiredString("platform")
         guard let platform = Platform(rawValue: platformValue) else {
             throw AutomationActionError.invalidArguments(
@@ -34,10 +34,10 @@ public struct CreateAppVersionInput: AutomationActionInput {
 
     public func validate() throws(AutomationActionError) {
         guard !accountID.isEmpty else {
-            throw AutomationActionError.invalidArguments("Argument account_id must be a nonempty string.")
+            throw AutomationActionError.invalidArguments("Argument accountID must be a nonempty string.")
         }
         guard !appID.isEmpty else {
-            throw AutomationActionError.invalidArguments("Argument app_id must be a nonempty string.")
+            throw AutomationActionError.invalidArguments("Argument appID must be a nonempty string.")
         }
         guard !version.isEmpty else {
             throw AutomationActionError.invalidArguments("Argument version must be a nonempty string.")

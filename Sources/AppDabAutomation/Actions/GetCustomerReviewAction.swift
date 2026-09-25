@@ -7,10 +7,10 @@ public struct GetCustomerReviewAction: AutomationAction {
         description: "Fetch a customer review and any published response for a configured App Store Connect account.",
         inputSchema: Schema.object(
             properties: [
-                "account_id": Schema.string(description: "The AppDab account identifier."),
-                "review_id": Schema.string(description: "The App Store Connect customer review identifier.")
+                "accountID": Schema.string(description: "The AppDab account identifier."),
+                "reviewID": Schema.string(description: "The App Store Connect customer review identifier.")
             ],
-            required: ["account_id", "review_id"]
+            required: ["accountID", "reviewID"]
         ),
         outputSchema: Schema.object(properties: [
             "review": .object(["type": .string("object")])

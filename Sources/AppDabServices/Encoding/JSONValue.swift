@@ -90,7 +90,6 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
 
     public static func fromEncodable(_ value: some Encodable, dateEncodingStrategy: JSONEncoder.DateEncodingStrategy = .iso8601) throws -> JSONValue {
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
         encoder.dateEncodingStrategy = dateEncodingStrategy
         let data = try encoder.encode(AnyEncodable(value))
         return try JSONDecoder().decode(JSONValue.self, from: data)

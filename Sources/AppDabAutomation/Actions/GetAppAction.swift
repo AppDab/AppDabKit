@@ -7,10 +7,10 @@ public struct GetAppAction: AutomationAction {
         description: "Fetch a specific app and its version details for a configured App Store Connect account.",
         inputSchema: Schema.object(
             properties: [
-                "account_id": Schema.string(description: "The AppDab account identifier."),
-                "app_id": Schema.string(description: "The App Store Connect app identifier.")
+                "accountID": Schema.string(description: "The AppDab account identifier."),
+                "appID": Schema.string(description: "The App Store Connect app identifier.")
             ],
-            required: ["account_id", "app_id"]
+            required: ["accountID", "appID"]
         ),
         outputSchema: Schema.object(properties: [
             "app": .object(["type": .string("object")])

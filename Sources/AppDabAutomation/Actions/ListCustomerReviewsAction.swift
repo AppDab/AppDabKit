@@ -7,8 +7,8 @@ public struct ListCustomerReviewsAction: AutomationAction {
         description: "List recent customer reviews for an app in a configured App Store Connect account.",
         inputSchema: Schema.object(
             properties: [
-                "account_id": Schema.string(description: "The AppDab account identifier."),
-                "app_id": Schema.string(description: "The App Store Connect app identifier."),
+                "accountID": Schema.string(description: "The AppDab account identifier."),
+                "appID": Schema.string(description: "The App Store Connect app identifier."),
                 "cursor": Schema.paginationCursor,
                 "limit": Schema.integer(
                     description: "Maximum reviews to return, from 1 through 200.",
@@ -17,15 +17,15 @@ public struct ListCustomerReviewsAction: AutomationAction {
                     default: PaginationRequest.defaultLimit
                 )
             ],
-            required: ["account_id", "app_id"]
+            required: ["accountID", "appID"]
         ),
         outputSchema: Schema.object(
             properties: [
-                "app_id": Schema.string(description: "The App Store Connect app identifier."),
+                "appID": Schema.string(description: "The App Store Connect app identifier."),
                 "reviews": .object(["type": .string("array")]),
                 "pagination": Schema.paginationOutput
             ],
-            required: ["app_id", "reviews", "pagination"]
+            required: ["appID", "reviews", "pagination"]
         ),
         outputType: "customer_reviews",
         supportedSurfaces: [.mcp, .cli, .appIntents],
