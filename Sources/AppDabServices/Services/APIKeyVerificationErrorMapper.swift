@@ -7,10 +7,10 @@ let invalidAPIKeyMessage = "The entered keys are invalid. Check that they match 
 
 enum APIKeyVerificationErrorResolution { case agreementIssue(AccountVerificationIssue); case invalidCredentials; case other(ServiceError) }
 
-func mapAPIKeyVerificationError(_ error: Error) -> APIKeyVerificationErrorResolution {
+func mapAPIKeyVerificationError(_ error: Error) throws -> APIKeyVerificationErrorResolution {
     if let issue = agreementIssue(from: error) { return .agreementIssue(issue) }
     if isUnauthorized(error) || appStoreConnectErrors(in: error).contains(where: { $0.code == "NOT_AUTHORIZED" }) { return .invalidCredentials }
-    return .other(ServiceError.classify(error))
+    return .other(try ServiceError.classify(error))
 }
 
 private func agreementIssue(from error: Error) -> AccountVerificationIssue? {

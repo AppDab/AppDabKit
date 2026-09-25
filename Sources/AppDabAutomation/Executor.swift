@@ -160,6 +160,10 @@ public final class Executor: Sendable {
     }
 
     private func normalizedError(_ error: Error) -> any Error {
+        if error is CancellationError || (error as NSError).domain == NSURLErrorDomain
+            && (error as NSError).code == URLError.cancelled.rawValue {
+            return error
+        }
         if let automationError = error as? AutomationActionError {
             return automationError
         }

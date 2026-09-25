@@ -37,16 +37,16 @@ public final class StoredAccountProvider: AccountProviding, APIKeyProviding, @un
             try await verifyAPIKeyHandler(apiKey)
             return .init(account: account)
         } catch {
-            switch mapAPIKeyVerificationError(error) {
+            switch try mapAPIKeyVerificationError(error) {
             case .agreementIssue(let issue):
                 return .init(
                     account: account,
                     issue: .init(message: issue.message, resolutionURL: issue.resolutionURL)
                 )
             case .invalidCredentials:
-                throw ServiceError.authentication(invalidAPIKeyMessage)
-            case .other:
-                throw error
+                throw ServiceError.authentication(invalidAPIKeyMessage, diagnostics: try ServiceError.classify(error).diagnostics)
+            case .other(let mapped):
+                throw mapped
             }
         }
     }

@@ -1,5 +1,11 @@
+import Foundation
+
 public enum AutomationErrorPresentation {
     public static func present(_ error: Error) -> AutomationPresentedError {
+        if error is CancellationError || (error as NSError).domain == NSURLErrorDomain
+            && (error as NSError).code == URLError.cancelled.rawValue {
+            return .init(code: "cancelled", message: "The operation was cancelled.")
+        }
         if let executionError = error as? AutomationExecutionError {
             return .init(
                 code: executionError.code,
