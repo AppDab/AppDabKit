@@ -12,7 +12,21 @@ public struct AppDetail: Codable, Equatable, Hashable, Sendable {
     public let primaryLocale: String
     public let iconURL: URL?
     public let contentRightsDeclaration: String?
-    public let versions: [AppVersion]
+    /// A reduced display projection, not an authoritative version collection.
+    public let displayVersions: [AppVersion]
+
+    private enum CodingKeys: String, CodingKey {
+        case appID
+        case name
+        case bundleID
+        case sku
+        case primaryLocale
+        case iconURL
+        case contentRightsDeclaration
+        // Keep the public response compatible while making the in process API
+        // explicit about this being a display only projection.
+        case displayVersions = "versions"
+    }
 
     public init(
         appID: String,
@@ -22,7 +36,7 @@ public struct AppDetail: Codable, Equatable, Hashable, Sendable {
         primaryLocale: String,
         iconURL: URL?,
         contentRightsDeclaration: String?,
-        versions: [AppVersion]
+        displayVersions: [AppVersion]
     ) {
         self.appID = appID
         self.name = name
@@ -31,7 +45,7 @@ public struct AppDetail: Codable, Equatable, Hashable, Sendable {
         self.primaryLocale = primaryLocale
         self.iconURL = iconURL
         self.contentRightsDeclaration = contentRightsDeclaration
-        self.versions = versions
+        self.displayVersions = displayVersions
     }
 
     init(app: App, iconAsset: ImageAsset?, versions: [AppStoreVersion]) {
@@ -43,7 +57,7 @@ public struct AppDetail: Codable, Equatable, Hashable, Sendable {
             primaryLocale: app.attributes?.primaryLocale ?? "",
             iconURL: iconAsset.flatMap { $0.getImageUrl() },
             contentRightsDeclaration: app.attributes?.contentRightsDeclaration.map(String.init(describing:)),
-            versions: AppVersion.deduplicated(versions)
+            displayVersions: AppVersion.displayProjection(versions)
         )
     }
 }

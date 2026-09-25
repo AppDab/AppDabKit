@@ -45,7 +45,7 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
         dataProvider: any AutomationDataProviding
     ) async throws -> AutomationMutationPreparation {
         let app = try await dataProvider.getApp(accountID: input.accountID, appID: input.appID)
-        let targetVersions = targetVersions(in: app, input: input)
+        let targetVersions = try await targetVersions(input: input, dataProvider: dataProvider)
         guard !targetVersions.contains(where: { $0.version == input.version }) else {
             throw AutomationActionError.invalidArguments(
                 "Version \(input.version) already exists for \(input.platform.prettyName) on \(app.name)."
@@ -65,7 +65,7 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
     ) async throws {
         let app = try await dataProvider.getApp(accountID: input.accountID, appID: input.appID)
         let currentPreconditions = try remotePreconditions(
-            for: targetVersions(in: app, input: input),
+            for: try await targetVersions(input: input, dataProvider: dataProvider),
             input: input
         )
         guard plan.remotePreconditions == currentPreconditions else {
@@ -93,8 +93,7 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
         plan: AutomationMutationPlan,
         dataProvider: any AutomationDataProviding
     ) async throws -> AutomationMutationReconciliation<AppVersion> {
-        let app = try await dataProvider.getApp(accountID: input.accountID, appID: input.appID)
-        let targetVersions = targetVersions(in: app, input: input)
+        let targetVersions = try await targetVersions(input: input, dataProvider: dataProvider)
         if let version = targetVersions.first(where: { $0.version == input.version }) {
             return .succeeded(version)
         }
@@ -126,12 +125,25 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
     }
 
     private func targetVersions(
-        in app: AppDetail,
-        input: CreateAppVersionInput
-    ) -> [AppVersion] {
-        app.versions
-            .filter { $0.platform == input.platform.prettyName }
-            .sorted { $0.versionID < $1.versionID }
+        input: CreateAppVersionInput,
+        dataProvider: any AutomationDataProviding
+    ) async throws -> [AppVersion] {
+        var versions = [AppVersion]()
+        var cursor: String?
+        var seenCursors = Set<String>()
+        repeat {
+            let page = try await dataProvider.listAppVersions(
+                accountID: input.accountID, appID: input.appID,
+                filter: .init(platforms: [input.platform]),
+                pagination: .init(cursor: cursor, limit: PaginationRequest.maximumLimit)
+            )
+            versions.append(contentsOf: page.versions)
+            cursor = page.pagination.nextCursor
+            if let cursor, !seenCursors.insert(cursor).inserted {
+                throw ServiceError.upstream("App Store Connect returned a repeated version cursor.")
+            }
+        } while cursor != nil
+        return versions.sorted { $0.versionID < $1.versionID }
     }
 
     private func remotePreconditions(

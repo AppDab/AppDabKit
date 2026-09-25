@@ -27,6 +27,14 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.appCatalogService.getApp(accountID: accountID, appID: appID)
     }
 
+    public func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList {
+        try await services.appCatalogService.listAppVersions(accountID: accountID, appID: appID, filter: filter, pagination: pagination)
+    }
+
+    public func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion {
+        try await services.appCatalogService.getAppVersion(accountID: accountID, appID: appID, versionID: versionID)
+    }
+
     public func createAppVersion(
         accountID: String,
         appID: String,

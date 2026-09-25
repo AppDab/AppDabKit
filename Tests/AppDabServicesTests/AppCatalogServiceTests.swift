@@ -7,7 +7,7 @@ import Testing
 
 struct AppCatalogServiceTests {
     @Test func deduplicatesVersionsByPlatformAndStateKeepingNewestRecord() {
-        let versions = AppVersion.deduplicated([
+        let versions = AppVersion.displayProjection([
             appStoreVersion(id: "older", platform: .iOS, state: .readyForDistribution, version: "1.0", createdDate: 100),
             appStoreVersion(id: "newer", platform: .iOS, state: .readyForDistribution, version: "1.1", createdDate: 200),
             appStoreVersion(id: "replaced", platform: .iOS, state: .replacedWithNewVersion, version: "0.9", createdDate: 50),
@@ -18,7 +18,7 @@ struct AppCatalogServiceTests {
     }
 
     @Test func appVersionServiceModelUsesPrettyNames() {
-        let version = AppVersion.deduplicated([
+        let version = AppVersion.displayProjection([
             appStoreVersion(id: "version", platform: .iOS, state: .readyForDistribution, version: "1.0", createdDate: 100)
         ])
 
@@ -44,7 +44,7 @@ struct AppCatalogServiceTests {
                         primaryLocale: "en-US",
                         iconURL: nil,
                         contentRightsDeclaration: nil,
-                        versions: []
+                        displayVersions: []
                     )
                 ], total: 2, nextCursor: "cursor-2")
             }

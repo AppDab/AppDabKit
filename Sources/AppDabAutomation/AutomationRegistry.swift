@@ -8,6 +8,8 @@ public struct AutomationRegistry: Sendable {
                 AnyAutomationAction(VerifyAccountAction.self),
                 AnyAutomationAction(ListAppsAction.self),
                 AnyAutomationAction(GetAppAction.self),
+                AnyAutomationAction(ListAppVersionsAction.self),
+                AnyAutomationAction(GetAppVersionAction.self),
                 AnyAutomationAction.guarded(CreateAppVersionAction.self),
                 AnyAutomationAction(ListCustomerReviewsAction.self),
                 AnyAutomationAction(GetCustomerReviewAction.self)

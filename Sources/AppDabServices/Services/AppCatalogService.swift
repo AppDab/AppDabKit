@@ -9,6 +9,11 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
     public typealias FetchAppHandler = @Sendable (APIKey, String) async throws -> AppDetail
     public typealias CreateAppVersionHandler = @Sendable (APIKey, String, String, String) async throws -> AppVersion
 
+    public typealias ListAppVersionsHandler = @Sendable (APIKey, String, AppVersionFilter, PaginationRequest) async throws -> AppVersionList
+    public typealias GetAppVersionHandler = @Sendable (APIKey, String, String) async throws -> AppVersion
+    private let listAppVersionsHandler: ListAppVersionsHandler
+    private let getAppVersionHandler: GetAppVersionHandler
+
     private let accountProvider: any APIKeyProviding
     private let fetchAppsHandler: FetchAppsHandler
     private let fetchAppHandler: FetchAppHandler
@@ -23,8 +28,12 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         accountProvider: any APIKeyProviding,
         fetchAppsHandler: FetchAppsHandler? = nil,
         fetchAppHandler: FetchAppHandler? = nil,
-        createAppVersionHandler: CreateAppVersionHandler? = nil
+        createAppVersionHandler: CreateAppVersionHandler? = nil,
+        listAppVersionsHandler: ListAppVersionsHandler? = nil,
+        getAppVersionHandler: GetAppVersionHandler? = nil
     ) {
+        self.listAppVersionsHandler = listAppVersionsHandler ?? Self.listAppVersionsLive
+        self.getAppVersionHandler = getAppVersionHandler ?? Self.getAppVersionLive
         self.accountProvider = accountProvider
         self.fetchAppsHandler = fetchAppsHandler ?? Self.fetchAppsLive
         self.fetchAppHandler = fetchAppHandler ?? Self.fetchAppLive
@@ -46,6 +55,89 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
 
     public func getApp(accountID: String, appID: String) async throws -> AppDetail {
         try await fetchApp(accountID: accountID, appID: appID)
+    }
+
+    public func listAppVersions(
+        accountID: String, appID: String, filter: AppVersionFilter = .init(), pagination: PaginationRequest = .init()
+    ) async throws -> AppVersionList {
+        try pagination.validate()
+        let key = try await accountProvider.apiKey(forAccountID: accountID)
+        do {
+            return try await listAppVersionsHandler(key, appID, filter, pagination)
+        } catch {
+            throw ServiceError.classify(error)
+        }
+    }
+
+    public func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion {
+        let key = try await accountProvider.apiKey(forAccountID: accountID)
+        do {
+            return try await getAppVersionHandler(key, appID, versionID)
+        } catch {
+            throw ServiceError.classify(error)
+        }
+    }
+
+    static func versionsRequest(
+        appID: String, filter: AppVersionFilter, pagination: PaginationRequest
+    ) throws -> Request<AppStoreVersionsResponse, ErrorResponse> {
+        var filters: [ListAppStoreVersionsForAppV1.Filter] = []
+        if !filter.platforms.isEmpty { filters.append(.platform(filter.platforms)) }
+        if !filter.states.isEmpty { filters.append(.appVersionState(filter.states)) }
+        if !filter.versions.isEmpty { filters.append(.versionString(filter.versions)) }
+        if !filter.versionIDs.isEmpty { filters.append(.id(filter.versionIDs)) }
+        let request: Request<AppStoreVersionsResponse, ErrorResponse> = .listAppStoreVersionsForAppV1(
+            id: appID, filters: filters, limits: [.limit(try pagination.resolvedLimit())]
+        )
+        return request.withPaginationCursor(try pagination.validatedCursor())
+    }
+
+    private static func listAppVersionsLive(
+        key: APIKey, appID: String, filter: AppVersionFilter, pagination: PaginationRequest
+    ) async throws -> AppVersionList {
+        let service = BagbutikService(jwt: key.jwt)
+        let response = try await service.request(versionsRequest(appID: appID, filter: filter, pagination: pagination))
+        var firstVersionByPlatform: [Platform: Bool] = [:]
+        for platform in Set(response.data.compactMap { $0.attributes?.platform }) {
+            firstVersionByPlatform[platform] = try await isOnlyVersion(service: service, appID: appID, platform: platform)
+        }
+        return try versionPage(response: response, appID: appID, pagination: pagination, firstVersionByPlatform: firstVersionByPlatform)
+    }
+
+    static func versionPage(
+        response: AppStoreVersionsResponse, appID: String, pagination: PaginationRequest,
+        firstVersionByPlatform: [Platform: Bool]
+    ) throws -> AppVersionList {
+        return .init(
+            appID: appID,
+            versions: response.data.map {
+                .init(appStoreVersion: $0, isFirstVersion: firstVersionByPlatform[$0.attributes?.platform ?? .iOS] ?? false)
+            },
+            pagination: try paginationMetadata(
+                limit: pagination.resolvedLimit(), total: response.meta?.paging.total,
+                nextCursor: PaginationCursor.extract(from: response.links.next)
+            )
+        )
+    }
+
+    private static func getAppVersionLive(key: APIKey, appID: String, versionID: String) async throws -> AppVersion {
+        let service = BagbutikService(jwt: key.jwt)
+        let response = try await service.request(.getAppStoreVersionV1(id: versionID, includes: [.app]))
+        guard response.data.relationships?.app?.data?.id == appID else {
+            throw ServiceError.invalidArguments("The requested version does not belong to the specified app.")
+        }
+        let first = try await isOnlyVersion(service: service, appID: appID, platform: response.data.attributes?.platform ?? .iOS)
+        return .init(appStoreVersion: response.data, isFirstVersion: first)
+    }
+
+    private static func isOnlyVersion(service: BagbutikService, appID: String, platform: Platform) async throws -> Bool {
+        let response = try await service.request(.listAppStoreVersionsForAppV1(
+            id: appID, filters: [.platform([platform])], limits: [.limit(0)]
+        ))
+        guard let total = response.meta?.paging.total else {
+            throw ServiceError.upstream("App Store Connect did not provide a version total.")
+        }
+        return total == 1
     }
 
     public func createAppVersion(

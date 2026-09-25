@@ -78,7 +78,7 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
             primaryLocale: "en-US",
             iconURL: nil,
             contentRightsDeclaration: "doesNotUseThirdPartyContent",
-            versions: [appVersion]
+            displayVersions: [appVersion]
         )
     }
 
@@ -115,6 +115,18 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
             total: limit == 1 ? 2 : 1,
             nextCursor: limit == 1 ? "next-review" : nil
         ))
+    }
+
+    public func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList {
+        if let appError { throw appError }
+        let versions = returnsEmptyCollections ? [] : [appVersion]
+        return try .init(appID: appID, versions: versions, pagination: .init(limit: pagination.resolvedLimit(), total: versions.count, nextCursor: nil))
+    }
+
+    public func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion {
+        if let appError { throw appError }
+        guard !returnsEmptyCollections, versionID == appVersion.versionID else { throw ServiceError.upstream("Version not found.") }
+        return appVersion
     }
 
     public func getCustomerReview(accountID: String, reviewID: String) async throws -> AppDabServices.CustomerReview {

@@ -38,7 +38,7 @@ public struct AppVersion: Codable, Equatable, Hashable, Sendable {
         )
     }
 
-    static func deduplicated(_ versions: [AppStoreVersion]) -> [Self] {
+    static func displayProjection(_ versions: [AppStoreVersion]) -> [Self] {
         let firstVersionCounts = versions.reduce(into: [Platform: Int]()) { counts, version in
             guard let platform = version.attributes?.platform else { return }
             counts[platform, default: 0] += 1
