@@ -107,6 +107,21 @@ public final class Executor: Sendable {
         confirmationFingerprint: String,
         idempotencyKey: String
     ) async throws -> Action.Output {
+        guard let output = try await commitResult(
+            actionType, input: input, confirmationFingerprint: confirmationFingerprint,
+            idempotencyKey: idempotencyKey
+        ).output else {
+            throw AutomationExecutionError.persistence("A committed action returned no output.")
+        }
+        return output
+    }
+
+    public func commitResult<Action: ReplayableGuardedAutomationAction>(
+        _ actionType: Action.Type,
+        input: Action.Input,
+        confirmationFingerprint: String,
+        idempotencyKey: String
+    ) async throws -> AutomationTypedResult<Action.Output> {
         do {
             let request = try guardedRequest(actionType, input: input, context: .init(
                 mode: .commit,
@@ -121,9 +136,29 @@ public final class Executor: Sendable {
                     response: .init(actionID: request.actionID, summary: action.summary(for: output), data: action.data(for: output)),
                     redactedReplayData: action.redactedReplayData(for: output)
                 ), output)
-            }, result: { _, output in output }, replay: { response in
-                try action.output(fromReplayData: response.data)
+            }, result: { response, output in .init(response: response, output: output) }, replay: { response in
+                try .init(response: response, output: action.output(fromReplayData: response.data))
             })
+        } catch {
+            throw normalizedError(error)
+        }
+    }
+
+    public func reconcileResult<Action: ReplayableGuardedAutomationAction>(
+        _ actionType: Action.Type,
+        input: Action.Input,
+        confirmationFingerprint: String,
+        idempotencyKey: String
+    ) async throws -> AutomationTypedResult<Action.Output> {
+        do {
+            let request = try guardedRequest(actionType, input: input, context: .init(
+                mode: .reconcile,
+                confirmationFingerprint: confirmationFingerprint,
+                idempotencyKey: idempotencyKey
+            ))
+            let response = try await execute(request)
+            let output = response.receipt == nil ? nil : try actionType.init().output(fromReplayData: response.data)
+            return .init(response: response, output: output)
         } catch {
             throw normalizedError(error)
         }
