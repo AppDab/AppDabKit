@@ -1,6 +1,7 @@
 import AppDabServices
+import Foundation
 
-public struct RemoveAccountAction: GuardedAutomationAction {
+public struct RemoveAccountAction: ReplayableGuardedAutomationAction {
     public static let descriptor = AutomationActionDescriptor(
         id: .removeAccount,
         title: "Remove Account",
@@ -55,6 +56,13 @@ public struct RemoveAccountAction: GuardedAutomationAction {
 
     public func redactedReplayData(for output: AccountSummary) throws -> JSONValue {
         try data(for: output)
+    }
+
+    public func output(fromReplayData data: JSONValue) throws -> AccountSummary {
+        struct Replay: Decodable {
+            let account: AccountSummary
+        }
+        return try JSONDecoder().decode(Replay.self, from: JSONEncoder().encode(data)).account
     }
 
     private func account(withID accountID: String, dataProvider: any AutomationDataProviding) async throws -> AccountSummary {

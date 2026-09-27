@@ -2,7 +2,7 @@ import AppDabServices
 import ConnectAccounts
 import Foundation
 
-public struct AddAccountAction: GuardedAutomationAction {
+public struct AddAccountAction: ReplayableGuardedAutomationAction {
     public static let descriptor = AutomationActionDescriptor(
         id: .addAccount,
         title: "Add Account",
@@ -74,6 +74,10 @@ public struct AddAccountAction: GuardedAutomationAction {
 
     public func redactedReplayData(for output: AccountAddition) throws -> JSONValue {
         try data(for: output)
+    }
+
+    public func output(fromReplayData data: JSONValue) throws -> AccountAddition {
+        try JSONDecoder().decode(AccountAddition.self, from: JSONEncoder().encode(data))
     }
 
     private func readPrivateKey(at path: String) throws(AutomationActionError) -> String {
