@@ -90,7 +90,8 @@ public final class Executor: Sendable {
     ) async throws -> AutomationMutationPlan {
         do {
             let request = try guardedRequest(actionType, input: input, context: .init(mode: .preview))
-            let response = try await execute(request)
+            let preparation = try await actionType.init().prepareMutation(input: input, dataProvider: dataProvider)
+            let response = try await preview(request: request, preparation: preparation)
             guard let plan = response.plan else {
                 throw AutomationExecutionError.persistence("A mutation preview is missing its plan.")
             }
@@ -128,14 +129,12 @@ public final class Executor: Sendable {
                 confirmationFingerprint: confirmationFingerprint,
                 idempotencyKey: idempotencyKey
             ))
-            let registered = try registry.action(for: request.actionID)
             let action = actionType.init()
-            return try await commit(action: registered, request: request, perform: { plan in
+            return try await commit(request: request, validate: { plan in
+                try await action.validateMutation(input: input, plan: plan, dataProvider: self.dataProvider)
+            }, perform: { plan in
                 let output = try await action.commitMutation(input: input, plan: plan, dataProvider: self.dataProvider)
-                return (try CommittedResponse(
-                    response: .init(actionID: request.actionID, summary: action.summary(for: output), data: action.data(for: output)),
-                    redactedReplayData: action.redactedReplayData(for: output)
-                ), output)
+                return (try self.committedResponse(action: action, output: output), output)
             }, result: { response, output in .init(response: response, output: output) }, replay: { response in
                 try .init(response: response, output: action.output(fromReplayData: response.data))
             })
@@ -156,9 +155,21 @@ public final class Executor: Sendable {
                 confirmationFingerprint: confirmationFingerprint,
                 idempotencyKey: idempotencyKey
             ))
-            let response = try await execute(request)
-            let output = response.receipt == nil ? nil : try actionType.init().output(fromReplayData: response.data)
-            return .init(response: response, output: output)
+            let action = actionType.init()
+            return try await reconcile(request: request, perform: { plan in
+                switch try await action.reconcileMutation(input: input, plan: plan, dataProvider: self.dataProvider) {
+                case .succeeded(let output):
+                    return (.succeeded(try self.committedResponse(action: action, output: output)), output)
+                case .notApplied:
+                    return (.notApplied, nil)
+                case .unresolved:
+                    return (.unresolved, nil)
+                }
+            }, result: { response, output in
+                .init(response: response, output: output)
+            }, replay: { response in
+                try .init(response: response, output: action.output(fromReplayData: response.data))
+            })
         } catch {
             throw normalizedError(error)
         }
@@ -215,6 +226,13 @@ public final class Executor: Sendable {
             arguments: request.arguments,
             dataProvider: dataProvider
         )
+        return try await preview(request: request, preparation: preparation)
+    }
+
+    private func preview(
+        request: AutomationRequest,
+        preparation: AutomationMutationPreparation
+    ) async throws -> AutomationResponse {
         let createdAt = now()
         let inputHash = try hash(.object(request.arguments))
         let planID = makePlanID()
@@ -251,7 +269,11 @@ public final class Executor: Sendable {
         action: AnyAutomationAction,
         request: AutomationRequest
     ) async throws -> AutomationResponse {
-        try await commit(action: action, request: request, perform: { plan in
+        try await commit(request: request, validate: { plan in
+            try await action.validateMutation(
+                arguments: request.arguments, plan: plan, dataProvider: self.dataProvider
+            )
+        }, perform: { plan in
             let committed = try await action.commitMutation(
                 arguments: request.arguments, plan: plan, dataProvider: self.dataProvider
             )
@@ -260,8 +282,8 @@ public final class Executor: Sendable {
     }
 
     private func commit<Output, Result>(
-        action: AnyAutomationAction,
         request: AutomationRequest,
+        validate: (AutomationMutationPlan) async throws -> Void,
         perform: (AutomationMutationPlan) async throws -> (CommittedResponse, Output),
         result: (AutomationResponse, Output) -> Result,
         replay: (AutomationResponse) throws -> Result
@@ -291,11 +313,7 @@ public final class Executor: Sendable {
             confirmationFingerprint: confirmation.fingerprint,
             requireUnexpired: true
         )
-        try await action.validateMutation(
-            arguments: request.arguments,
-            plan: plan,
-            dataProvider: dataProvider
-        )
+        try await validate(plan)
 
         let claimID: String
         switch try await auditStore.beginCommit(
@@ -343,6 +361,20 @@ public final class Executor: Sendable {
         action: AnyAutomationAction,
         request: AutomationRequest
     ) async throws -> AutomationResponse {
+        try await reconcile(request: request, perform: { plan in
+            let reconciliation = try await action.reconcileMutation(
+                arguments: request.arguments, plan: plan, dataProvider: self.dataProvider
+            )
+            return (reconciliation, Optional<Void>.none)
+        }, result: { response, _ in response }, replay: { $0 })
+    }
+
+    private func reconcile<Output, Result>(
+        request: AutomationRequest,
+        perform: (AutomationMutationPlan) async throws -> (MutationReconciliation, Output?),
+        result: (AutomationResponse, Output?) -> Result,
+        replay: (AutomationResponse) throws -> Result
+    ) async throws -> Result {
         let confirmation = try confirmation(from: request.executionContext)
         let claimID: String
         switch try await auditStore.beginReconciliation(
@@ -352,7 +384,7 @@ public final class Executor: Sendable {
             pendingLeaseDuration: pendingLeaseDuration
         ) {
         case .replay(let receipt):
-            return try replayResponse(receipt, request: request)
+            return try replay(replayResponse(receipt, request: request))
         case .reconcile(let reconciliationClaimID):
             claimID = reconciliationClaimID
         }
@@ -364,11 +396,8 @@ public final class Executor: Sendable {
                 confirmationFingerprint: confirmation.fingerprint,
                 requireUnexpired: false
             )
-            switch try await action.reconcileMutation(
-                arguments: request.arguments,
-                plan: plan,
-                dataProvider: dataProvider
-            ) {
+            let (reconciliation, output) = try await perform(plan)
+            switch reconciliation {
             case .succeeded(let committed):
                 let receipt = AutomationMutationReceipt(
                     actionID: committed.response.actionID,
@@ -380,23 +409,23 @@ public final class Executor: Sendable {
                     committedAt: now()
                 )
                 try await auditStore.completeReconciliation(receipt, claimID: claimID)
-                return .init(
+                return result(.init(
                     actionID: committed.response.actionID,
                     summary: committed.response.summary,
                     data: committed.response.data,
                     receipt: receipt
-                )
+                ), output)
             case .notApplied:
                 try await auditStore.resolveNotApplied(
                     confirmationFingerprint: confirmation.fingerprint,
                     idempotencyKey: confirmation.key,
                     claimID: claimID
                 )
-                return .init(
+                return result(.init(
                     actionID: request.actionID,
                     summary: "Reconciliation confirmed that no mutation was applied.",
                     data: .object([:])
-                )
+                ), nil)
             case .unresolved:
                 throw AutomationExecutionError.reconciliationUnresolved
             }
@@ -407,6 +436,20 @@ public final class Executor: Sendable {
             )
             throw error
         }
+    }
+
+    private func committedResponse<Action: GuardedAutomationAction>(
+        action: Action,
+        output: Action.Output
+    ) throws -> CommittedResponse {
+        try .init(
+            response: .init(
+                actionID: Action.descriptor.id,
+                summary: action.summary(for: output),
+                data: action.data(for: output)
+            ),
+            redactedReplayData: action.redactedReplayData(for: output)
+        )
     }
 
     private func validatedPlan(
