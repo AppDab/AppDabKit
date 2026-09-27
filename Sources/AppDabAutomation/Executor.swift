@@ -45,6 +45,18 @@ public final class Executor: Sendable {
                     dataProvider: dataProvider
                 )
             case .write:
+                if action.supportsDirectWriteExecution {
+                    guard request.executionContext.mode == .execute else {
+                        throw AutomationExecutionError.unsupportedExecutionMode(
+                            action: request.actionID.rawValue,
+                            mode: request.executionContext.mode
+                        )
+                    }
+                    return try await action.execute(
+                        arguments: request.arguments,
+                        dataProvider: dataProvider
+                    )
+                }
                 switch request.executionContext.mode {
                 case .execute, .preview:
                     return try await preview(action: action, request: request)
@@ -70,7 +82,7 @@ public final class Executor: Sendable {
                     "The registered action for \(actionType.descriptor.id.rawValue) does not match the requested implementation."
                 )
             }
-            guard actionType.descriptor.safety != .write else {
+            guard actionType.descriptor.safety != .write || actionType.supportsDirectWriteExecution else {
                 throw AutomationExecutionError.unsupportedExecutionMode(
                     action: actionType.descriptor.id.rawValue,
                     mode: .execute

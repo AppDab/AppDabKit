@@ -3,8 +3,8 @@ public struct AutomationRegistry: Sendable {
         do {
             return try AutomationRegistry(actions: [
                 AnyAutomationAction(ListAccountsAction.self),
-                AnyAutomationAction.guarded(AddAccountAction.self),
-                AnyAutomationAction.guarded(RemoveAccountAction.self),
+                AnyAutomationAction(AddAccountAction.self),
+                AnyAutomationAction(RemoveAccountAction.self),
                 AnyAutomationAction(VerifyAccountAction.self),
                 AnyAutomationAction(ListAppsAction.self),
                 AnyAutomationAction(GetAppAction.self),
@@ -32,9 +32,9 @@ public struct AutomationRegistry: Sendable {
             }
             switch action.descriptor.safety {
             case .write:
-                guard action.supportsGuardedMutation else {
+                guard action.supportsGuardedMutation || action.supportsDirectWriteExecution else {
                     throw AutomationActionError.invalidArguments(
-                        "Write action \(action.descriptor.id.rawValue) must be registered with AnyAutomationAction.guarded."
+                        "Write action \(action.descriptor.id.rawValue) must support guarded or direct execution."
                     )
                 }
             case .read, .draft:

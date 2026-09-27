@@ -2,6 +2,7 @@ import AppDabServices
 
 public struct AnyAutomationAction: Sendable {
     public let descriptor: AutomationActionDescriptor
+    public let supportsDirectWriteExecution: Bool
     private let actionTypeID: ObjectIdentifier
     private let executeAction: @Sendable ([String: JSONValue], any AutomationDataProviding) async throws -> AutomationResponse
     private let prepareAction: (@Sendable ([String: JSONValue], any AutomationDataProviding) async throws -> AutomationMutationPreparation)?
@@ -69,6 +70,7 @@ public struct AnyAutomationAction: Sendable {
         reconcileAction: (@Sendable ([String: JSONValue], AutomationMutationPlan, any AutomationDataProviding) async throws -> MutationReconciliation)?
     ) {
         descriptor = actionType.descriptor
+        supportsDirectWriteExecution = actionType.supportsDirectWriteExecution
         actionTypeID = ObjectIdentifier(actionType)
         executeAction = { arguments, dataProvider in
             let action = actionType.init()
