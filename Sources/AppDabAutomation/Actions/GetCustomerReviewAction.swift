@@ -13,7 +13,7 @@ public struct GetCustomerReviewAction: AutomationAction {
             required: ["accountID", "reviewID"]
         ),
         outputSchema: Schema.object(properties: [
-            "review": .object(["type": .string("object")])
+            "review": Schema.customerReviewOutput
         ], required: ["review"]),
         outputType: "customer_review",
         safety: .read

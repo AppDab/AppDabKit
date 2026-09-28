@@ -25,11 +25,11 @@ public struct ListAppVersionsAction: AutomationAction {
         ),
         outputSchema: Schema.object(
             properties: [
-                "app_id": Schema.string(description: "The App Store Connect app identifier."),
-                "versions": .object(["type": .string("array")]),
+                "appID": Schema.string(description: "The App Store Connect app identifier."),
+                "versions": Schema.array(items: Schema.appVersionOutput),
                 "pagination": Schema.paginationOutput
             ],
-            required: ["app_id", "versions", "pagination"]
+            required: ["appID", "versions", "pagination"]
         ),
         outputType: "app_versions",
         safety: .read

@@ -14,7 +14,7 @@ public struct GetAppVersionAction: AutomationAction {
             required: ["account_id", "app_id", "version_id"]
         ),
         outputSchema: Schema.object(properties: [
-            "version": .object(["type": .string("object")])
+            "version": Schema.appVersionOutput
         ], required: ["version"]),
         outputType: "version",
         safety: .read

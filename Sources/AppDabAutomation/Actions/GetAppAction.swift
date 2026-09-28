@@ -13,7 +13,7 @@ public struct GetAppAction: AutomationAction {
             required: ["accountID", "appID"]
         ),
         outputSchema: Schema.object(properties: [
-            "app": .object(["type": .string("object")])
+            "app": Schema.appDetailOutput
         ], required: ["app"]),
         outputType: "app",
         safety: .read

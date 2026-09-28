@@ -14,8 +14,8 @@ public struct AddAccountAction: AutomationAction {
             "privateKeyFile": Schema.string(description: "The path to a local .p8 private key file.")
         ], required: ["name", "keyID", "privateKeyFile"]),
         outputSchema: Schema.object(properties: [
-            "account": .object(["type": .string("object")]),
-            "issue": .object(["type": .string("object")])
+            "account": Schema.accountSummaryOutput,
+            "issue": Schema.accountIssueOutput
         ], required: ["account"]),
         outputType: "account_addition",
         safety: .write
