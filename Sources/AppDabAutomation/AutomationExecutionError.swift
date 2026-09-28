@@ -54,7 +54,7 @@ public enum AutomationExecutionError: Error, Equatable, LocalizedError, Sendable
         case .idempotencyCollision:
             "The idempotency key was already used with different input."
         case .commitBlocked(let status):
-            "The idempotency key has a \(status.rawValue) outcome and must be reconciled before retrying."
+            "The mutation preview or idempotency key already has a \(status.rawValue) outcome. Use the original idempotency key to recover the operation."
         case .indeterminate:
             "The mutation outcome is indeterminate. Reconcile remote state before retrying."
         case .reconciliationUnresolved:

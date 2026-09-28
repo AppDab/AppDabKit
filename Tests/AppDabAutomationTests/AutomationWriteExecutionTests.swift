@@ -73,6 +73,12 @@ struct AutomationWriteExecutionTests {
         }
 
         var reconciliationClaimID: String?
+        await #expect(throws: AutomationExecutionError.commitBlocked(state == "pending" ? .pending : .indeterminate)) {
+            try await AutomationSQLiteAuditStore(databaseURL: databaseURL).beginCommit(
+                actionID: plan.actionID, confirmationFingerprint: plan.confirmationFingerprint,
+                idempotencyKey: "replacement", now: plan.createdAt
+            )
+        }
         if state == "reconciling" {
             let claim = try await harness.store.beginReconciliation(
                 confirmationFingerprint: plan.confirmationFingerprint,
@@ -284,19 +290,63 @@ struct AutomationWriteExecutionTests {
         #expect(await provider.mutationAttempts == 2)
     }
 
-    @Test func concurrentStoresAtomicallyClaimOneIdempotencyKey() async throws {
+    @Test func concurrentCommitsWithDifferentKeysMutateOnlyOnce() async throws {
+        let databaseURL = temporaryDatabaseURL()
+        let provider = FixtureMutationDataProvider()
+        let first = try makeHarness(provider: provider, store: .init(databaseURL: databaseURL))
+        let second = try makeHarness(provider: provider, store: .init(databaseURL: databaseURL))
+        let arguments = fixtureArguments()
+        let plan = try #require(try await first.preview(arguments: arguments).plan)
+        // Both callers must observe the original remote state before either can mutate.
+        await provider.synchronizeNextTwoSnapshots()
+        let outcomes = await withTaskGroup(of: String.self, returning: [String].self) { group in
+            for (index, harness) in [first, second].enumerated() {
+                group.addTask {
+                    do {
+                        _ = try await harness.commit(arguments: arguments, plan: plan, key: "caller-\(index)")
+                        return "succeeded"
+                    } catch let error as AutomationExecutionError {
+                        return error.code
+                    } catch {
+                        return "unexpected: \(error)"
+                    }
+                }
+            }
+            var outcomes = [String]()
+            for await outcome in group { outcomes.append(outcome) }
+            return outcomes
+        }
+        #expect(outcomes.sorted() == ["commit_blocked", "succeeded"])
+        #expect(await provider.mutationAttempts == 1)
+        let records = try await first.store.auditRecords()
+        #expect(records.count == 1)
+        let record = try #require(records.first)
+        let replay = try await second.commit(arguments: arguments, plan: plan, key: record.idempotencyKey)
+        #expect(replay.receipt == record.receipt)
+        #expect(await provider.mutationAttempts == 1)
+        // A caller that validated before completion must still be blocked after the plan is consumed.
+        await #expect(throws: AutomationExecutionError.commitBlocked(.succeeded)) {
+            try await second.store.beginCommit(
+                actionID: fixtureActionID, confirmationFingerprint: plan.confirmationFingerprint,
+                idempotencyKey: "late-caller", now: plan.createdAt
+            )
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func concurrentStoresAtomicallyClaimOnePreview(differentKeys: Bool) async throws {
         let databaseURL = temporaryDatabaseURL()
         let firstStore = AutomationSQLiteAuditStore(databaseURL: databaseURL)
         let secondStore = AutomationSQLiteAuditStore(databaseURL: databaseURL)
 
         let outcomes = await withTaskGroup(of: String.self, returning: [String].self) { group in
-            for store in [firstStore, secondStore] {
+            for (index, store) in [firstStore, secondStore].enumerated() {
                 group.addTask {
                     do {
                         let claim = try await store.beginCommit(
                             actionID: fixtureActionID,
                             confirmationFingerprint: "fingerprint",
-                            idempotencyKey: "concurrent",
+                            idempotencyKey: differentKeys ? "concurrent-\(index)" : "concurrent",
                             now: Date(timeIntervalSince1970: 1_000)
                         )
                         if case .execute = claim { return "execute" }
@@ -736,6 +786,8 @@ private enum FixtureFailure: Sendable {
 }
 
 private actor FixtureMutationDataProvider: FixtureMutationProviding {
+    private var synchronizeSnapshots = false
+    private var snapshotWaiter: CheckedContinuation<Void, Never>?
     private var value = "old"
     private var revision = 1
     private var failure: FixtureFailure?
@@ -756,8 +808,22 @@ private actor FixtureMutationDataProvider: FixtureMutationProviding {
         revision += 1
     }
 
-    func fixtureSnapshot() -> FixtureSnapshot {
-        .init(value: value, revision: revision)
+    func synchronizeNextTwoSnapshots() {
+        synchronizeSnapshots = true
+    }
+
+    func fixtureSnapshot() async -> FixtureSnapshot {
+        let snapshot = FixtureSnapshot(value: value, revision: revision)
+        if synchronizeSnapshots {
+            if let waiter = snapshotWaiter {
+                snapshotWaiter = nil
+                synchronizeSnapshots = false
+                waiter.resume()
+            } else {
+                await withCheckedContinuation { snapshotWaiter = $0 }
+            }
+        }
+        return snapshot
     }
 
     func apply(value: String) throws {
