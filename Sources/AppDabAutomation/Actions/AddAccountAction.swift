@@ -2,6 +2,63 @@ import AppDabServices
 import ConnectAccounts
 import Foundation
 
+public struct AccountImportEffects: Sendable {
+    public let loadPrivateKey: @Sendable (String) throws -> String
+    public let validateCredential: @Sendable (AddAccountInput, String) throws -> APIKey
+    public let verifyCredential: @Sendable (APIKey) async throws -> AccountVerificationIssue?
+    public let persistCredential: @Sendable (APIKey, any AutomationAccountStoring) async throws -> Void
+
+    public init(
+        loadPrivateKey: @escaping @Sendable (String) throws -> String,
+        validateCredential: @escaping @Sendable (AddAccountInput, String) throws -> APIKey,
+        verifyCredential: @escaping @Sendable (APIKey) async throws -> AccountVerificationIssue?,
+        persistCredential: @escaping @Sendable (APIKey, any AutomationAccountStoring) async throws -> Void
+    ) {
+        self.loadPrivateKey = loadPrivateKey
+        self.validateCredential = validateCredential
+        self.verifyCredential = verifyCredential
+        self.persistCredential = persistCredential
+    }
+
+    public static let live = Self(
+        loadPrivateKey: { path in
+            let data: Data
+            do {
+                data = try Data(contentsOf: URL(fileURLWithPath: path))
+            } catch {
+                throw AutomationActionError.invalidArguments("Could not read the private key file. Check the path and permissions.")
+            }
+            guard let privateKey = String(data: data, encoding: .utf8),
+                  !privateKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw AutomationActionError.invalidArguments("The private key file is empty or is not valid text.")
+            }
+            return privateKey
+        },
+        validateCredential: { input, privateKey in
+            do {
+                return if input.issuerID.isEmpty {
+                    try APIKey(name: input.name, keyId: input.keyID, privateKey: privateKey)
+                } else {
+                    try APIKey(name: input.name, keyId: input.keyID, issuerId: input.issuerID, privateKey: privateKey)
+                }
+            } catch {
+                throw AutomationActionError.invalidArguments("The entered keys are invalid. Check that they match the keys on App Store Connect.")
+            }
+        },
+        verifyCredential: { apiKey in
+            let provider = StoredAccountProvider(loadAPIKeys: { [apiKey] })
+            return try await provider.verifyAccount(accountID: apiKey.id).issue
+        },
+        persistCredential: { apiKey, store in
+            let accounts = try await store.loadAPIKeys()
+            guard !accounts.contains(where: { $0.id == apiKey.id }) else {
+                throw AutomationActionError.invalidArguments("An API key with this key ID is already configured.")
+            }
+            try await store.saveAPIKey(apiKey)
+        }
+    )
+}
+
 public struct AddAccountAction: AutomationAction {
     public static let descriptor = AutomationActionDescriptor(
         id: .addAccount,
@@ -23,17 +80,25 @@ public struct AddAccountAction: AutomationAction {
 
     public static let supportsDirectWriteExecution = true
 
-    public init() {}
+    private let effects: AccountImportEffects
+
+    public init() {
+        self.init(effects: .live)
+    }
+
+    public init(effects: AccountImportEffects) {
+        self.effects = effects
+    }
 
     public func perform(input: AddAccountInput, dataProvider: any AutomationDataProviding) async throws -> AccountAddition {
-        let privateKey = try readPrivateKey(at: input.privateKeyFile)
-        let prepared = try await prepare(input: input, privateKey: privateKey, needsRemoteValidation: true)
-        let accounts = try await dataProvider.accountStore().loadAPIKeys()
-        guard !accounts.contains(where: { $0.id == input.keyID }) else {
-            throw AutomationActionError.invalidArguments("An API key with this key ID is already configured.")
-        }
-        try await dataProvider.accountStore().saveAPIKey(prepared.apiKey)
-        return result(from: prepared)
+        let privateKey = try effects.loadPrivateKey(input.privateKeyFile)
+        let apiKey = try effects.validateCredential(input, privateKey)
+        let issue = try await effects.verifyCredential(apiKey)
+        try await effects.persistCredential(apiKey, dataProvider.accountStore())
+        return .init(
+            account: .init(accountID: apiKey.id, name: apiKey.name),
+            issue: issue.map { .init(message: $0.message, resolutionURL: $0.resolutionURL) }
+        )
     }
 
     public func summary(for output: AccountAddition) -> String {
@@ -49,47 +114,4 @@ public struct AddAccountAction: AutomationAction {
         }
         return .object(data)
     }
-
-    private func readPrivateKey(at path: String) throws(AutomationActionError) -> String {
-        let data: Data
-        do {
-            data = try Data(contentsOf: URL(fileURLWithPath: path))
-        } catch {
-            throw .invalidArguments("Could not read the private key file. Check the path and permissions.")
-        }
-        guard let privateKey = String(data: data, encoding: .utf8),
-              !privateKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw .invalidArguments("The private key file is empty or is not valid text.")
-        }
-        return privateKey
-    }
-
-    private func prepare(input: AddAccountInput, privateKey: String, needsRemoteValidation: Bool) async throws -> PreparedAutomationAPIKey {
-        let apiKey: APIKey
-        do {
-            apiKey = if input.issuerID.isEmpty {
-                try APIKey(name: input.name, keyId: input.keyID, privateKey: privateKey)
-            } else {
-                try APIKey(name: input.name, keyId: input.keyID, issuerId: input.issuerID, privateKey: privateKey)
-            }
-        } catch {
-            throw AutomationActionError.invalidArguments("The entered keys are invalid. Check that they match the keys on App Store Connect.")
-        }
-        guard needsRemoteValidation else { return .init(apiKey: apiKey, issue: nil) }
-        let provider = StoredAccountProvider(loadAPIKeys: { [apiKey] })
-        let verification = try await provider.verifyAccount(accountID: apiKey.id)
-        return .init(apiKey: apiKey, issue: verification.issue)
-    }
-
-    private func result(from prepared: PreparedAutomationAPIKey) -> AccountAddition {
-        .init(
-            account: .init(accountID: prepared.apiKey.id, name: prepared.apiKey.name),
-            issue: prepared.issue.map { .init(message: $0.message, resolutionURL: $0.resolutionURL) }
-        )
-    }
-}
-
-private struct PreparedAutomationAPIKey {
-    let apiKey: APIKey
-    let issue: AccountVerificationIssue?
 }
