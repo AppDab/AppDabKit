@@ -89,6 +89,17 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                 }
             }
 
+            // A preview authorizes one operation, even when callers choose different keys.
+            // Keep this check in the same write transaction as the new audit record.
+            // Successful records also reserve the fingerprint after its preview is removed.
+            if let record = try firstText(
+                "SELECT record FROM mutation_audits WHERE json_extract(record, '$.confirmationFingerprint') = ? LIMIT 1",
+                bindings: [.text(confirmationFingerprint)]
+            ) {
+                let existing = try decode(AutomationAuditRecord.self, from: record)
+                throw AutomationExecutionError.commitBlocked(existing.status)
+            }
+
             try writeAuditRecord(.init(
                 actionID: actionID,
                 confirmationFingerprint: confirmationFingerprint,
