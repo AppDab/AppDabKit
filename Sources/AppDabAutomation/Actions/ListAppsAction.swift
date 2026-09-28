@@ -14,7 +14,7 @@ public struct ListAppsAction: AutomationAction {
             required: ["accountID"]
         ),
         outputSchema: Schema.object(properties: [
-            "apps": .object(["type": .string("array")]),
+            "apps": Schema.array(items: Schema.appSummaryOutput),
             "pagination": Schema.paginationOutput
         ], required: ["apps", "pagination"]),
         outputType: "apps",

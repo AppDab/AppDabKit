@@ -10,7 +10,7 @@ public struct RemoveAccountAction: AutomationAction {
             "accountID": Schema.string(description: "The AppDab account identifier.")
         ], required: ["accountID"]),
         outputSchema: Schema.object(properties: [
-            "account": .object(["type": .string("object")])
+            "account": Schema.accountSummaryOutput
         ], required: ["account"]),
         outputType: "account_removal",
         safety: .write

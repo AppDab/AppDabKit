@@ -9,8 +9,8 @@ public struct VerifyAccountAction: AutomationAction {
             "accountID": Schema.string(description: "The AppDab account identifier.")
         ], required: ["accountID"]),
         outputSchema: Schema.object(properties: [
-            "account": .object(["type": .string("object")]),
-            "issue": .object(["type": .string("object")]),
+            "account": Schema.accountSummaryOutput,
+            "issue": Schema.accountIssueOutput,
         ], required: ["account"]),
         outputType: "account_verification",
         safety: .read

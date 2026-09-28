@@ -46,6 +46,41 @@ struct AutomationActionCatalogTests {
         )
     }
 
+    @Test func nestedOutputSchemasDescribeEncodedServiceModels() throws {
+        let version = AppVersion(
+            versionID: "version-1", platform: "iOS", state: "Prepare for Submission",
+            version: "2.0", createdDate: .now, isFirstVersion: false
+        )
+        let pagination = PaginationMetadata(limit: 50, total: 1, nextCursor: "next")
+        let review = CustomerReview(
+            reviewID: "review-1", title: "Great", body: "Helpful", createdDate: .now,
+            rating: 5, reviewerNickname: "Reviewer", territory: "USA",
+            response: .init(responseID: "response-1", lastModifiedDate: .now,
+                            responseBody: "Thank you", state: "Published")
+        )
+        let app = AppDetail(
+            appID: "app-1", name: "AppDab", bundleID: "app.appdab", sku: "APPDAB",
+            primaryLocale: "en-US", iconURL: URL(string: "https://example.com/icon.png"),
+            contentRightsDeclaration: "DOES_NOT_USE_THIRD_PARTY_CONTENT", displayVersions: [version]
+        )
+        let examples: [(AutomationActionID, JSONValue)] = [
+            (.listAccounts, .object(["accounts": try .fromEncodable([AccountSummary(accountID: "account-1", name: "Primary")])])),
+            (.addAccount, .object([
+                "account": try .fromEncodable(AccountSummary(accountID: "account-1", name: "Primary")),
+                "issue": try .fromEncodable(AccountVerificationIssue(message: "Agreement", resolutionURL: URL(string: "https://example.com")))
+            ])),
+            (.getApp, .object(["app": try .fromEncodable(app)])),
+            (.listAppVersions, try .fromEncodable(AppVersionList(appID: "app-1", versions: [version], pagination: pagination))),
+            (.listCustomerReviews, try .fromEncodable(ReviewList(appID: "app-1", reviews: [review], pagination: pagination))),
+            (.getCustomerReview, .object(["review": try .fromEncodable(review)]))
+        ]
+
+        for (actionID, payload) in examples {
+            let schema = try #require(AutomationActionCatalog.descriptor(for: actionID)?.outputSchema)
+            assertSchema(schema, describes: payload)
+        }
+    }
+
     @Test func writeActionsRequireGuardedOrDirectRegistration() throws {
         #expect(throws: AutomationActionError.invalidArguments(
             "Write action incomplete_write must support guarded or direct execution."
@@ -54,6 +89,40 @@ struct AutomationActionCatalogTests {
         }
         let registry = try AutomationRegistry(actions: [AnyAutomationAction(DirectWriteAction.self)])
         #expect(registry.descriptors == [DirectWriteAction.descriptor])
+    }
+}
+
+private func assertSchema(_ schema: JSONValue, describes value: JSONValue) {
+    let definition = schema.objectValue ?? [:]
+    switch value {
+    case .object(let fields):
+        #expect(definition["type"] == .string("object"))
+        let properties = definition["properties"]?.objectValue ?? [:]
+        #expect(Set(fields.keys).isSubset(of: Set(properties.keys)))
+        let required = Set(definition["required"]?.arrayValue?.compactMap(\.stringValue) ?? [])
+        #expect(required.isSubset(of: Set(fields.keys)))
+        for (key, field) in fields {
+            if let fieldSchema = properties[key] {
+                assertSchema(fieldSchema, describes: field)
+            }
+        }
+    case .array(let items):
+        #expect(definition["type"] == .string("array"))
+        let itemSchema = definition["items"] ?? .null
+        #expect(itemSchema != .null)
+        for item in items {
+            assertSchema(itemSchema, describes: item)
+        }
+    case .string:
+        #expect(definition["type"] == .string("string"))
+    case .integer:
+        #expect(definition["type"] == .string("integer"))
+    case .double:
+        #expect(definition["type"] == .string("number"))
+    case .bool:
+        #expect(definition["type"] == .string("boolean"))
+    case .null:
+        break
     }
 }
 

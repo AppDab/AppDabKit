@@ -21,7 +21,7 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
             required: ["accountID", "appID", "platform", "version"]
         ),
         outputSchema: Schema.object(properties: [
-            "version": .object(["type": .string("object")])
+            "version": Schema.appVersionOutput
         ], required: ["version"]),
         outputType: "version",
         safety: .write

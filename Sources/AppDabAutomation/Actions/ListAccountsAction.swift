@@ -7,7 +7,7 @@ public struct ListAccountsAction: AutomationAction {
         description: "List the App Store Connect accounts configured in AppDab.",
         inputSchema: Schema.object(properties: [:]),
         outputSchema: Schema.object(properties: [
-            "accounts": .object(["type": .string("array")])
+            "accounts": Schema.array(items: Schema.accountSummaryOutput)
         ], required: ["accounts"]),
         outputType: "accounts",
         safety: .read

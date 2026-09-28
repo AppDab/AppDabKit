@@ -22,7 +22,7 @@ public struct ListCustomerReviewsAction: AutomationAction {
         outputSchema: Schema.object(
             properties: [
                 "appID": Schema.string(description: "The App Store Connect app identifier."),
-                "reviews": .object(["type": .string("array")]),
+                "reviews": Schema.array(items: Schema.customerReviewOutput),
                 "pagination": Schema.paginationOutput
             ],
             required: ["appID", "reviews", "pagination"]
