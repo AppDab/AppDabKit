@@ -2,7 +2,7 @@ import AppDabServices
 import ConnectAccounts
 import Foundation
 
-public struct AddAccountAction: GuardedAutomationAction {
+public struct AddAccountAction: AutomationAction {
     public static let descriptor = AutomationActionDescriptor(
         id: .addAccount,
         title: "Add Account",
@@ -21,41 +21,19 @@ public struct AddAccountAction: GuardedAutomationAction {
         safety: .write
     )
 
+    public static let supportsDirectWriteExecution = true
+
     public init() {}
 
     public func perform(input: AddAccountInput, dataProvider: any AutomationDataProviding) async throws -> AccountAddition {
-        throw AutomationExecutionError.unsupportedExecutionMode(action: Self.descriptor.id.rawValue, mode: .execute)
-    }
-
-    public func prepareMutation(input: AddAccountInput, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationPreparation {
         let privateKey = try readPrivateKey(at: input.privateKeyFile)
         let prepared = try await prepare(input: input, privateKey: privateKey, needsRemoteValidation: true)
-        return .init(
-            targetIdentifiers: [prepared.apiKey.id],
-            redactedSummary: "Add API key \(prepared.apiKey.name).",
-            remotePreconditions: ["accountID": .string(prepared.apiKey.id)]
-        )
-    }
-
-    public func validateMutation(input: AddAccountInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws {
         let accounts = try await dataProvider.accountStore().loadAPIKeys()
         guard !accounts.contains(where: { $0.id == input.keyID }) else {
-            throw AutomationExecutionError.preconditionFailed("An API key with this key ID is already configured.")
+            throw AutomationActionError.invalidArguments("An API key with this key ID is already configured.")
         }
-    }
-
-    public func commitMutation(input: AddAccountInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> AccountAddition {
-        let privateKey = try readPrivateKey(at: input.privateKeyFile)
-        let prepared = try await prepare(input: input, privateKey: privateKey, needsRemoteValidation: true)
         try await dataProvider.accountStore().saveAPIKey(prepared.apiKey)
         return result(from: prepared)
-    }
-
-    public func reconcileMutation(input: AddAccountInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationReconciliation<AccountAddition> {
-        guard let account = try await dataProvider.accountStore().loadAPIKeys().first(where: { $0.id == input.keyID }) else {
-            return .notApplied
-        }
-        return .succeeded(.init(account: .init(accountID: account.id, name: account.name)))
     }
 
     public func summary(for output: AccountAddition) -> String {
@@ -70,10 +48,6 @@ public struct AddAccountAction: GuardedAutomationAction {
             data["issue"] = try .fromEncodable(issue)
         }
         return .object(data)
-    }
-
-    public func redactedReplayData(for output: AccountAddition) throws -> JSONValue {
-        try data(for: output)
     }
 
     private func readPrivateKey(at path: String) throws(AutomationActionError) -> String {
