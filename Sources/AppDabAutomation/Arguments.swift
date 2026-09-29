@@ -23,6 +23,8 @@ struct Arguments {
         return string
     }
 
+    func value(_ key: String) -> JSONValue? { values[key] }
+
     func optionalString(_ key: String) throws(AutomationActionError) -> String? {
         guard let value = values[key], value != .null else {
             return nil
