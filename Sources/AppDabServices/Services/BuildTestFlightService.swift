@@ -29,25 +29,13 @@ public final class BuildTestFlightService: BuildTestFlightServing, @unchecked Se
                 testerIDs = []
                 betaGroupIDs = []
             case .individualTester(let targetID):
-                var page = try await service.request(.listIndividualTesterIdsForBuildV1(id: buildID, limit: 200))
-                var found = page.data.contains { $0.id == targetID }
-                while !found, let next = try await service.requestNextPage(for: page) {
-                    page = next
-                    found = page.data.contains { $0.id == targetID }
-                }
-                testerIDs = found ? [targetID] : []
+                let matchingTesters = try await service.request(Self.testerMembershipRequest(buildID: buildID, testerID: targetID))
+                testerIDs = matchingTesters.data.contains { $0.id == targetID } ? [targetID] : []
                 betaGroupIDs = []
             case .betaGroup(let targetID):
-                var page = try await service.request(
-                    .listBetaGroupsV1(filters: [.builds([buildID])], limits: [.limit(200)])
-                )
-                var found = page.data.contains { $0.id == targetID }
-                while !found, let next = try await service.requestNextPage(for: page) {
-                    page = next
-                    found = page.data.contains { $0.id == targetID }
-                }
+                let matchingGroups = try await service.request(Self.groupMembershipRequest(buildID: buildID, groupID: targetID))
                 testerIDs = []
-                betaGroupIDs = found ? [targetID] : []
+                betaGroupIDs = matchingGroups.data.contains { $0.id == targetID } ? [targetID] : []
             }
             return .init(
                 build: .init(
@@ -63,6 +51,14 @@ public final class BuildTestFlightService: BuildTestFlightServing, @unchecked Se
         } catch {
             throw try ServiceError.classify(error)
         }
+    }
+
+    static func testerMembershipRequest(buildID: String, testerID: String) -> Request<BetaTestersResponse, ErrorResponse> {
+        .listBetaTestersV1(filters: [.builds([buildID]), .id([testerID])], limits: [.limit(1)])
+    }
+
+    static func groupMembershipRequest(buildID: String, groupID: String) -> Request<BetaGroupsResponse, ErrorResponse> {
+        .listBetaGroupsV1(filters: [.builds([buildID]), .id([groupID])], limits: [.limit(1)])
     }
 
     public func mutateBuild(
