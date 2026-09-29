@@ -105,6 +105,19 @@ struct AutomationActionCatalogTests {
         let registry = try AutomationRegistry(actions: [AnyAutomationAction(DirectWriteAction.self)])
         #expect(registry.descriptors == [DirectWriteAction.descriptor])
     }
+
+    @Test func registryRejectsInvalidActionContractMetadata() {
+        #expect(throws: AutomationActionError.invalidArguments(
+            "Automation action IDs must use lowercase snake case: ListApps."
+        )) {
+            try AutomationRegistry(actions: [AnyAutomationAction(InvalidActionIDAction.self)])
+        }
+        #expect(throws: AutomationActionError.invalidArguments(
+            "The input schema for invalid_schema must be an object schema."
+        )) {
+            try AutomationRegistry(actions: [AnyAutomationAction(InvalidSchemaAction.self)])
+        }
+    }
 }
 
 private func assertSchema(_ schema: JSONValue, describes value: JSONValue) {
@@ -199,4 +212,30 @@ private struct DirectWriteAction: AutomationAction {
     func data(for output: String) throws -> JSONValue {
         .object([:])
     }
+}
+
+private struct InvalidActionIDAction: AutomationAction {
+    static let descriptor = AutomationActionDescriptor(
+        id: .init(rawValue: "ListApps"), title: "Invalid", description: "Test only.",
+        inputSchema: Schema.object(properties: [:]), outputSchema: Schema.object(properties: [:]),
+        outputType: "test", safety: .read
+    )
+
+    init() {}
+    func perform(input: ListAccountsInput, dataProvider: any AutomationDataProviding) async throws -> String { "" }
+    func summary(for output: String) -> String { output }
+    func data(for output: String) throws -> JSONValue { .object([:]) }
+}
+
+private struct InvalidSchemaAction: AutomationAction {
+    static let descriptor = AutomationActionDescriptor(
+        id: .init(rawValue: "invalid_schema"), title: "Invalid", description: "Test only.",
+        inputSchema: .string("not an object"), outputSchema: Schema.object(properties: [:]),
+        outputType: "test", safety: .read
+    )
+
+    init() {}
+    func perform(input: ListAccountsInput, dataProvider: any AutomationDataProviding) async throws -> String { "" }
+    func summary(for output: String) -> String { output }
+    func data(for output: String) throws -> JSONValue { .object([:]) }
 }
