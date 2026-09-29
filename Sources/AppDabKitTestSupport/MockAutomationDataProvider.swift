@@ -141,6 +141,17 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
         return .init(appID: appID, builds: builds, pagination: .init(limit: limit, total: builds.count, nextCursor: nil))
     }
 
+    public func getBuild(accountID: String, buildID: String) async throws -> BuildSummary {
+        if let appError { throw appError }
+        guard !returnsEmptyCollections, buildID == "build-1" else {
+            throw ServiceError.upstream("Build not found.")
+        }
+        return .init(
+            buildID: buildID, version: "42", platform: "iOS", processingState: "VALID",
+            uploadedDate: Date(timeIntervalSince1970: 200), expirationDate: nil, expired: false
+        )
+    }
+
     public func getCustomerReview(accountID: String, reviewID: String) async throws -> AppDabServices.CustomerReview {
         .init(
             reviewID: reviewID,

@@ -14,6 +14,7 @@ public struct AutomationRegistry: Sendable {
                 AnyAutomationAction(ListAppVersionsAction.self),
                 AnyAutomationAction(GetAppVersionAction.self),
                 AnyAutomationAction(ListBuildsAction.self),
+                AnyAutomationAction(GetBuildAction.self),
                 AnyAutomationAction.guarded(CreateAppVersionAction.self),
                 AnyAutomationAction(ListCustomerReviewsAction.self),
                 AnyAutomationAction(GetCustomerReviewAction.self)
