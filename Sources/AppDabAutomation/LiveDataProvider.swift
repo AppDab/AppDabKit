@@ -55,6 +55,13 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.betaGroupTesterService.membership(accountID: accountID, betaGroupID: betaGroupID, testerID: testerID)
     }
 
+    public func listBetaGroups(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BetaGroupList { try await services.betaGroupService.listBetaGroups(accountID: accountID, appID: appID, pagination: pagination) }
+    public func getBetaGroup(accountID: String, betaGroupID: String) async throws -> BetaGroupSummary { try await services.betaGroupService.getBetaGroup(accountID: accountID, betaGroupID: betaGroupID) }
+    public func createBetaGroup(accountID: String, appID: String, name: String, isInternalGroup: Bool, hasAccessToAllBuilds: Bool?) async throws -> BetaGroupSummary { try await services.betaGroupService.createBetaGroup(accountID: accountID, appID: appID, name: name, isInternalGroup: isInternalGroup, hasAccessToAllBuilds: hasAccessToAllBuilds) }
+    public func updateBetaGroup(accountID: String, betaGroupID: String, changes: BetaGroupChanges) async throws -> BetaGroupSummary { try await services.betaGroupService.updateBetaGroup(accountID: accountID, betaGroupID: betaGroupID, changes: changes) }
+    public func betaGroupBuildMembership(accountID: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership { try await services.betaGroupService.buildMembership(accountID: accountID, betaGroupID: betaGroupID, buildID: buildID) }
+    public func mutateBetaGroupBuild(accountID: String, betaGroupID: String, buildID: String, add: Bool) async throws -> BetaGroupBuildMembership { try await services.betaGroupService.mutateBuildMembership(accountID: accountID, betaGroupID: betaGroupID, buildID: buildID, add: add) }
+
     public func mutateBetaGroupTester(accountID: String, betaGroupID: String, mutation: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership {
         try await services.betaGroupTesterService.mutate(accountID: accountID, betaGroupID: betaGroupID, mutation: mutation)
     }

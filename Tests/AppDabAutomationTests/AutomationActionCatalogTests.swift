@@ -4,20 +4,37 @@ import Foundation
 import Testing
 
 struct AutomationActionCatalogTests {
+    @Test func updateBetaGroupRejectsExplicitNullFields() {
+        for field in ["name", "publicLinkLimit"] {
+            let arguments: [String: JSONValue] = [
+                "accountID": .string("account-1"),
+                "betaGroupID": .string("group-1"),
+                "feedbackEnabled": .bool(false),
+                field: .null
+            ]
+            #expect(throws: AutomationActionError.self) {
+                _ = try UpdateBetaGroupInput(arguments: arguments)
+            }
+        }
+    }
+
     @Test func exposesStableActionDescriptors() {
         let descriptors = AutomationActionCatalog.all
 
         let buildWrites: [AutomationActionID] = [
             .addIndividualTesterToBuild, .removeIndividualTesterFromBuild,
             .addBetaGroupToBuild, .removeBetaGroupFromBuild,
+            .addBuildToBetaGroup, .removeBuildFromBetaGroup,
             .addTesterToBetaGroup, .removeTesterFromBetaGroup,
             .submitBuildForBetaReview, .expireBuild
         ]
-        let writes = Set(buildWrites + [.addAccount, .removeAccount, .createAppVersion])
+        let writes = Set(buildWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup])
         #expect(descriptors.map(\.id) == [
             .listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp,
-            .listAppVersions, .getAppVersion, .listBuilds, .getBuild
-        ] + buildWrites + [.createAppVersion, .listCustomerReviews, .getCustomerReview])
+            .listAppVersions, .getAppVersion, .listBuilds, .getBuild,
+            .listBetaGroups, .getBetaGroup, .createBetaGroup, .updateBetaGroup,
+            .addBuildToBetaGroup, .removeBuildFromBetaGroup
+        ] + buildWrites.filter { $0 != .addBuildToBetaGroup && $0 != .removeBuildFromBetaGroup } + [.createAppVersion, .listCustomerReviews, .getCustomerReview])
         #expect(descriptors.allSatisfy { $0.safety == (writes.contains($0.id) ? .write : .read) })
         #expect(AutomationActionCatalog.descriptor(named: "list_apps")?.outputType == "apps")
     }
@@ -84,6 +101,11 @@ struct AutomationActionCatalogTests {
             contentRightsDeclaration: "DOES_NOT_USE_THIRD_PARTY_CONTENT", displayVersions: [version]
         )
         let examples: [(AutomationActionID, JSONValue)] = [
+            (.listBetaGroups, try .fromEncodable(BetaGroupList(appID: "app-1", betaGroups: [
+                .init(betaGroupID: "group-1", name: "Internal", isInternalGroup: true)
+            ], pagination: pagination))),
+            (.getBetaGroup, .object(["betaGroup": try .fromEncodable(BetaGroupSummary(betaGroupID: "group-1", name: "Internal"))])),
+            (.addBuildToBetaGroup, .object(["membership": try .fromEncodable(BetaGroupBuildMembership(betaGroup: .init(betaGroupID: "group-1", name: "Internal"), buildID: "build-1", isMember: true))])),
             (.listAccounts, .object(["accounts": try .fromEncodable([AccountSummary(accountID: "account-1", name: "Primary")])])),
             (.addAccount, .object([
                 "account": try .fromEncodable(AccountSummary(accountID: "account-1", name: "Primary")),

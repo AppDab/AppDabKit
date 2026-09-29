@@ -6,6 +6,55 @@ import Testing
 
 @Suite("Build TestFlight actions")
 struct BuildTestFlightActionTests {
+    @Test func createBetaGroupIsGuardedAndReplayedOnce() async throws {
+        let provider = BuildMutationFixture()
+        let executor = makeExecutor(provider)
+        let input = CreateBetaGroupInput(accountID: "account-1", appID: "app-1", name: "New Group", isInternalGroup: true)
+        let plan = try await executor.preview(CreateBetaGroupAction.self, input: input)
+        let group = try await executor.commit(CreateBetaGroupAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "create-group")
+        let replay = try await executor.commit(CreateBetaGroupAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "create-group")
+        #expect(group.name == "New Group")
+        #expect(group.hasAccessToAllBuilds == true)
+        #expect(replay == group)
+        #expect(await provider.mutationCount == 1)
+    }
+
+    @Test func updateBetaGroupRejectsStalePreview() async throws {
+        let provider = BuildMutationFixture()
+        let executor = makeExecutor(provider)
+        let input = UpdateBetaGroupInput(accountID: "account-1", betaGroupID: "group-1", changes: .init(name: "New Name"))
+        let plan = try await executor.preview(UpdateBetaGroupAction.self, input: input)
+        await provider.setGroupName("Changed Elsewhere")
+        await #expect(throws: AutomationExecutionError.preconditionFailed("Beta group changed after preview.")) {
+            try await executor.commit(UpdateBetaGroupAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "stale-group-update")
+        }
+        #expect(await provider.mutationCount == 0)
+    }
+
+    @Test func betaGroupBuildMutationUsesGroupRelationshipAndReplaysOnce() async throws {
+        let provider = BuildMutationFixture()
+        let executor = makeExecutor(provider)
+        let input = BetaGroupBuildInput(accountID: "account-1", betaGroupID: "group-1", buildID: "build-1")
+        let plan = try await executor.preview(AddBuildToBetaGroupAction.self, input: input)
+        let first = try await executor.commit(AddBuildToBetaGroupAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "group-build")
+        let replay = try await executor.commit(AddBuildToBetaGroupAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "group-build")
+        #expect(first.isMember)
+        #expect(replay == first)
+        #expect(await provider.mutationCount == 1)
+    }
+
+    @Test func betaGroupBuildPreviewRejectsChangedMembership() async throws {
+        let provider = BuildMutationFixture()
+        let executor = makeExecutor(provider)
+        let input = BetaGroupBuildInput(accountID: "account-1", betaGroupID: "group-1", buildID: "build-1")
+        let plan = try await executor.preview(AddBuildToBetaGroupAction.self, input: input)
+        await provider.addGroup("group-1")
+        await #expect(throws: AutomationExecutionError.preconditionFailed("Beta group build membership changed after preview.")) {
+            try await executor.commit(AddBuildToBetaGroupAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "stale-group-build")
+        }
+        #expect(await provider.mutationCount == 0)
+    }
+
     @Test func relationshipActionsApplyAndReplayOnce() async throws {
         let provider = BuildMutationFixture()
         let executor = makeExecutor(provider)
@@ -187,6 +236,7 @@ private actor BuildMutationFixture: AutomationDataProviding {
     private let base = MockAutomationDataProvider()
     private var testers = ["tester-1"]
     private var groups: [String] = []
+    private var betaGroups: [BetaGroupSummary] = [.init(betaGroupID: "group-1", name: "Early Access")]
     private var groupTesters = ["tester-1"]
     private var reviewSubmissionID: String?
     private var reviewState: String
@@ -208,6 +258,23 @@ private actor BuildMutationFixture: AutomationDataProviding {
     func addGroup(_ id: String) { groups.append(id) }
     func addTester(_ id: String) { testers.append(id) }
     func setExternalBetaState(_ state: String) { reviewState = state }
+    func setGroupName(_ name: String) { betaGroups[0] = .init(betaGroupID: "group-1", name: name) }
+
+    func listBetaGroups(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BetaGroupList {
+        .init(appID: appID, betaGroups: betaGroups, pagination: .init(limit: try pagination.resolvedLimit(), total: betaGroups.count, nextCursor: nil))
+    }
+
+    func getBetaGroup(accountID: String, betaGroupID: String) async throws -> BetaGroupSummary {
+        guard let group = betaGroups.first(where: { $0.betaGroupID == betaGroupID }) else { throw ServiceError.upstream("Beta group not found.") }
+        return group
+    }
+
+    func createBetaGroup(accountID: String, appID: String, name: String, isInternalGroup: Bool, hasAccessToAllBuilds: Bool?) async throws -> BetaGroupSummary {
+        mutationCount += 1
+        let group = BetaGroupSummary(betaGroupID: "group-2", name: name, isInternalGroup: isInternalGroup, hasAccessToAllBuilds: hasAccessToAllBuilds)
+        betaGroups.append(group)
+        return group
+    }
 
     nonisolated func accountStore() throws -> any AutomationAccountStoring { try MockAutomationDataProvider().accountStore() }
     func listAccounts() async throws -> [AccountSummary] { try await base.listAccounts() }
@@ -282,6 +349,17 @@ private actor BuildMutationFixture: AutomationDataProviding {
         }
         if failAfterMutation { throw ServiceError.upstream("Response lost after applying mutation.") }
         return try await betaGroupTesterMembership(accountID: accountID, betaGroupID: betaGroupID, testerID: testerID)
+    }
+
+    func betaGroupBuildMembership(accountID: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership {
+        .init(betaGroup: .init(betaGroupID: betaGroupID, name: "Early Access"), buildID: buildID, isMember: groups.contains(betaGroupID))
+    }
+
+    func mutateBetaGroupBuild(accountID: String, betaGroupID: String, buildID: String, add: Bool) async throws -> BetaGroupBuildMembership {
+        mutationCount += 1
+        if add { groups.append(betaGroupID) } else { groups.removeAll { $0 == betaGroupID } }
+        if failAfterMutation { throw ServiceError.upstream("Response lost after applying mutation.") }
+        return try await betaGroupBuildMembership(accountID: accountID, betaGroupID: betaGroupID, buildID: buildID)
     }
 
     private func summary(_ buildID: String) -> BuildSummary {
