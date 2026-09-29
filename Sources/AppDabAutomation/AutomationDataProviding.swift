@@ -15,6 +15,12 @@ public protocol AutomationDataProviding: Sendable {
     func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary
     func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership
     func mutateBetaGroupTester(accountID: String, betaGroupID: String, mutation: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership
+    func listBetaGroups(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BetaGroupList
+    func getBetaGroup(accountID: String, betaGroupID: String) async throws -> BetaGroupSummary
+    func createBetaGroup(accountID: String, appID: String, name: String, isInternalGroup: Bool, hasAccessToAllBuilds: Bool?) async throws -> BetaGroupSummary
+    func updateBetaGroup(accountID: String, betaGroupID: String, changes: BetaGroupChanges) async throws -> BetaGroupSummary
+    func betaGroupBuildMembership(accountID: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership
+    func mutateBetaGroupBuild(accountID: String, betaGroupID: String, buildID: String, add: Bool) async throws -> BetaGroupBuildMembership
     func createAppVersion(
         accountID: String,
         appID: String,
@@ -25,6 +31,12 @@ public protocol AutomationDataProviding: Sendable {
 }
 
 public extension AutomationDataProviding {
+    func listBetaGroups(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BetaGroupList { throw ServiceError.upstream("Beta groups are unavailable for this data provider.") }
+    func getBetaGroup(accountID: String, betaGroupID: String) async throws -> BetaGroupSummary { throw ServiceError.upstream("Beta groups are unavailable for this data provider.") }
+    func createBetaGroup(accountID: String, appID: String, name: String, isInternalGroup: Bool, hasAccessToAllBuilds: Bool?) async throws -> BetaGroupSummary { throw ServiceError.upstream("Beta group creation is unavailable for this data provider.") }
+    func updateBetaGroup(accountID: String, betaGroupID: String, changes: BetaGroupChanges) async throws -> BetaGroupSummary { throw ServiceError.upstream("Beta group updates are unavailable for this data provider.") }
+    func betaGroupBuildMembership(accountID: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership { throw ServiceError.upstream("Beta group build state is unavailable for this data provider.") }
+    func mutateBetaGroupBuild(accountID: String, betaGroupID: String, buildID: String, add: Bool) async throws -> BetaGroupBuildMembership { throw ServiceError.upstream("Beta group build mutations are unavailable for this data provider.") }
     func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot {
         throw ServiceError.upstream("Build TestFlight state is unavailable for this data provider.")
     }

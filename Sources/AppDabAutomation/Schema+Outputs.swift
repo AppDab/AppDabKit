@@ -44,6 +44,20 @@ extension Schema {
         "expired": outputBoolean
     ], required: ["buildID", "version"])
 
+    static let betaGroupOutput = object(properties: [
+        "betaGroupID": outputString, "name": outputString,
+        "isInternalGroup": outputBoolean, "hasAccessToAllBuilds": outputBoolean,
+        "feedbackEnabled": outputBoolean,
+        "iosBuildsAvailableForAppleSiliconMac": outputBoolean,
+        "iosBuildsAvailableForAppleVision": outputBoolean,
+        "publicLinkEnabled": outputBoolean, "publicLinkLimit": outputInteger,
+        "publicLinkLimitEnabled": outputBoolean, "publicLink": outputString
+    ], required: ["betaGroupID", "name"])
+
+    static let betaGroupBuildMembershipOutput = object(properties: [
+        "betaGroup": betaGroupOutput, "buildID": outputString, "isMember": outputBoolean
+    ], required: ["betaGroup", "buildID", "isMember"])
+
     static let appSummaryOutput = object(properties: [
         "appID": outputString,
         "name": outputString,
