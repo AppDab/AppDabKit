@@ -63,17 +63,23 @@ public final class BetaGroupService: BetaGroupServing, @unchecked Sendable {
         let key = try await accountProvider.apiKey(forAccountID: accountID)
         let service = BagbutikService(jwt: key.jwt)
         do {
-            let response = try await service.request(.updateBetaGroupV1(id: betaGroupID, requestBody: .init(data: .init(
-                id: betaGroupID, attributes: .init(
-                    feedbackEnabled: changes.feedbackEnabled,
-                    iosBuildsAvailableForAppleSiliconMac: changes.iosBuildsAvailableForAppleSiliconMac,
-                    iosBuildsAvailableForAppleVision: changes.iosBuildsAvailableForAppleVision,
-                    name: changes.name, publicLinkEnabled: changes.publicLinkEnabled,
-                    publicLinkLimit: changes.publicLinkLimit, publicLinkLimitEnabled: changes.publicLinkLimitEnabled
-                )
-            ))))
+            let response = try await service.request(.updateBetaGroupV1(
+                id: betaGroupID, requestBody: Self.updateRequestBody(betaGroupID: betaGroupID, changes: changes)
+            ))
             return .init(response.data)
         } catch { throw try ServiceError.classify(error) }
+    }
+
+    static func updateRequestBody(betaGroupID: String, changes: BetaGroupChanges) -> BetaGroupUpdateRequest {
+        .init(data: .init(id: betaGroupID, attributes: .init(
+            feedbackEnabled: changes.feedbackEnabled,
+            iosBuildsAvailableForAppleSiliconMac: changes.iosBuildsAvailableForAppleSiliconMac,
+            iosBuildsAvailableForAppleVision: changes.iosBuildsAvailableForAppleVision,
+            name: changes.name,
+            publicLinkEnabled: changes.publicLinkEnabled,
+            publicLinkLimit: changes.publicLinkLimit,
+            publicLinkLimitEnabled: changes.publicLinkLimitEnabled
+        )))
     }
 
     public func buildMembership(accountID: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership {

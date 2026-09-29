@@ -1,8 +1,21 @@
 @testable import AppDabServices
 import BagbutikCore
+import Foundation
 import Testing
 
 struct BetaGroupServiceTests {
+    @Test func updateRequestOmitsUnspecifiedFieldsAndPreservesFalse() throws {
+        let body = BetaGroupService.updateRequestBody(
+            betaGroupID: "group-1", changes: .init(name: "Renamed", feedbackEnabled: false)
+        )
+        let payload = try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(body))
+        let data = try #require(payload.objectValue?["data"]?.objectValue)
+        let attributes = try #require(data["attributes"]?.objectValue)
+
+        #expect(data["id"] == .string("group-1"))
+        #expect(attributes == ["name": .string("Renamed"), "feedbackEnabled": .bool(false)])
+    }
+
     @Test func listRequestScopesToAppAndPreservesCursor() throws {
         let request = try BetaGroupService.listRequest(appID: "app-1", pagination: .init(cursor: "next-page", limit: 25))
         #expect(request.path == "/v1/betaGroups")

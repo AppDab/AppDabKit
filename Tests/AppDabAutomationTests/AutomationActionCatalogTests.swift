@@ -4,6 +4,20 @@ import Foundation
 import Testing
 
 struct AutomationActionCatalogTests {
+    @Test func updateBetaGroupRejectsExplicitNullFields() {
+        for field in ["name", "publicLinkLimit"] {
+            let arguments: [String: JSONValue] = [
+                "accountID": .string("account-1"),
+                "betaGroupID": .string("group-1"),
+                "feedbackEnabled": .bool(false),
+                field: .null
+            ]
+            #expect(throws: AutomationActionError.self) {
+                _ = try UpdateBetaGroupInput(arguments: arguments)
+            }
+        }
+    }
+
     @Test func exposesStableActionDescriptors() {
         let descriptors = AutomationActionCatalog.all
 

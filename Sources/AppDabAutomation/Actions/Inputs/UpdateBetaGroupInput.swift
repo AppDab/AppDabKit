@@ -22,12 +22,20 @@ public struct UpdateBetaGroupInput: AutomationActionInput {
             guard case .bool(let result) = value else { throw .invalidArguments("Argument \(key) must be a boolean.") }
             return result
         }
+        func optionalString(_ key: String) throws(AutomationActionError) -> String? {
+            guard args.value(key) != .null else { throw .invalidArguments("Argument \(key) must be a string, not null.") }
+            return try args.optionalString(key)
+        }
+        func optionalInteger(_ key: String) throws(AutomationActionError) -> Int? {
+            guard args.value(key) != .null else { throw .invalidArguments("Argument \(key) must be an integer, not null.") }
+            return try args.optionalInteger(key)
+        }
         changes = try .init(
-            name: args.optionalString("name")?.trimmingCharacters(in: .whitespacesAndNewlines),
+            name: optionalString("name")?.trimmingCharacters(in: .whitespacesAndNewlines),
             feedbackEnabled: bool("feedbackEnabled"),
             iosBuildsAvailableForAppleSiliconMac: bool("iosBuildsAvailableForAppleSiliconMac"),
             iosBuildsAvailableForAppleVision: bool("iosBuildsAvailableForAppleVision"),
-            publicLinkEnabled: bool("publicLinkEnabled"), publicLinkLimit: args.optionalInteger("publicLinkLimit"),
+            publicLinkEnabled: bool("publicLinkEnabled"), publicLinkLimit: optionalInteger("publicLinkLimit"),
             publicLinkLimitEnabled: bool("publicLinkLimitEnabled")
         )
     }
