@@ -85,7 +85,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
 
     public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest = .init()) async throws -> BuildList {
         try pagination.validate()
-        guard !appID.isEmpty else { throw ServiceError.invalidArguments("Argument app_id must be a nonempty string.") }
+        guard !appID.isEmpty else { throw ServiceError.invalidArguments("Argument appID must be a nonempty string.") }
         let key = try await accountProvider.apiKey(forAccountID: accountID)
         do {
             return try await listBuildsHandler(key, appID, pagination)

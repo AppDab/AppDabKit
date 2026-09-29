@@ -12,18 +12,18 @@ public struct ListBuildsInput: AutomationActionInput {
     }
 
     public init(arguments: [String: JSONValue]) throws(AutomationActionError) {
-        let arguments = try Arguments(arguments, allowedKeys: ["account_id", "app_id", "cursor", "limit"])
-        accountID = try arguments.requiredString("account_id")
-        appID = try arguments.requiredString("app_id")
+        let arguments = try Arguments(arguments, allowedKeys: ["accountID", "appID", "cursor", "limit"])
+        accountID = try arguments.requiredString("accountID")
+        appID = try arguments.requiredString("appID")
         pagination = .init(cursor: try arguments.optionalString("cursor"), limit: try arguments.optionalInteger("limit"))
     }
 
     public func validate() throws(AutomationActionError) {
         guard !accountID.isEmpty else {
-            throw .invalidArguments("Argument account_id must be a nonempty string.")
+            throw .invalidArguments("Argument accountID must be a nonempty string.")
         }
         guard !appID.isEmpty else {
-            throw .invalidArguments("Argument app_id must be a nonempty string.")
+            throw .invalidArguments("Argument appID must be a nonempty string.")
         }
         do {
             try pagination.validate()

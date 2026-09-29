@@ -6,8 +6,8 @@ public struct ListBuildsAction: AutomationAction {
         title: "List Builds",
         description: "List an app's builds, newest upload first. Follow pagination to read every build.",
         inputSchema: Schema.object(properties: [
-            "account_id": Schema.string(description: "The AppDab account identifier."),
-            "app_id": Schema.string(description: "The App Store Connect app identifier."),
+            "accountID": Schema.string(description: "The AppDab account identifier."),
+            "appID": Schema.string(description: "The App Store Connect app identifier."),
             "cursor": Schema.paginationCursor,
             "limit": Schema.integer(
                 description: "Maximum builds to return, from 1 through 200.",
@@ -15,7 +15,7 @@ public struct ListBuildsAction: AutomationAction {
                 maximum: PaginationRequest.maximumLimit,
                 default: PaginationRequest.defaultLimit
             )
-        ], required: ["account_id", "app_id"]),
+        ], required: ["accountID", "appID"]),
         outputSchema: Schema.object(properties: [
             "appID": Schema.outputString,
             "builds": Schema.array(items: Schema.buildSummaryOutput),

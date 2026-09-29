@@ -40,7 +40,7 @@ struct AutomationExecutorTests {
 
         let result = try await executor.execute(request(
             actionID: .listBuilds,
-            arguments: ["account_id": .string("account-1"), "app_id": .string("app-1"), "limit": .integer(25)]
+            arguments: ["accountID": .string("account-1"), "appID": .string("app-1"), "limit": .integer(25)]
         ))
 
         #expect(result.text == "Found 1 builds.")
@@ -53,7 +53,7 @@ struct AutomationExecutorTests {
         )) {
             try await executor.execute(request(
                 actionID: .listBuilds,
-                arguments: ["account_id": .string("account-1"), "app_id": .string("app-1"), "cursor": .string("next")]
+                arguments: ["accountID": .string("account-1"), "appID": .string("app-1"), "cursor": .string("next")]
             ))
         }
     }

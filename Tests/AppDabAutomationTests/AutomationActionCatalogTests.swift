@@ -20,6 +20,17 @@ struct AutomationActionCatalogTests {
         #expect(required == [.string("accountID")])
     }
 
+    @Test func buildListDescriptorUsesCamelCaseArguments() {
+        let schema = AutomationActionCatalog.descriptor(for: .listBuilds)?.inputSchema.objectValue
+        let properties = schema?["properties"]?.objectValue
+        let required = schema?["required"]?.arrayValue
+
+        #expect(properties?["accountID"] != nil)
+        #expect(properties?["appID"] != nil)
+        #expect(properties?["account_id"] == nil)
+        #expect(required == [.string("accountID"), .string("appID")])
+    }
+
     @Test func reviewDescriptorDocumentsLimitRange() {
         let descriptor = AutomationActionCatalog.descriptor(for: .listCustomerReviews)
         let limit = descriptor?.inputSchema.objectValue?["properties"]?.objectValue?["limit"]?.objectValue
