@@ -5,7 +5,7 @@ Every AppDab automation action starts here. This guide defines the typed AppDabK
 ## Define the service contract
 
 1. Add or extend the canonical model and service method in `AppDabServices`. Convert Bagbutik values at this boundary so automation and adapters use service models only.
-2. Add a typed input under `Sources/AppDabAutomation/Actions/Inputs` and a typed action under `Sources/AppDabAutomation/Actions`.
+2. Add a typed input under `Sources/AppDabAutomation/Actions/Inputs` and a typed action under `Sources/AppDabAutomation/Actions`. Give each input type and each concrete action its own matching Swift file. Shared action implementations may have a separate file.
 3. Use a lowercase snake case `AutomationActionID` and camel case JSON argument keys such as `accountID` and `appID`.
 4. Supply object input and output schemas, strict input decoding, validation, user facing output summary, and encoded response data. The input decoder must reject any key absent from its input schema.
 5. Register the action in `AutomationRegistry.standard`. Registration validates IDs and object schemas.

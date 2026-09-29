@@ -48,16 +48,3 @@ public struct BetaGroupBuildAction<Spec: BetaGroupBuildActionSpec>: ReplayableGu
         return try JSONDecoder().decode(BetaGroupBuildMembership.self, from: JSONEncoder().encode(value))
     }
 }
-
-public enum AddBuildToBetaGroupSpec: BetaGroupBuildActionSpec {
-    public static let id: AutomationActionID = .addBuildToBetaGroup
-    public static let title = "Add Build to Beta Group"
-    public static let adding = true
-}
-public enum RemoveBuildFromBetaGroupSpec: BetaGroupBuildActionSpec {
-    public static let id: AutomationActionID = .removeBuildFromBetaGroup
-    public static let title = "Remove Build from Beta Group"
-    public static let adding = false
-}
-public typealias AddBuildToBetaGroupAction = BetaGroupBuildAction<AddBuildToBetaGroupSpec>
-public typealias RemoveBuildFromBetaGroupAction = BetaGroupBuildAction<RemoveBuildFromBetaGroupSpec>
