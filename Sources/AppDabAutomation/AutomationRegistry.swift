@@ -1,3 +1,6 @@
+import AppDabServices
+import Foundation
+
 public struct AutomationRegistry: Sendable {
     public static let standard: AutomationRegistry = {
         do {
@@ -26,6 +29,7 @@ public struct AutomationRegistry: Sendable {
     public init(actions: [AnyAutomationAction]) throws(AutomationActionError) {
         var actionsByID = [AutomationActionID: AnyAutomationAction]()
         for action in actions {
+            try Self.validate(action.descriptor)
             guard actionsByID[action.descriptor.id] == nil else {
                 throw AutomationActionError.invalidArguments(
                     "Duplicate automation action \(action.descriptor.id.rawValue)."
@@ -49,6 +53,34 @@ public struct AutomationRegistry: Sendable {
         }
         self.actionsByID = actionsByID
         registeredActions = actions
+    }
+
+    private static func validate(
+        _ descriptor: AutomationActionDescriptor
+    ) throws(AutomationActionError) {
+        let actionID = descriptor.id.rawValue
+        let validIDCharacters = CharacterSet.lowercaseLetters
+            .union(.decimalDigits)
+            .union(CharacterSet(charactersIn: "_"))
+        guard !actionID.isEmpty,
+              actionID.unicodeScalars.allSatisfy(validIDCharacters.contains),
+              !actionID.contains("__") else {
+            throw .invalidArguments("Automation action IDs must use lowercase snake case: \(actionID).")
+        }
+        try validateObjectSchema(descriptor.inputSchema, named: "input", actionID: actionID)
+        try validateObjectSchema(descriptor.outputSchema, named: "output", actionID: actionID)
+    }
+
+    private static func validateObjectSchema(
+        _ schema: JSONValue,
+        named name: String,
+        actionID: String
+    ) throws(AutomationActionError) {
+        guard let definition = schema.objectValue,
+              definition["type"] == .string("object"),
+              definition["properties"]?.objectValue != nil else {
+            throw .invalidArguments("The \(name) schema for \(actionID) must be an object schema.")
+        }
     }
 
     public var descriptors: [AutomationActionDescriptor] {
