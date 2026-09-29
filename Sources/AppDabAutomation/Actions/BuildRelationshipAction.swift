@@ -7,6 +7,7 @@ public protocol BuildRelationshipSpec: Sendable {
     static var description: String { get }
     static func currentIDs(_ snapshot: BuildTestFlightSnapshot) -> [String]
     static func mutation(_ targetID: String) -> BuildTestFlightMutation
+    static func snapshotScope(_ targetID: String) -> BuildTestFlightSnapshotScope
     static var adding: Bool { get }
 }
 
@@ -37,7 +38,7 @@ public struct BuildRelationshipAction<Spec: BuildRelationshipSpec>: ReplayableGu
         input: BuildRelationshipInput,
         dataProvider: any AutomationDataProviding
     ) async throws -> AutomationMutationPreparation {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: Spec.snapshotScope(input.targetID))
         return .init(
             targetIdentifiers: [input.accountID, input.buildID, input.targetID],
             redactedSummary: "\(Spec.title) for build \(snapshot.build.version).",
@@ -50,7 +51,7 @@ public struct BuildRelationshipAction<Spec: BuildRelationshipSpec>: ReplayableGu
         plan: AutomationMutationPlan,
         dataProvider: any AutomationDataProviding
     ) async throws {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: Spec.snapshotScope(input.targetID))
         guard plan.remotePreconditions["snapshot"] == (try JSONValue.fromEncodable(snapshot)) else {
             throw AutomationExecutionError.preconditionFailed("Build relationships changed after preview.")
         }
@@ -61,7 +62,12 @@ public struct BuildRelationshipAction<Spec: BuildRelationshipSpec>: ReplayableGu
         plan: AutomationMutationPlan,
         dataProvider: any AutomationDataProviding
     ) async throws -> BuildSummary {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        guard let snapshotValue = plan.remotePreconditions["snapshot"] else {
+            throw AutomationExecutionError.preconditionFailed("Build preview is missing its relationship state.")
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let snapshot = try decoder.decode(BuildTestFlightSnapshot.self, from: JSONEncoder().encode(snapshotValue))
         let current = Set(Spec.currentIDs(snapshot))
         let pending = Spec.adding ? !current.contains(input.targetID) : current.contains(input.targetID)
         guard pending else { return snapshot.build }
@@ -75,7 +81,7 @@ public struct BuildRelationshipAction<Spec: BuildRelationshipSpec>: ReplayableGu
         plan: AutomationMutationPlan,
         dataProvider: any AutomationDataProviding
     ) async throws -> AutomationMutationReconciliation<BuildSummary> {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: Spec.snapshotScope(input.targetID))
         let current = Set(Spec.currentIDs(snapshot))
         let applied = Spec.adding ? current.contains(input.targetID) : !current.contains(input.targetID)
         return applied ? .succeeded(snapshot.build) : .unresolved
@@ -103,6 +109,7 @@ public enum AddIndividualTesterToBuildSpec: BuildRelationshipSpec {
     public static let adding = true
     public static func currentIDs(_ snapshot: BuildTestFlightSnapshot) -> [String] { snapshot.individualTesterIDs }
     public static func mutation(_ targetID: String) -> BuildTestFlightMutation { .addIndividualTesters([targetID]) }
+    public static func snapshotScope(_ targetID: String) -> BuildTestFlightSnapshotScope { .individualTester(targetID) }
 }
 
 public enum RemoveIndividualTesterFromBuildSpec: BuildRelationshipSpec {
@@ -112,6 +119,7 @@ public enum RemoveIndividualTesterFromBuildSpec: BuildRelationshipSpec {
     public static let adding = false
     public static func currentIDs(_ snapshot: BuildTestFlightSnapshot) -> [String] { snapshot.individualTesterIDs }
     public static func mutation(_ targetID: String) -> BuildTestFlightMutation { .removeIndividualTesters([targetID]) }
+    public static func snapshotScope(_ targetID: String) -> BuildTestFlightSnapshotScope { .individualTester(targetID) }
 }
 
 public enum AddBetaGroupToBuildSpec: BuildRelationshipSpec {
@@ -121,6 +129,7 @@ public enum AddBetaGroupToBuildSpec: BuildRelationshipSpec {
     public static let adding = true
     public static func currentIDs(_ snapshot: BuildTestFlightSnapshot) -> [String] { snapshot.betaGroupIDs }
     public static func mutation(_ targetID: String) -> BuildTestFlightMutation { .addBetaGroups([targetID]) }
+    public static func snapshotScope(_ targetID: String) -> BuildTestFlightSnapshotScope { .betaGroup(targetID) }
 }
 
 public enum RemoveBetaGroupFromBuildSpec: BuildRelationshipSpec {
@@ -130,6 +139,7 @@ public enum RemoveBetaGroupFromBuildSpec: BuildRelationshipSpec {
     public static let adding = false
     public static func currentIDs(_ snapshot: BuildTestFlightSnapshot) -> [String] { snapshot.betaGroupIDs }
     public static func mutation(_ targetID: String) -> BuildTestFlightMutation { .removeBetaGroups([targetID]) }
+    public static func snapshotScope(_ targetID: String) -> BuildTestFlightSnapshotScope { .betaGroup(targetID) }
 }
 
 public typealias AddIndividualTesterToBuildAction = BuildRelationshipAction<AddIndividualTesterToBuildSpec>

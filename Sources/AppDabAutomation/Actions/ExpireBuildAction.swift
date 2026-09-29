@@ -22,7 +22,7 @@ public struct ExpireBuildAction: ReplayableGuardedAutomationAction {
     }
 
     public func prepareMutation(input: BuildTargetInput, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationPreparation {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: .build)
         guard snapshot.build.expired != true else {
             throw AutomationActionError.invalidArguments("Build is already expired.")
         }
@@ -34,7 +34,7 @@ public struct ExpireBuildAction: ReplayableGuardedAutomationAction {
     }
 
     public func validateMutation(input: BuildTargetInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: .build)
         guard plan.remotePreconditions["snapshot"] == (try JSONValue.fromEncodable(snapshot)) else {
             throw AutomationExecutionError.preconditionFailed("Build state changed after preview.")
         }
@@ -45,7 +45,7 @@ public struct ExpireBuildAction: ReplayableGuardedAutomationAction {
     }
 
     public func reconcileMutation(input: BuildTargetInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationReconciliation<BuildSummary> {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: .build)
         return snapshot.build.expired == true ? .succeeded(snapshot.build) : .unresolved
     }
 

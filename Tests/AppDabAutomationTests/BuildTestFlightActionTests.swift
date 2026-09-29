@@ -32,7 +32,7 @@ struct BuildTestFlightActionTests {
         let executor = makeExecutor(provider)
         let input = BuildRelationshipInput(accountID: "account-1", buildID: "build-1", targetID: "group-1")
         let plan = try await executor.preview(AddBetaGroupToBuildAction.self, input: input)
-        await provider.addTester("tester-2")
+        await provider.addGroup("group-1")
 
         await #expect(throws: AutomationExecutionError.preconditionFailed(
             "Build relationships changed after preview."
@@ -43,6 +43,20 @@ struct BuildTestFlightActionTests {
             )
         }
         #expect(await provider.mutationCount == 0)
+    }
+
+    @Test func unrelatedTesterChangesDoNotBlockGroupMutation() async throws {
+        let provider = BuildMutationFixture()
+        let executor = makeExecutor(provider)
+        let input = BuildRelationshipInput(accountID: "account-1", buildID: "build-1", targetID: "group-1")
+        let plan = try await executor.preview(AddBetaGroupToBuildAction.self, input: input)
+        await provider.addTester("tester-2")
+
+        _ = try await executor.commit(
+            AddBetaGroupToBuildAction.self, input: input,
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "independent-group"
+        )
+        #expect(await provider.mutationCount == 1)
     }
 
     @Test func lostResponseReconcilesWithoutRepeatingRelationshipMutation() async throws {
@@ -146,6 +160,7 @@ private actor BuildMutationFixture: AutomationDataProviding {
     var submissionID: String? { reviewSubmissionID }
     var autoNotifyEnabled: Bool? { notificationSetting }
 
+    func addGroup(_ id: String) { groups.append(id) }
     func addTester(_ id: String) { testers.append(id) }
     func setExternalBetaState(_ state: String) { reviewState = state }
 
@@ -164,11 +179,24 @@ private actor BuildMutationFixture: AutomationDataProviding {
         try await base.listCustomerReviews(accountID: accountID, appID: appID, pagination: pagination)
     }
 
-    func buildSnapshot(accountID: String, buildID: String) async throws -> BuildTestFlightSnapshot {
-        .init(
+    func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot {
+        let testerIDs: [String]
+        let groupIDs: [String]
+        switch scope {
+        case .build:
+            testerIDs = []
+            groupIDs = []
+        case .individualTester(let id):
+            testerIDs = testers.contains(id) ? [id] : []
+            groupIDs = []
+        case .betaGroup(let id):
+            testerIDs = []
+            groupIDs = groups.contains(id) ? [id] : []
+        }
+        return .init(
             build: summary(buildID),
-            individualTesterIDs: testers,
-            betaGroupIDs: groups,
+            individualTesterIDs: testerIDs,
+            betaGroupIDs: groupIDs,
             betaReviewSubmissionID: reviewSubmissionID,
             externalBetaState: reviewState,
             autoNotifyEnabled: notificationSetting

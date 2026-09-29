@@ -23,7 +23,7 @@ public struct SubmitBuildForBetaReviewAction: ReplayableGuardedAutomationAction 
     }
 
     public func prepareMutation(input: SubmitBuildForBetaReviewInput, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationPreparation {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: .build)
         guard snapshot.build.expired != true, snapshot.betaReviewSubmissionID == nil,
               snapshot.externalBetaState == "READY_FOR_BETA_SUBMISSION" else {
             throw AutomationActionError.invalidArguments("Build is not ready for beta review submission.")
@@ -36,7 +36,7 @@ public struct SubmitBuildForBetaReviewAction: ReplayableGuardedAutomationAction 
     }
 
     public func validateMutation(input: SubmitBuildForBetaReviewInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: .build)
         guard plan.remotePreconditions["snapshot"] == (try JSONValue.fromEncodable(snapshot)) else {
             throw AutomationExecutionError.preconditionFailed("Build review state changed after preview.")
         }
@@ -51,7 +51,7 @@ public struct SubmitBuildForBetaReviewAction: ReplayableGuardedAutomationAction 
     }
 
     public func reconcileMutation(input: SubmitBuildForBetaReviewInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationReconciliation<BuildSummary> {
-        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID)
+        let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: .build)
         return snapshot.betaReviewSubmissionID != nil ? .succeeded(snapshot.build) : .unresolved
     }
 

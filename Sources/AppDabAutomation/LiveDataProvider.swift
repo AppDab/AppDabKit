@@ -43,8 +43,8 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.buildService.getBuild(accountID: accountID, buildID: buildID)
     }
 
-    public func buildSnapshot(accountID: String, buildID: String) async throws -> BuildTestFlightSnapshot {
-        try await services.buildTestFlightService.buildSnapshot(accountID: accountID, buildID: buildID)
+    public func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot {
+        try await services.buildTestFlightService.buildSnapshot(accountID: accountID, buildID: buildID, scope: scope)
     }
 
     public func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary {

@@ -11,7 +11,7 @@ public protocol AutomationDataProviding: Sendable {
     func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion
     func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BuildList
     func getBuild(accountID: String, buildID: String) async throws -> BuildSummary
-    func buildSnapshot(accountID: String, buildID: String) async throws -> BuildTestFlightSnapshot
+    func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot
     func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary
     func createAppVersion(
         accountID: String,
@@ -23,7 +23,7 @@ public protocol AutomationDataProviding: Sendable {
 }
 
 public extension AutomationDataProviding {
-    func buildSnapshot(accountID: String, buildID: String) async throws -> BuildTestFlightSnapshot {
+    func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot {
         throw ServiceError.upstream("Build TestFlight state is unavailable for this data provider.")
     }
 
