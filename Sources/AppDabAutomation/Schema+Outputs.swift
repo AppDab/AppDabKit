@@ -34,6 +34,16 @@ extension Schema {
         "versionID", "platform", "state", "version", "createdDate", "isFirstVersion"
     ])
 
+    static let buildSummaryOutput = object(properties: [
+        "buildID": outputString,
+        "version": outputString,
+        "platform": outputString,
+        "processingState": outputString,
+        "uploadedDate": outputDate,
+        "expirationDate": outputDate,
+        "expired": outputBoolean
+    ], required: ["buildID", "version"])
+
     static let appSummaryOutput = object(properties: [
         "appID": outputString,
         "name": outputString,

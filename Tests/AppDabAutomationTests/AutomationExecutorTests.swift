@@ -35,6 +35,29 @@ struct AutomationExecutorTests {
         }
     }
 
+    @Test func listsBuildsThroughTheSharedActionWithPagination() async throws {
+        let executor = Executor(dataProvider: MockAutomationDataProvider())
+
+        let result = try await executor.execute(request(
+            actionID: .listBuilds,
+            arguments: ["account_id": .string("account-1"), "app_id": .string("app-1"), "limit": .integer(25)]
+        ))
+
+        #expect(result.text == "Found 1 builds.")
+        #expect(result.structuredContent.objectValue?["appID"] == .string("app-1"))
+        #expect(result.structuredContent.objectValue?["builds"]?.arrayValue?.first?.objectValue?["buildID"] == .string("build-1"))
+        #expect(result.structuredContent.objectValue?["pagination"]?.objectValue?["limit"] == .integer(25))
+
+        await #expect(throws: AutomationActionError.invalidArguments(
+            "Argument limit is required when cursor is provided."
+        )) {
+            try await executor.execute(request(
+                actionID: .listBuilds,
+                arguments: ["account_id": .string("account-1"), "app_id": .string("app-1"), "cursor": .string("next")]
+            ))
+        }
+    }
+
     @Test func listCustomerReviewsUsesAutomationLimitValidation() async throws {
         let executor = Executor(dataProvider: MockAutomationDataProvider())
 
