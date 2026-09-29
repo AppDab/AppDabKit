@@ -1,3 +1,4 @@
+import AppDabBagbutikExtensions
 import BagbutikCore
 import BagbutikAppStore
 import BagbutikAppStoreModels
@@ -11,8 +12,10 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
 
     public typealias ListAppVersionsHandler = @Sendable (APIKey, String, AppVersionFilter, PaginationRequest) async throws -> AppVersionList
     public typealias GetAppVersionHandler = @Sendable (APIKey, String, String) async throws -> AppVersion
+    public typealias ListBuildsHandler = @Sendable (APIKey, String, PaginationRequest) async throws -> BuildList
     private let listAppVersionsHandler: ListAppVersionsHandler
     private let getAppVersionHandler: GetAppVersionHandler
+    private let listBuildsHandler: ListBuildsHandler
 
     private let accountProvider: any APIKeyProviding
     private let fetchAppsHandler: FetchAppsHandler
@@ -30,10 +33,12 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         fetchAppHandler: FetchAppHandler? = nil,
         createAppVersionHandler: CreateAppVersionHandler? = nil,
         listAppVersionsHandler: ListAppVersionsHandler? = nil,
-        getAppVersionHandler: GetAppVersionHandler? = nil
+        getAppVersionHandler: GetAppVersionHandler? = nil,
+        listBuildsHandler: ListBuildsHandler? = nil
     ) {
         self.listAppVersionsHandler = listAppVersionsHandler ?? Self.listAppVersionsLive
         self.getAppVersionHandler = getAppVersionHandler ?? Self.getAppVersionLive
+        self.listBuildsHandler = listBuildsHandler ?? Self.listBuildsLive
         self.accountProvider = accountProvider
         self.fetchAppsHandler = fetchAppsHandler ?? Self.fetchAppsLive
         self.fetchAppHandler = fetchAppHandler ?? Self.fetchAppLive
@@ -76,6 +81,45 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         } catch {
             throw try ServiceError.classify(error)
         }
+    }
+
+    public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest = .init()) async throws -> BuildList {
+        try pagination.validate()
+        guard !appID.isEmpty else { throw ServiceError.invalidArguments("Argument appID must be a nonempty string.") }
+        let key = try await accountProvider.apiKey(forAccountID: accountID)
+        do {
+            return try await listBuildsHandler(key, appID, pagination)
+        } catch {
+            throw try ServiceError.classify(error)
+        }
+    }
+
+    static func buildsRequest(
+        appID: String, pagination: PaginationRequest
+    ) throws -> Request<BuildsResponse, ErrorResponse> {
+        let request: Request<BuildsResponse, ErrorResponse> = .listBuildsV1(
+            filters: [.app([appID])],
+            includes: [.preReleaseVersion],
+            sorts: [.uploadedDateDescending],
+            limits: [.limit(try pagination.resolvedLimit())]
+        )
+        return request.withPaginationCursor(try pagination.validatedCursor())
+    }
+
+    private static func listBuildsLive(key: APIKey, appID: String, pagination: PaginationRequest) async throws -> BuildList {
+        let service = BagbutikService(jwt: key.jwt)
+        let response = try await service.request(buildsRequest(appID: appID, pagination: pagination))
+        return .init(
+            appID: appID,
+            builds: response.data.map { build in
+                BuildSummary(build: build, platform: response.getPreReleaseVersion(for: build)?.attributes?.platform?.prettyName)
+            },
+            pagination: try paginationMetadata(
+                limit: pagination.resolvedLimit(),
+                total: response.meta?.paging.total,
+                nextCursor: PaginationCursor.extract(from: response.links.next)
+            )
+        )
     }
 
     static func versionsRequest(

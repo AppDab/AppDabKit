@@ -3,6 +3,7 @@ public protocol AppCatalogServing: Sendable {
     func getApp(accountID: String, appID: String) async throws -> AppDetail
     func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList
     func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion
+    func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BuildList
     func createAppVersion(
         accountID: String,
         appID: String,
