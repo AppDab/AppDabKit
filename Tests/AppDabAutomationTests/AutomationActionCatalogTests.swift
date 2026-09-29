@@ -10,6 +10,7 @@ struct AutomationActionCatalogTests {
         let buildWrites: [AutomationActionID] = [
             .addIndividualTesterToBuild, .removeIndividualTesterFromBuild,
             .addBetaGroupToBuild, .removeBetaGroupFromBuild,
+            .addTesterToBetaGroup, .removeTesterFromBetaGroup,
             .submitBuildForBetaReview, .expireBuild
         ]
         let writes = Set(buildWrites + [.addAccount, .removeAccount, .createAppVersion])

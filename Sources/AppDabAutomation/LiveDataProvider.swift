@@ -51,6 +51,14 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.buildTestFlightService.mutateBuild(accountID: accountID, buildID: buildID, mutation: mutation)
     }
 
+    public func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership {
+        try await services.betaGroupTesterService.membership(accountID: accountID, betaGroupID: betaGroupID, testerID: testerID)
+    }
+
+    public func mutateBetaGroupTester(accountID: String, betaGroupID: String, mutation: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership {
+        try await services.betaGroupTesterService.mutate(accountID: accountID, betaGroupID: betaGroupID, mutation: mutation)
+    }
+
     public func createAppVersion(
         accountID: String,
         appID: String,
