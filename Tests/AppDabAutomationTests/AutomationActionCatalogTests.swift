@@ -7,9 +7,17 @@ struct AutomationActionCatalogTests {
     @Test func exposesStableActionDescriptors() {
         let descriptors = AutomationActionCatalog.all
 
-        #expect(descriptors.map(\.id) == [.listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp, .listAppVersions, .getAppVersion, .listBuilds, .getBuild, .createAppVersion, .listCustomerReviews, .getCustomerReview])
-        #expect(descriptors.filter { ![.addAccount, .removeAccount, .createAppVersion].contains($0.id) }.allSatisfy { $0.safety == .read })
-        #expect(descriptors.filter { [.addAccount, .removeAccount, .createAppVersion].contains($0.id) }.allSatisfy { $0.safety == .write })
+        let buildWrites: [AutomationActionID] = [
+            .addIndividualTesterToBuild, .removeIndividualTesterFromBuild,
+            .addBetaGroupToBuild, .removeBetaGroupFromBuild,
+            .submitBuildForBetaReview, .expireBuild
+        ]
+        let writes = Set(buildWrites + [.addAccount, .removeAccount, .createAppVersion])
+        #expect(descriptors.map(\.id) == [
+            .listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp,
+            .listAppVersions, .getAppVersion, .listBuilds, .getBuild
+        ] + buildWrites + [.createAppVersion, .listCustomerReviews, .getCustomerReview])
+        #expect(descriptors.allSatisfy { $0.safety == (writes.contains($0.id) ? .write : .read) })
         #expect(AutomationActionCatalog.descriptor(named: "list_apps")?.outputType == "apps")
     }
 
