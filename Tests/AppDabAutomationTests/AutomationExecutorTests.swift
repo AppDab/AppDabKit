@@ -58,6 +58,31 @@ struct AutomationExecutorTests {
         }
     }
 
+    @Test func getsOneBuildThroughTheSharedAction() async throws {
+        let executor = Executor(dataProvider: MockAutomationDataProvider())
+
+        let result = try await executor.execute(request(
+            actionID: .getBuild,
+            arguments: ["accountID": .string("account-1"), "buildID": .string("build-1")]
+        ))
+
+        #expect(result.text == "Fetched build 42.")
+        #expect(result.structuredContent.objectValue?["build"]?.objectValue?["buildID"] == .string("build-1"))
+
+        await #expect(throws: AutomationActionError.invalidArguments(
+            "Unknown argument appID."
+        )) {
+            try await executor.execute(request(
+                actionID: .getBuild,
+                arguments: [
+                    "accountID": .string("account-1"),
+                    "buildID": .string("build-1"),
+                    "appID": .string("app-1")
+                ]
+            ))
+        }
+    }
+
     @Test func listCustomerReviewsUsesAutomationLimitValidation() async throws {
         let executor = Executor(dataProvider: MockAutomationDataProvider())
 

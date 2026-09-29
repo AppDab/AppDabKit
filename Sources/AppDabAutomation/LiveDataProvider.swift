@@ -36,7 +36,11 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
     }
 
     public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BuildList {
-        try await services.appCatalogService.listBuilds(accountID: accountID, appID: appID, pagination: pagination)
+        try await services.buildService.listBuilds(accountID: accountID, appID: appID, pagination: pagination)
+    }
+
+    public func getBuild(accountID: String, buildID: String) async throws -> BuildSummary {
+        try await services.buildService.getBuild(accountID: accountID, buildID: buildID)
     }
 
     public func createAppVersion(

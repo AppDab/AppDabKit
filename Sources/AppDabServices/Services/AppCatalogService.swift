@@ -1,7 +1,7 @@
 import AppDabBagbutikExtensions
-import BagbutikCore
 import BagbutikAppStore
 import BagbutikAppStoreModels
+import BagbutikCore
 import ConnectAccounts
 import Foundation
 
@@ -12,10 +12,8 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
 
     public typealias ListAppVersionsHandler = @Sendable (APIKey, String, AppVersionFilter, PaginationRequest) async throws -> AppVersionList
     public typealias GetAppVersionHandler = @Sendable (APIKey, String, String) async throws -> AppVersion
-    public typealias ListBuildsHandler = @Sendable (APIKey, String, PaginationRequest) async throws -> BuildList
     private let listAppVersionsHandler: ListAppVersionsHandler
     private let getAppVersionHandler: GetAppVersionHandler
-    private let listBuildsHandler: ListBuildsHandler
 
     private let accountProvider: any APIKeyProviding
     private let fetchAppsHandler: FetchAppsHandler
@@ -33,12 +31,10 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         fetchAppHandler: FetchAppHandler? = nil,
         createAppVersionHandler: CreateAppVersionHandler? = nil,
         listAppVersionsHandler: ListAppVersionsHandler? = nil,
-        getAppVersionHandler: GetAppVersionHandler? = nil,
-        listBuildsHandler: ListBuildsHandler? = nil
+        getAppVersionHandler: GetAppVersionHandler? = nil
     ) {
         self.listAppVersionsHandler = listAppVersionsHandler ?? Self.listAppVersionsLive
         self.getAppVersionHandler = getAppVersionHandler ?? Self.getAppVersionLive
-        self.listBuildsHandler = listBuildsHandler ?? Self.listBuildsLive
         self.accountProvider = accountProvider
         self.fetchAppsHandler = fetchAppsHandler ?? Self.fetchAppsLive
         self.fetchAppHandler = fetchAppHandler ?? Self.fetchAppLive
@@ -83,57 +79,26 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         }
     }
 
-    public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest = .init()) async throws -> BuildList {
-        try pagination.validate()
-        guard !appID.isEmpty else { throw ServiceError.invalidArguments("Argument appID must be a nonempty string.") }
-        let key = try await accountProvider.apiKey(forAccountID: accountID)
-        do {
-            return try await listBuildsHandler(key, appID, pagination)
-        } catch {
-            throw try ServiceError.classify(error)
-        }
-    }
-
-    static func buildsRequest(
-        appID: String, pagination: PaginationRequest
-    ) throws -> Request<BuildsResponse, ErrorResponse> {
-        let request: Request<BuildsResponse, ErrorResponse> = .listBuildsV1(
-            filters: [.app([appID])],
-            includes: [.preReleaseVersion],
-            sorts: [.uploadedDateDescending],
-            limits: [.limit(try pagination.resolvedLimit())]
-        )
-        return request.withPaginationCursor(try pagination.validatedCursor())
-    }
-
-    private static func listBuildsLive(key: APIKey, appID: String, pagination: PaginationRequest) async throws -> BuildList {
-        let service = BagbutikService(jwt: key.jwt)
-        let response = try await service.request(buildsRequest(appID: appID, pagination: pagination))
-        return .init(
-            appID: appID,
-            builds: response.data.map { build in
-                BuildSummary(build: build, platform: response.getPreReleaseVersion(for: build)?.attributes?.platform?.prettyName)
-            },
-            pagination: try paginationMetadata(
-                limit: pagination.resolvedLimit(),
-                total: response.meta?.paging.total,
-                nextCursor: PaginationCursor.extract(from: response.links.next)
-            )
-        )
-    }
-
     static func versionsRequest(
         appID: String, filter: AppVersionFilter, pagination: PaginationRequest
     ) throws -> Request<AppStoreVersionsResponse, ErrorResponse> {
         var filters: [ListAppStoreVersionsForAppV1.Filter] = []
-        if !filter.platforms.isEmpty { filters.append(.platform(filter.platforms)) }
-        if !filter.states.isEmpty { filters.append(.appVersionState(filter.states)) }
-        if !filter.versions.isEmpty { filters.append(.versionString(filter.versions)) }
-        if !filter.versionIDs.isEmpty { filters.append(.id(filter.versionIDs)) }
-        let request: Request<AppStoreVersionsResponse, ErrorResponse> = .listAppStoreVersionsForAppV1(
-            id: appID, filters: filters, limits: [.limit(try pagination.resolvedLimit())]
+        if !filter.platforms.isEmpty {
+            filters.append(.platform(filter.platforms))
+        }
+        if !filter.states.isEmpty {
+            filters.append(.appVersionState(filter.states))
+        }
+        if !filter.versions.isEmpty {
+            filters.append(.versionString(filter.versions))
+        }
+        if !filter.versionIDs.isEmpty {
+            filters.append(.id(filter.versionIDs))
+        }
+        let request: Request<AppStoreVersionsResponse, ErrorResponse> = try .listAppStoreVersionsForAppV1(
+            id: appID, filters: filters, limits: [.limit(pagination.resolvedLimit())]
         )
-        return request.withPaginationCursor(try pagination.validatedCursor())
+        return try request.withPaginationCursor(pagination.validatedCursor())
     }
 
     private static func listAppVersionsLive(
@@ -152,12 +117,12 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         response: AppStoreVersionsResponse, appID: String, pagination: PaginationRequest,
         firstVersionByPlatform: [Platform: Bool]
     ) throws -> AppVersionList {
-        return .init(
+        return try .init(
             appID: appID,
             versions: response.data.map {
                 .init(appStoreVersion: $0, isFirstVersion: firstVersionByPlatform[$0.attributes?.platform ?? .iOS] ?? false)
             },
-            pagination: try paginationMetadata(
+            pagination: paginationMetadata(
                 limit: pagination.resolvedLimit(), total: response.meta?.paging.total,
                 nextCursor: PaginationCursor.extract(from: response.links.next)
             )
@@ -235,15 +200,15 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         let limit = try pagination.resolvedLimit()
         let service = BagbutikService(jwt: apiKey.jwt)
         let response: AppsResponse
-        response = try await service.request(appsRequest(limit: limit, cursor: try pagination.validatedCursor()))
+        response = try await service.request(appsRequest(limit: limit, cursor: pagination.validatedCursor()))
         let nextCursor = try PaginationCursor.extract(from: response.links.next)
-        return .init(
+        return try .init(
             items: response.data.map { app in
                 let iconAsset = response.getAppStoreIcon(for: app)?.attributes?.iconAsset
                 let versions = response.getAppStoreVersions(for: app)
                 return AppDetail(app: app, iconAsset: iconAsset, versions: versions)
             },
-            total: try paginationMetadata(
+            total: paginationMetadata(
                 limit: limit,
                 total: response.meta?.paging.total,
                 nextCursor: nextCursor
@@ -339,5 +304,4 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
             diagnostics: .init(httpStatusCode: 409, response: errorResponse)
         )
     }
-
 }

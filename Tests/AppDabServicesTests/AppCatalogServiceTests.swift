@@ -61,10 +61,10 @@ struct AppCatalogServiceTests {
         #expect(apps.pagination.hasMore)
     }
 
-    @Test func listsBuildsForTheRequestedAppUsingTheUpstreamPage() async throws {
+    @Test func buildServiceListsBuildsForTheRequestedAppUsingTheUpstreamPage() async throws {
         let apiKey = try previewAPIKey()
         let provider = StoredAccountProvider(loadAPIKeys: { [apiKey] })
-        let service = AppCatalogService(accountProvider: provider, listBuildsHandler: { key, appID, pagination in
+        let service = BuildService(accountProvider: provider, listBuildsHandler: { key, appID, pagination in
             #expect(key.id == apiKey.id)
             #expect(appID == "app-1")
             #expect(pagination == .init(cursor: "cursor-1", limit: 25))
@@ -87,8 +87,8 @@ struct AppCatalogServiceTests {
         #expect(page.pagination.total == 200)
     }
 
-    @Test func buildListingRequestIsScopedAndPreservesTheCursor() throws {
-        let request = try AppCatalogService.buildsRequest(
+    @Test func buildServiceListingRequestIsScopedAndPreservesTheCursor() throws {
+        let request = try BuildService.buildsRequest(
             appID: "app-1", pagination: .init(cursor: "cursor-2", limit: 25)
         )
 
@@ -100,10 +100,28 @@ struct AppCatalogServiceTests {
         #expect(request.parameters?.customs?["cursor"] == "cursor-2")
     }
 
-    @Test func rejectsAMissingAppStoreConnectPagingTotal() {
+    @Test func buildServiceRejectsAMissingAppStoreConnectPagingTotal() {
         #expect(throws: ServiceError.upstream("App Store Connect did not provide a paging total.")) {
-            try AppCatalogService.paginationMetadata(limit: 50, total: nil, nextCursor: "cursor-1")
+            try BuildService.paginationMetadata(limit: 50, total: nil, nextCursor: "cursor-1")
         }
+    }
+
+    @Test func buildServiceFetchesTheRequestedBuildWithTheConfiguredAccount() async throws {
+        let apiKey = try previewAPIKey()
+        let provider = StoredAccountProvider(loadAPIKeys: { [apiKey] })
+        let service = BuildService(accountProvider: provider, getBuildHandler: { key, buildID in
+            #expect(key.id == apiKey.id)
+            #expect(buildID == "build-1")
+            return .init(
+                buildID: buildID, version: "42", platform: "iOS", processingState: "VALID",
+                uploadedDate: Date(timeIntervalSince1970: 100), expirationDate: nil, expired: false
+            )
+        })
+
+        let build = try await service.getBuild(accountID: apiKey.id, buildID: "build-1")
+
+        #expect(build.buildID == "build-1")
+        #expect(build.version == "42")
     }
 
     @Test func createsVersionsUsingTheRequestedAppAndPlatform() async throws {

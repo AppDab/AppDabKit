@@ -112,6 +112,10 @@ public extension AutomationDataProviding {
         throw ServiceError.upstream("Build listing is unavailable in this fixture.")
     }
 
+    func getBuild(accountID: String, buildID: String) async throws -> BuildSummary {
+        throw ServiceError.upstream("Build lookup is unavailable in this fixture.")
+    }
+
     func createAppVersion(
         accountID: String,
         appID: String,

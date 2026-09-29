@@ -7,7 +7,7 @@ struct AutomationActionCatalogTests {
     @Test func exposesStableActionDescriptors() {
         let descriptors = AutomationActionCatalog.all
 
-        #expect(descriptors.map(\.id) == [.listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp, .listAppVersions, .getAppVersion, .listBuilds, .createAppVersion, .listCustomerReviews, .getCustomerReview])
+        #expect(descriptors.map(\.id) == [.listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp, .listAppVersions, .getAppVersion, .listBuilds, .getBuild, .createAppVersion, .listCustomerReviews, .getCustomerReview])
         #expect(descriptors.filter { ![.addAccount, .removeAccount, .createAppVersion].contains($0.id) }.allSatisfy { $0.safety == .read })
         #expect(descriptors.filter { [.addAccount, .removeAccount, .createAppVersion].contains($0.id) }.allSatisfy { $0.safety == .write })
         #expect(AutomationActionCatalog.descriptor(named: "list_apps")?.outputType == "apps")
@@ -86,6 +86,10 @@ struct AutomationActionCatalogTests {
                 .init(buildID: "build-1", version: "42", platform: "iOS", processingState: "VALID",
                       uploadedDate: .now, expirationDate: nil, expired: false)
             ], pagination: pagination))),
+            (.getBuild, .object(["build": try .fromEncodable(BuildSummary(
+                buildID: "build-1", version: "42", platform: "iOS", processingState: "VALID",
+                uploadedDate: .now, expirationDate: nil, expired: false
+            ))])),
             (.listCustomerReviews, try .fromEncodable(ReviewList(appID: "app-1", reviews: [review], pagination: pagination))),
             (.getCustomerReview, .object(["review": try .fromEncodable(review)]))
         ]
