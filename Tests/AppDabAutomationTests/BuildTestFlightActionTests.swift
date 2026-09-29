@@ -129,6 +129,49 @@ struct BuildTestFlightActionTests {
         }
     }
 
+    @Test func betaGroupTesterAdditionIsGuardedAndReplayed() async throws {
+        let provider = BuildMutationFixture()
+        let executor = makeExecutor(provider)
+        let input = BetaGroupTesterInput(accountID: "account-1", betaGroupID: "group-1", testerID: "tester-2")
+        let plan = try await executor.preview(AddTesterToBetaGroupAction.self, input: input)
+
+        let added = try await executor.commit(
+            AddTesterToBetaGroupAction.self, input: input,
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-group-tester"
+        )
+        let replay = try await executor.commit(
+            AddTesterToBetaGroupAction.self, input: input,
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-group-tester"
+        )
+
+        #expect(added.isMember)
+        #expect(replay == added)
+        #expect(await provider.groupTesterIDs.contains("tester-2"))
+        #expect(await provider.mutationCount == 1)
+    }
+
+    @Test func betaGroupTesterRemovalReconcilesLostResponse() async throws {
+        let provider = BuildMutationFixture(failAfterMutation: true)
+        let executor = makeExecutor(provider)
+        let input = BetaGroupTesterInput(accountID: "account-1", betaGroupID: "group-1", testerID: "tester-1")
+        let plan = try await executor.preview(RemoveTesterFromBetaGroupAction.self, input: input)
+
+        await #expect(throws: AutomationExecutionError.indeterminate) {
+            try await executor.commit(
+                RemoveTesterFromBetaGroupAction.self, input: input,
+                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-group-tester"
+            )
+        }
+        let recovered = try await executor.reconcileResult(
+            RemoveTesterFromBetaGroupAction.self, input: input,
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-group-tester"
+        )
+
+        #expect(recovered.output?.isMember == false)
+        #expect(await provider.groupTesterIDs.isEmpty)
+        #expect(await provider.mutationCount == 1)
+    }
+
     private func makeExecutor(_ provider: BuildMutationFixture) -> Executor {
         let databaseURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("BuildTestFlightActionTests-\(UUID().uuidString)", isDirectory: true)
@@ -144,6 +187,7 @@ private actor BuildMutationFixture: AutomationDataProviding {
     private let base = MockAutomationDataProvider()
     private var testers = ["tester-1"]
     private var groups: [String] = []
+    private var groupTesters = ["tester-1"]
     private var reviewSubmissionID: String?
     private var reviewState: String
     private var notificationSetting: Bool? = true
@@ -157,6 +201,7 @@ private actor BuildMutationFixture: AutomationDataProviding {
     }
 
     var testerIDs: [String] { testers }
+    var groupTesterIDs: [String] { groupTesters }
     var submissionID: String? { reviewSubmissionID }
     var autoNotifyEnabled: Bool? { notificationSetting }
 
@@ -218,6 +263,25 @@ private actor BuildMutationFixture: AutomationDataProviding {
         }
         if failAfterMutation { throw ServiceError.upstream("Response lost after applying mutation.") }
         return summary(buildID)
+    }
+
+    func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership {
+        .init(betaGroupID: betaGroupID, betaGroupName: "Early Access", testerID: testerID, isMember: groupTesters.contains(testerID))
+    }
+
+    func mutateBetaGroupTester(accountID: String, betaGroupID: String, mutation: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership {
+        mutationCount += 1
+        let testerID: String
+        switch mutation {
+        case .add(let id):
+            testerID = id
+            groupTesters.append(id)
+        case .remove(let id):
+            testerID = id
+            groupTesters.removeAll { $0 == id }
+        }
+        if failAfterMutation { throw ServiceError.upstream("Response lost after applying mutation.") }
+        return try await betaGroupTesterMembership(accountID: accountID, betaGroupID: betaGroupID, testerID: testerID)
     }
 
     private func summary(_ buildID: String) -> BuildSummary {

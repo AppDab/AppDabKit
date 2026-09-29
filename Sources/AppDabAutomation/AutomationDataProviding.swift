@@ -13,6 +13,8 @@ public protocol AutomationDataProviding: Sendable {
     func getBuild(accountID: String, buildID: String) async throws -> BuildSummary
     func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot
     func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary
+    func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership
+    func mutateBetaGroupTester(accountID: String, betaGroupID: String, mutation: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership
     func createAppVersion(
         accountID: String,
         appID: String,
@@ -29,5 +31,13 @@ public extension AutomationDataProviding {
 
     func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary {
         throw ServiceError.upstream("Build TestFlight mutations are unavailable for this data provider.")
+    }
+
+    func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership {
+        throw ServiceError.upstream("Beta group tester state is unavailable for this data provider.")
+    }
+
+    func mutateBetaGroupTester(accountID: String, betaGroupID: String, mutation: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership {
+        throw ServiceError.upstream("Beta group tester mutations are unavailable for this data provider.")
     }
 }
