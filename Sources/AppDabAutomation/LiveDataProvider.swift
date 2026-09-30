@@ -53,6 +53,14 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.buildTestFlightService.mutateBuild(accountID: accountID, buildID: buildID, mutation: mutation)
     }
 
+    public func getBetaBuildLocalization(accountID: String, localizationID: String) async throws -> BetaBuildLocalizationSummary {
+        try await services.buildTestFlightService.getBetaBuildLocalization(accountID: accountID, localizationID: localizationID)
+    }
+
+    public func updateBetaBuildLocalization(accountID: String, localizationID: String, whatsNew: String) async throws -> BetaBuildLocalizationSummary {
+        try await services.buildTestFlightService.updateBetaBuildLocalization(accountID: accountID, localizationID: localizationID, whatsNew: whatsNew)
+    }
+
     public func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership {
         try await services.betaGroupTesterService.membership(accountID: accountID, betaGroupID: betaGroupID, testerID: testerID)
     }
@@ -127,6 +135,18 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
 
     public func mutateBetaGroupTester(accountID: String, betaGroupID: String, mutation: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership {
         try await services.betaGroupTesterService.mutate(accountID: accountID, betaGroupID: betaGroupID, mutation: mutation)
+    }
+
+    public func listBetaTesters(accountID: String, scope: BetaTesterScope, pagination: PaginationRequest) async throws -> BetaTesterList {
+        try await services.betaGroupTesterService.listBetaTesters(accountID: accountID, scope: scope, pagination: pagination)
+    }
+
+    public func inviteBetaTester(accountID: String, email: String, firstName: String?, lastName: String?, destination: BetaTesterDestination) async throws -> BetaTesterSummary {
+        try await services.betaGroupTesterService.inviteBetaTester(accountID: accountID, email: email, firstName: firstName, lastName: lastName, destination: destination)
+    }
+
+    public func sendBetaTesterInvitation(accountID: String, appID: String, testerID: String) async throws -> BetaTesterSummary {
+        try await services.betaGroupTesterService.sendBetaTesterInvitation(accountID: accountID, appID: appID, testerID: testerID)
     }
 
     public func createAppVersion(

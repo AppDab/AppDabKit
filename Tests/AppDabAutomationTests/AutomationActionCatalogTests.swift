@@ -26,10 +26,10 @@ struct AutomationActionCatalogTests {
             .addBetaGroupToBuild, .removeBetaGroupFromBuild,
             .addBuildToBetaGroup, .removeBuildFromBetaGroup,
             .addTesterToBetaGroup, .removeTesterFromBetaGroup,
-            .submitBuildForBetaReview, .expireBuild,
+            .submitBuildForBetaReview, .expireBuild, .updateBetaBuildLocalization,
         ]
         let betaTestingWrites: [AutomationActionID] = [.createBetaAppLocalization, .updateBetaAppLocalization, .deleteBetaAppLocalization, .updateBetaAppReviewDetail, .updateBetaLicenseAgreement]
-        let writes = Set(buildWrites + betaTestingWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup])
+        let writes = Set(buildWrites + betaTestingWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup, .inviteBetaTester, .sendBetaTesterInvitation])
         #expect(descriptors.map(\.id) == [
             .listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp,
             .listAppVersions, .getAppVersion, .listBuilds, .getBuild,
@@ -38,6 +38,7 @@ struct AutomationActionCatalogTests {
         ] + buildWrites.filter { $0 != .addBuildToBetaGroup && $0 != .removeBuildFromBetaGroup } + [
             .listBetaAppLocalizations, .createBetaAppLocalization, .updateBetaAppLocalization, .deleteBetaAppLocalization,
             .getBetaAppReviewDetail, .updateBetaAppReviewDetail, .getBetaLicenseAgreement, .updateBetaLicenseAgreement,
+            .listBetaTesters, .inviteBetaTester, .sendBetaTesterInvitation,
             .createAppVersion, .listCustomerReviews, .getCustomerReview,
         ])
         #expect(descriptors.allSatisfy { $0.safety == (writes.contains($0.id) ? .write : .read) })

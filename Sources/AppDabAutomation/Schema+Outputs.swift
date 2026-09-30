@@ -74,6 +74,28 @@ extension Schema {
         "agreementID": outputString, "agreementText": outputString,
     ], required: ["agreementID", "agreementText"])
 
+    static let betaBuildLocalizationOutput = object(properties: [
+        "localizationID": outputString,
+        "locale": outputString,
+        "whatsNew": outputString,
+    ], required: ["localizationID", "locale", "whatsNew"])
+
+    static let betaTesterOutput = object(properties: [
+        "betaTesterID": outputString,
+        "email": outputString,
+        "firstName": outputString,
+        "lastName": outputString,
+        "inviteType": outputString,
+        "state": outputString,
+        "betaGroupIDs": array(items: outputString),
+    ], required: ["betaTesterID", "email", "betaGroupIDs"])
+
+    static let betaTesterListOutput = object(properties: [
+        "scopeID": outputString,
+        "testers": array(items: betaTesterOutput),
+        "pagination": paginationOutput,
+    ], required: ["scopeID", "testers", "pagination"])
+
     static let appSummaryOutput = object(properties: [
         "appID": outputString,
         "name": outputString,
