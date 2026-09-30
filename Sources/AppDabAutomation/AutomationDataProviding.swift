@@ -15,6 +15,9 @@ public protocol AutomationDataProviding: Sendable {
     func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary
     func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership
     func mutateBetaGroupTester(accountID: String, betaGroupID: String, mutation: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership
+    func listBetaTesters(accountID: String, scope: BetaTesterScope, pagination: PaginationRequest) async throws -> BetaTesterList
+    func inviteBetaTester(accountID: String, email: String, firstName: String?, lastName: String?, destination: BetaTesterDestination) async throws -> BetaTesterSummary
+    func sendBetaTesterInvitation(accountID: String, appID: String, testerID: String) async throws -> BetaTesterSummary
     func listBetaGroups(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BetaGroupList
     func getBetaGroup(accountID: String, betaGroupID: String) async throws -> BetaGroupSummary
     func createBetaGroup(accountID: String, appID: String, name: String, isInternalGroup: Bool, hasAccessToAllBuilds: Bool?) async throws -> BetaGroupSummary
@@ -79,5 +82,17 @@ public extension AutomationDataProviding {
 
     func mutateBetaGroupTester(accountID _: String, betaGroupID _: String, mutation _: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership {
         throw ServiceError.upstream("Beta group tester mutations are unavailable for this data provider.")
+    }
+
+    func listBetaTesters(accountID _: String, scope _: BetaTesterScope, pagination _: PaginationRequest) async throws -> BetaTesterList {
+        throw ServiceError.upstream("Beta tester listing is unavailable for this data provider.")
+    }
+
+    func inviteBetaTester(accountID _: String, email _: String, firstName _: String?, lastName _: String?, destination _: BetaTesterDestination) async throws -> BetaTesterSummary {
+        throw ServiceError.upstream("Beta tester invitations are unavailable for this data provider.")
+    }
+
+    func sendBetaTesterInvitation(accountID _: String, appID _: String, testerID _: String) async throws -> BetaTesterSummary {
+        throw ServiceError.upstream("Beta tester invitations are unavailable for this data provider.")
     }
 }

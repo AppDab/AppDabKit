@@ -93,6 +93,18 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.betaGroupTesterService.mutate(accountID: accountID, betaGroupID: betaGroupID, mutation: mutation)
     }
 
+    public func listBetaTesters(accountID: String, scope: BetaTesterScope, pagination: PaginationRequest) async throws -> BetaTesterList {
+        try await services.betaGroupTesterService.listBetaTesters(accountID: accountID, scope: scope, pagination: pagination)
+    }
+
+    public func inviteBetaTester(accountID: String, email: String, firstName: String?, lastName: String?, destination: BetaTesterDestination) async throws -> BetaTesterSummary {
+        try await services.betaGroupTesterService.inviteBetaTester(accountID: accountID, email: email, firstName: firstName, lastName: lastName, destination: destination)
+    }
+
+    public func sendBetaTesterInvitation(accountID: String, appID: String, testerID: String) async throws -> BetaTesterSummary {
+        try await services.betaGroupTesterService.sendBetaTesterInvitation(accountID: accountID, appID: appID, testerID: testerID)
+    }
+
     public func createAppVersion(
         accountID: String,
         appID: String,
