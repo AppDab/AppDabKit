@@ -53,6 +53,14 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.buildTestFlightService.mutateBuild(accountID: accountID, buildID: buildID, mutation: mutation)
     }
 
+    public func getBetaBuildLocalization(accountID: String, localizationID: String) async throws -> BetaBuildLocalizationSummary {
+        try await services.buildTestFlightService.getBetaBuildLocalization(accountID: accountID, localizationID: localizationID)
+    }
+
+    public func updateBetaBuildLocalization(accountID: String, localizationID: String, whatsNew: String) async throws -> BetaBuildLocalizationSummary {
+        try await services.buildTestFlightService.updateBetaBuildLocalization(accountID: accountID, localizationID: localizationID, whatsNew: whatsNew)
+    }
+
     public func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership {
         try await services.betaGroupTesterService.membership(accountID: accountID, betaGroupID: betaGroupID, testerID: testerID)
     }

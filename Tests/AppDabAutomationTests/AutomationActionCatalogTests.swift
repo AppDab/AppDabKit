@@ -26,7 +26,7 @@ struct AutomationActionCatalogTests {
             .addBetaGroupToBuild, .removeBetaGroupFromBuild,
             .addBuildToBetaGroup, .removeBuildFromBetaGroup,
             .addTesterToBetaGroup, .removeTesterFromBetaGroup,
-            .submitBuildForBetaReview, .expireBuild,
+            .submitBuildForBetaReview, .expireBuild, .updateBetaBuildLocalization,
         ]
         let writes = Set(buildWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup, .inviteBetaTester, .sendBetaTesterInvitation])
         #expect(descriptors.map(\.id) == [
