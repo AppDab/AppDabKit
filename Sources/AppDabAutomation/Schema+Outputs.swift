@@ -63,7 +63,7 @@ extension Schema {
         "locale": outputString,
         "whatsNew": outputString,
     ], required: ["localizationID", "locale", "whatsNew"])
-  
+
     static let betaTesterOutput = object(properties: [
         "betaTesterID": outputString,
         "email": outputString,
