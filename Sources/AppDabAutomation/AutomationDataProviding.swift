@@ -23,6 +23,15 @@ public protocol AutomationDataProviding: Sendable {
     func betaGroupExists(accountID: String, betaGroupID: String) async throws -> Bool
     func betaGroupBuildMembership(accountID: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership
     func mutateBetaGroupBuild(accountID: String, betaGroupID: String, buildID: String, add: Bool) async throws -> BetaGroupBuildMembership
+    func listBetaAppLocalizations(accountID: String, appID: String) async throws -> [BetaAppLocalizationSummary]
+    func getBetaAppLocalization(accountID: String, localizationID: String) async throws -> BetaAppLocalizationSummary
+    func createBetaAppLocalization(accountID: String, appID: String, locale: String) async throws -> BetaAppLocalizationSummary
+    func updateBetaAppLocalization(accountID: String, localizationID: String, changes: BetaAppLocalizationChanges) async throws -> BetaAppLocalizationSummary
+    func deleteBetaAppLocalization(accountID: String, localizationID: String) async throws
+    func getBetaAppReviewDetail(accountID: String, appID: String) async throws -> BetaAppReviewDetailSummary
+    func updateBetaAppReviewDetail(accountID: String, appID: String, changes: BetaAppReviewDetailChanges) async throws -> BetaAppReviewDetailSummary
+    func getBetaLicenseAgreement(accountID: String, appID: String) async throws -> BetaLicenseAgreementSummary
+    func updateBetaLicenseAgreement(accountID: String, agreementID: String, agreementText: String) async throws -> BetaLicenseAgreementSummary
     func createAppVersion(
         accountID: String,
         appID: String,
@@ -63,6 +72,42 @@ public extension AutomationDataProviding {
 
     func mutateBetaGroupBuild(accountID _: String, betaGroupID _: String, buildID _: String, add _: Bool) async throws -> BetaGroupBuildMembership {
         throw ServiceError.upstream("Beta group build mutations are unavailable for this data provider.")
+    }
+
+    func listBetaAppLocalizations(accountID _: String, appID _: String) async throws -> [BetaAppLocalizationSummary] {
+        throw ServiceError.upstream("Beta app localizations are unavailable for this data provider.")
+    }
+
+    func getBetaAppLocalization(accountID _: String, localizationID _: String) async throws -> BetaAppLocalizationSummary {
+        throw ServiceError.upstream("Beta app localizations are unavailable for this data provider.")
+    }
+
+    func createBetaAppLocalization(accountID _: String, appID _: String, locale _: String) async throws -> BetaAppLocalizationSummary {
+        throw ServiceError.upstream("Beta app localization creation is unavailable for this data provider.")
+    }
+
+    func updateBetaAppLocalization(accountID _: String, localizationID _: String, changes _: BetaAppLocalizationChanges) async throws -> BetaAppLocalizationSummary {
+        throw ServiceError.upstream("Beta app localization updates are unavailable for this data provider.")
+    }
+
+    func deleteBetaAppLocalization(accountID _: String, localizationID _: String) async throws {
+        throw ServiceError.upstream("Beta app localization deletion is unavailable for this data provider.")
+    }
+
+    func getBetaAppReviewDetail(accountID _: String, appID _: String) async throws -> BetaAppReviewDetailSummary {
+        throw ServiceError.upstream("Beta app review details are unavailable for this data provider.")
+    }
+
+    func updateBetaAppReviewDetail(accountID _: String, appID _: String, changes _: BetaAppReviewDetailChanges) async throws -> BetaAppReviewDetailSummary {
+        throw ServiceError.upstream("Beta app review detail updates are unavailable for this data provider.")
+    }
+
+    func getBetaLicenseAgreement(accountID _: String, appID _: String) async throws -> BetaLicenseAgreementSummary {
+        throw ServiceError.upstream("Beta license agreements are unavailable for this data provider.")
+    }
+
+    func updateBetaLicenseAgreement(accountID _: String, agreementID _: String, agreementText _: String) async throws -> BetaLicenseAgreementSummary {
+        throw ServiceError.upstream("Beta license agreement updates are unavailable for this data provider.")
     }
 
     func buildSnapshot(accountID _: String, buildID _: String, scope _: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot {

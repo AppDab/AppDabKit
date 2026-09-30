@@ -58,6 +58,22 @@ extension Schema {
         "betaGroup": betaGroupOutput, "buildID": outputString, "isMember": outputBoolean,
     ], required: ["betaGroup", "buildID", "isMember"])
 
+    static let betaAppLocalizationOutput = object(properties: [
+        "localizationID": outputString, "locale": outputString, "description": outputString,
+        "feedbackEmail": outputString, "marketingURL": outputString, "privacyPolicyURL": outputString,
+        "tvOSPrivacyPolicy": outputString,
+    ], required: ["localizationID", "locale", "description", "feedbackEmail", "marketingURL", "privacyPolicyURL", "tvOSPrivacyPolicy"])
+
+    static let betaAppReviewDetailOutput = object(properties: [
+        "reviewDetailID": outputString, "contactFirstName": outputString, "contactLastName": outputString,
+        "contactPhone": outputString, "contactEmail": outputString, "demoAccountRequired": outputBoolean,
+        "demoAccountName": outputString, "notes": outputString,
+    ], required: ["reviewDetailID", "contactFirstName", "contactLastName", "contactPhone", "contactEmail", "demoAccountRequired", "demoAccountName", "notes"])
+
+    static let betaLicenseAgreementOutput = object(properties: [
+        "agreementID": outputString, "agreementText": outputString,
+    ], required: ["agreementID", "agreementText"])
+
     static let appSummaryOutput = object(properties: [
         "appID": outputString,
         "name": outputString,
