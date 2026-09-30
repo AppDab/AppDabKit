@@ -25,6 +25,7 @@ public struct AutomationActionID: RawRepresentable, Codable, Equatable, Hashable
     public static let removeTesterFromBetaGroup = AutomationActionID(rawValue: "remove_tester_from_beta_group")
     public static let submitBuildForBetaReview = AutomationActionID(rawValue: "create_beta_app_review_submission")
     public static let expireBuild = AutomationActionID(rawValue: "expire_build")
+    public static let updateBetaBuildLocalization = AutomationActionID(rawValue: "update_beta_build_localization")
     public static let getAppVersion = AutomationActionID(rawValue: "get_app_version")
     public static let getCustomerReview = AutomationActionID(rawValue: "get_customer_review")
 

@@ -11,6 +11,30 @@ public final class BuildTestFlightService: BuildTestFlightServing, @unchecked Se
         self.accountProvider = accountProvider
     }
 
+    public func getBetaBuildLocalization(accountID: String, localizationID: String) async throws -> BetaBuildLocalizationSummary {
+        guard !localizationID.isEmpty else { throw ServiceError.invalidArguments("Argument localizationID must be nonempty.") }
+        let key = try await accountProvider.apiKey(forAccountID: accountID)
+        let service = BagbutikService(jwt: key.jwt)
+        do {
+            let response = try await service.request(.getBetaBuildLocalizationV1(id: localizationID))
+            return .init(response.data)
+        } catch { throw try ServiceError.classify(error) }
+    }
+
+    public func updateBetaBuildLocalization(accountID: String, localizationID: String, whatsNew: String) async throws -> BetaBuildLocalizationSummary {
+        guard !localizationID.isEmpty else { throw ServiceError.invalidArguments("Argument localizationID must be nonempty.") }
+        guard whatsNew.count <= 4000 else { throw ServiceError.invalidArguments("Argument whatsNew must be at most 4000 characters.") }
+        let key = try await accountProvider.apiKey(forAccountID: accountID)
+        let service = BagbutikService(jwt: key.jwt)
+        do {
+            let response = try await service.request(.updateBetaBuildLocalizationV1(
+                id: localizationID,
+                requestBody: .init(data: .init(id: localizationID, attributes: .init(whatsNew: whatsNew))),
+            ))
+            return .init(response.data)
+        } catch { throw try ServiceError.classify(error) }
+    }
+
     public func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot {
         guard !buildID.isEmpty else {
             throw ServiceError.invalidArguments("Argument buildID must be a nonempty string.")

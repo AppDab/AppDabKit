@@ -58,6 +58,12 @@ extension Schema {
         "betaGroup": betaGroupOutput, "buildID": outputString, "isMember": outputBoolean,
     ], required: ["betaGroup", "buildID", "isMember"])
 
+    static let betaBuildLocalizationOutput = object(properties: [
+        "localizationID": outputString,
+        "locale": outputString,
+        "whatsNew": outputString,
+    ], required: ["localizationID", "locale", "whatsNew"])
+
     static let appSummaryOutput = object(properties: [
         "appID": outputString,
         "name": outputString,

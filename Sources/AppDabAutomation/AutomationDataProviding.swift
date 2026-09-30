@@ -13,6 +13,8 @@ public protocol AutomationDataProviding: Sendable {
     func getBuild(accountID: String, buildID: String) async throws -> BuildSummary
     func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot
     func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary
+    func getBetaBuildLocalization(accountID: String, localizationID: String) async throws -> BetaBuildLocalizationSummary
+    func updateBetaBuildLocalization(accountID: String, localizationID: String, whatsNew: String) async throws -> BetaBuildLocalizationSummary
     func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership
     func mutateBetaGroupTester(accountID: String, betaGroupID: String, mutation: BetaGroupTesterMutation) async throws -> BetaGroupTesterMembership
     func listBetaGroups(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BetaGroupList
@@ -71,6 +73,14 @@ public extension AutomationDataProviding {
 
     func mutateBuild(accountID _: String, buildID _: String, mutation _: BuildTestFlightMutation) async throws -> BuildSummary {
         throw ServiceError.upstream("Build TestFlight mutations are unavailable for this data provider.")
+    }
+
+    func getBetaBuildLocalization(accountID _: String, localizationID _: String) async throws -> BetaBuildLocalizationSummary {
+        throw ServiceError.upstream("Build TestFlight localization is unavailable for this data provider.")
+    }
+
+    func updateBetaBuildLocalization(accountID _: String, localizationID _: String, whatsNew _: String) async throws -> BetaBuildLocalizationSummary {
+        throw ServiceError.upstream("Build TestFlight localization updates are unavailable for this data provider.")
     }
 
     func betaGroupTesterMembership(accountID _: String, betaGroupID _: String, testerID _: String) async throws -> BetaGroupTesterMembership {
