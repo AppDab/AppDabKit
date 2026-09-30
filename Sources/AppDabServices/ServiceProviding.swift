@@ -5,5 +5,6 @@ public protocol ServiceProviding: Sendable {
     var buildTestFlightService: any BuildTestFlightServing { get }
     var betaGroupTesterService: any BetaGroupTesterServing { get }
     var betaGroupService: any BetaGroupServing { get }
+    var betaAppTestingService: any BetaAppTestingServing { get }
     var customerReviewService: any CustomerReviewServing { get }
 }

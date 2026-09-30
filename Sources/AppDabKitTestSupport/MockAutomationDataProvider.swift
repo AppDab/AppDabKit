@@ -82,6 +82,19 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
         )
     }
 
+    public func getBetaAppReviewDetail(accountID _: String, appID _: String) async throws -> BetaAppReviewDetailSummary {
+        .init(reviewDetailID: "review-detail-1", demoAccountRequired: true,
+              demoAccountName: "demo", demoAccountPassword: "current-password")
+    }
+
+    public func updateBetaAppReviewDetail(accountID _: String, appID _: String, changes: BetaAppReviewDetailChanges) async throws -> BetaAppReviewDetailSummary {
+        .init(reviewDetailID: "review-detail-1", contactFirstName: changes.contactFirstName,
+              contactLastName: changes.contactLastName, contactPhone: changes.contactPhone,
+              contactEmail: changes.contactEmail, demoAccountRequired: changes.demoAccountRequired,
+              demoAccountName: changes.demoAccountName, demoAccountPassword: changes.demoAccountPassword,
+              notes: changes.notes)
+    }
+
     public func createAppVersion(accountID _: String, appID _: String, platform: String, version: String) async throws -> AppDabServices.AppVersion {
         .init(versionID: UUID().uuidString, platform: platform, state: AppVersionState.prepareForSubmission.prettyName, version: version, createdDate: .now, isFirstVersion: false)
     }
