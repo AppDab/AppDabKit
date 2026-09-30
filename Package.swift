@@ -6,6 +6,7 @@ let package = Package(
     name: "AppDabKit",
     platforms: [.iOS(.v18), .macOS(.v15), .watchOS(.v11)],
     products: [
+        .library(name: "AppDabLocales", targets: ["AppDabLocales"]),
         .library(name: "AppDabAutomation", targets: ["AppDabAutomation"]),
         .library(name: "AppDabServices", targets: ["AppDabServices"]),
         .library(name: "AppDabBagbutikExtensions", targets: ["AppDabBagbutikExtensions"]),
@@ -17,6 +18,7 @@ let package = Package(
     ],
     targets: [
         // Targets
+        .target(name: "AppDabLocales"),
         .target(name: "AppDabAutomation", dependencies: [
             "AppDabServices",
             .product(name: "BagbutikCore", package: "Bagbutik"),
@@ -47,5 +49,6 @@ let package = Package(
             .product(name: "BagbutikAppStore", package: "Bagbutik"),
             .product(name: "ConnectAccounts", package: "AppStoreConnectKit"),
         ]),
+        .testTarget(name: "AppDabLocalesTests", dependencies: ["AppDabLocales"]),
     ],
 )
