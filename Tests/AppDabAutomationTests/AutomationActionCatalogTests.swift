@@ -28,13 +28,13 @@ struct AutomationActionCatalogTests {
             .addTesterToBetaGroup, .removeTesterFromBetaGroup,
             .submitBuildForBetaReview, .expireBuild, .updateBetaBuildLocalization,
         ]
-        let writes = Set(buildWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup])
+        let writes = Set(buildWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup, .inviteBetaTester, .sendBetaTesterInvitation])
         #expect(descriptors.map(\.id) == [
             .listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp,
             .listAppVersions, .getAppVersion, .listBuilds, .getBuild,
             .listBetaGroups, .getBetaGroup, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup,
             .addBuildToBetaGroup, .removeBuildFromBetaGroup,
-        ] + buildWrites.filter { $0 != .addBuildToBetaGroup && $0 != .removeBuildFromBetaGroup } + [.createAppVersion, .listCustomerReviews, .getCustomerReview])
+        ] + buildWrites.filter { $0 != .addBuildToBetaGroup && $0 != .removeBuildFromBetaGroup } + [.listBetaTesters, .inviteBetaTester, .sendBetaTesterInvitation, .createAppVersion, .listCustomerReviews, .getCustomerReview])
         #expect(descriptors.allSatisfy { $0.safety == (writes.contains($0.id) ? .write : .read) })
         #expect(AutomationActionCatalog.descriptor(named: "list_apps")?.outputType == "apps")
     }
