@@ -16,14 +16,7 @@ public struct GetBetaAppReviewDetailAction: AutomationAction {
     public init() {}
     public func perform(input: GetAppInput, dataProvider: any AutomationDataProviding) async throws -> JSONValue {
         let detail = try await dataProvider.getBetaAppReviewDetail(accountID: input.accountID, appID: input.appID)
-        let value = BetaAppReviewDetailSummary(reviewDetailID: detail.reviewDetailID,
-                                               contactFirstName: detail.contactFirstName, contactLastName: detail.contactLastName,
-                                               contactPhone: detail.contactPhone, contactEmail: detail.contactEmail,
-                                               demoAccountRequired: detail.demoAccountRequired, demoAccountName: detail.demoAccountName,
-                                               demoAccountPassword: "", notes: detail.notes)
-        var object = try JSONValue.fromEncodable(value).objectValue ?? [:]
-        object.removeValue(forKey: "demoAccountPassword")
-        return .object(["reviewDetail": .object(object)])
+        return try .object(["reviewDetail": .fromEncodable(detail)])
     }
 
     public func summary(for _: JSONValue) -> String {

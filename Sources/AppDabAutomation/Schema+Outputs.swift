@@ -67,8 +67,8 @@ extension Schema {
     static let betaAppReviewDetailOutput = object(properties: [
         "reviewDetailID": outputString, "contactFirstName": outputString, "contactLastName": outputString,
         "contactPhone": outputString, "contactEmail": outputString, "demoAccountRequired": outputBoolean,
-        "demoAccountName": outputString, "notes": outputString,
-    ], required: ["reviewDetailID", "contactFirstName", "contactLastName", "contactPhone", "contactEmail", "demoAccountRequired", "demoAccountName", "notes"])
+        "demoAccountName": outputString, "demoAccountPassword": outputString, "notes": outputString,
+    ], required: ["reviewDetailID", "contactFirstName", "contactLastName", "contactPhone", "contactEmail", "demoAccountRequired", "demoAccountName", "demoAccountPassword", "notes"])
 
     static let betaLicenseAgreementOutput = object(properties: [
         "agreementID": outputString, "agreementText": outputString,

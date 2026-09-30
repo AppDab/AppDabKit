@@ -255,12 +255,7 @@ public struct BetaAppTestingMutationAction<Spec: BetaAppTestingMutationSpec>: Re
     }
 
     private func reviewDetailData(_ detail: BetaAppReviewDetailSummary) throws -> JSONValue {
-        let safeDetail = BetaAppReviewDetailSummary(reviewDetailID: detail.reviewDetailID, contactFirstName: detail.contactFirstName,
-                                                    contactLastName: detail.contactLastName, contactPhone: detail.contactPhone, contactEmail: detail.contactEmail,
-                                                    demoAccountRequired: detail.demoAccountRequired, demoAccountName: detail.demoAccountName, demoAccountPassword: "", notes: detail.notes)
-        var fields = try JSONValue.fromEncodable(safeDetail).objectValue ?? [:]
-        fields.removeValue(forKey: "demoAccountPassword")
-        return .object(["reviewDetail": .object(fields)])
+        try .object(["reviewDetail": .fromEncodable(detail)])
     }
 
     private func licenseAgreementData(_ agreement: BetaLicenseAgreementSummary) throws -> JSONValue {
