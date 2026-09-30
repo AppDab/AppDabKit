@@ -26,7 +26,7 @@ struct AutomationActionCatalogTests {
             .addBetaGroupToBuild, .removeBetaGroupFromBuild,
             .addBuildToBetaGroup, .removeBuildFromBetaGroup,
             .addTesterToBetaGroup, .removeTesterFromBetaGroup,
-            .submitBuildForBetaReview, .expireBuild, .updateBetaBuildLocalization,
+            .submitBuildForBetaReview, .expireBuild, .setBuildExportCompliance, .updateBetaBuildLocalization,
         ]
         let betaTestingWrites: [AutomationActionID] = [.createBetaAppLocalization, .updateBetaAppLocalization, .deleteBetaAppLocalization, .updateBetaAppReviewDetail, .updateBetaLicenseAgreement]
         let writes = Set(buildWrites + betaTestingWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup, .inviteBetaTester, .sendBetaTesterInvitation])

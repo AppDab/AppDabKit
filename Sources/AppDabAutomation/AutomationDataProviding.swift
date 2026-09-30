@@ -13,6 +13,7 @@ public protocol AutomationDataProviding: Sendable {
     func getBuild(accountID: String, buildID: String) async throws -> BuildSummary
     func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot
     func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary
+    func setBuildExportCompliance(accountID: String, request: BuildExportComplianceRequest) async throws -> BuildExportComplianceResult
     func getBetaBuildLocalization(accountID: String, localizationID: String) async throws -> BetaBuildLocalizationSummary
     func updateBetaBuildLocalization(accountID: String, localizationID: String, whatsNew: String) async throws -> BetaBuildLocalizationSummary
     func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership
@@ -47,6 +48,10 @@ public protocol AutomationDataProviding: Sendable {
 }
 
 public extension AutomationDataProviding {
+    func setBuildExportCompliance(accountID _: String, request _: BuildExportComplianceRequest) async throws -> BuildExportComplianceResult {
+        throw ServiceError.upstream("Build export compliance is unavailable for this data provider.")
+    }
+
     func listBetaGroups(accountID _: String, appID _: String, pagination _: PaginationRequest) async throws -> BetaGroupList {
         throw ServiceError.upstream("Beta groups are unavailable for this data provider.")
     }

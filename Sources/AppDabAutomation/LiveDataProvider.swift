@@ -53,6 +53,10 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.buildTestFlightService.mutateBuild(accountID: accountID, buildID: buildID, mutation: mutation)
     }
 
+    public func setBuildExportCompliance(accountID: String, request: BuildExportComplianceRequest) async throws -> BuildExportComplianceResult {
+        try await services.buildExportComplianceService.setBuildExportCompliance(accountID: accountID, request: request)
+    }
+
     public func getBetaBuildLocalization(accountID: String, localizationID: String) async throws -> BetaBuildLocalizationSummary {
         try await services.buildTestFlightService.getBetaBuildLocalization(accountID: accountID, localizationID: localizationID)
     }

@@ -28,6 +28,7 @@ public struct AutomationActionID: RawRepresentable, Codable, Equatable, Hashable
     public static let sendBetaTesterInvitation = AutomationActionID(rawValue: "send_beta_tester_invitation")
     public static let submitBuildForBetaReview = AutomationActionID(rawValue: "create_beta_app_review_submission")
     public static let expireBuild = AutomationActionID(rawValue: "expire_build")
+    public static let setBuildExportCompliance = AutomationActionID(rawValue: "set_build_export_compliance")
     public static let listBetaAppLocalizations = AutomationActionID(rawValue: "list_beta_app_localizations")
     public static let createBetaAppLocalization = AutomationActionID(rawValue: "create_beta_app_localization")
     public static let updateBetaAppLocalization = AutomationActionID(rawValue: "update_beta_app_localization")

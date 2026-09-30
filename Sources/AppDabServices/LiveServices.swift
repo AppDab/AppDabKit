@@ -2,6 +2,7 @@ public struct LiveServices: ServiceProviding {
     public let accountProvider: any AccountProviding
     public let appCatalogService: any AppCatalogServing
     public let buildService: any BuildServing
+    public let buildExportComplianceService: any BuildExportComplianceServing
     public let buildTestFlightService: any BuildTestFlightServing
     public let betaGroupTesterService: any BetaGroupTesterServing
     public let betaGroupService: any BetaGroupServing
@@ -12,6 +13,7 @@ public struct LiveServices: ServiceProviding {
         self.accountProvider = accountProvider
         appCatalogService = AppCatalogService(accountProvider: accountProvider)
         buildService = BuildService(accountProvider: accountProvider)
+        buildExportComplianceService = BuildExportComplianceService(accountProvider: accountProvider)
         buildTestFlightService = BuildTestFlightService(accountProvider: accountProvider)
         betaGroupTesterService = BetaGroupTesterService(accountProvider: accountProvider)
         betaGroupService = BetaGroupService(accountProvider: accountProvider)
@@ -23,6 +25,7 @@ public struct LiveServices: ServiceProviding {
         accountProvider: any AccountProviding,
         appCatalogService: any AppCatalogServing,
         buildService: any BuildServing,
+        buildExportComplianceService: any BuildExportComplianceServing,
         buildTestFlightService: any BuildTestFlightServing,
         betaGroupTesterService: any BetaGroupTesterServing,
         betaGroupService: any BetaGroupServing,
@@ -32,6 +35,7 @@ public struct LiveServices: ServiceProviding {
         self.accountProvider = accountProvider
         self.appCatalogService = appCatalogService
         self.buildService = buildService
+        self.buildExportComplianceService = buildExportComplianceService
         self.buildTestFlightService = buildTestFlightService
         self.betaGroupTesterService = betaGroupTesterService
         self.betaGroupService = betaGroupService

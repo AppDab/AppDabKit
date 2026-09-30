@@ -30,6 +30,7 @@ public struct AutomationRegistry: Sendable {
                 AnyAutomationAction.guarded(RemoveTesterFromBetaGroupAction.self),
                 AnyAutomationAction.guarded(SubmitBuildForBetaReviewAction.self),
                 AnyAutomationAction.guarded(ExpireBuildAction.self),
+                AnyAutomationAction.guarded(SetBuildExportComplianceAction.self),
                 AnyAutomationAction.guarded(UpdateBetaBuildLocalizationAction.self),
                 AnyAutomationAction(ListBetaAppLocalizationsAction.self),
                 AnyAutomationAction.guarded(CreateBetaAppLocalizationAction.self),
