@@ -5,7 +5,7 @@ import Foundation
 /// `supportedLocales` lists the locale identifiers accepted for those fields.
 /// This is a curated App Store Connect list, not the full set of locales known
 /// to Foundation. Display names are localized in US English.
-public struct AppLocale: Hashable, Identifiable, Sendable {
+public struct AppStoreConnectLocale: Hashable, Identifiable, Sendable {
     /// The locale identifier used by App Store Connect, such as `en-US`.
     public let id: String
 
@@ -16,7 +16,7 @@ public struct AppLocale: Hashable, Identifiable, Sendable {
     public let name: String
 
     /// The locale identifiers supported by localized App Store Connect schema fields.
-    public static let supportedLocales: [AppLocale] = [
+    public static let supportedLocales: [AppStoreConnectLocale] = [
         (id: "ar-SA", emoji: "🇸🇦"),
         (id: "bn-BD", emoji: "🇧🇩"),
         (id: "ca", emoji: "🏴"),
@@ -68,7 +68,7 @@ public struct AppLocale: Hashable, Identifiable, Sendable {
         (id: "zh-Hans", emoji: "🇨🇳"),
         (id: "zh-Hant", emoji: "🇨🇳"),
     ]
-    .map { AppLocale(id: $0.id, emoji: $0.emoji, name: Self.getDisplayName(forLocale: $0.id)) }
+    .map { AppStoreConnectLocale(id: $0.id, emoji: $0.emoji, name: Self.getDisplayName(forLocale: $0.id)) }
     .sorted(by: { $0.name < $1.name })
 
     /// Returns the locale's display name in US English, or the identifier if it is unknown to Foundation.
@@ -87,14 +87,14 @@ public struct AppLocale: Hashable, Identifiable, Sendable {
     }
 
     /// Finds a supported locale by identifier, ignoring identifier letter case.
-    public static func getStrict(fromId localeId: String) -> AppLocale? {
+    public static func getStrict(fromId localeId: String) -> AppStoreConnectLocale? {
         let localeId = localeId.lowercased()
         return supportedLocales.first(where: { $0.id.lowercased() == localeId })
     }
 
     /// Finds a supported locale, returning an `Unknown` placeholder when the identifier is unsupported.
-    public static func get(fromId localeId: String) -> AppLocale {
-        getStrict(fromId: localeId) ?? AppLocale(id: "?", emoji: "🏳", name: "Unknown")
+    public static func get(fromId localeId: String) -> AppStoreConnectLocale {
+        getStrict(fromId: localeId) ?? AppStoreConnectLocale(id: "?", emoji: "🏳", name: "Unknown")
     }
 
     private static let usLocale = Locale(identifier: "en-US")
