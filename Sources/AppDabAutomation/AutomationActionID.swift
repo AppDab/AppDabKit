@@ -14,6 +14,7 @@ public struct AutomationActionID: RawRepresentable, Codable, Equatable, Hashable
     public static let getBetaGroup = AutomationActionID(rawValue: "get_beta_group")
     public static let createBetaGroup = AutomationActionID(rawValue: "create_beta_group")
     public static let updateBetaGroup = AutomationActionID(rawValue: "update_beta_group")
+    public static let deleteBetaGroup = AutomationActionID(rawValue: "delete_beta_group")
     public static let addBuildToBetaGroup = AutomationActionID(rawValue: "add_build_to_beta_group")
     public static let removeBuildFromBetaGroup = AutomationActionID(rawValue: "remove_build_from_beta_group")
     public static let addIndividualTesterToBuild = AutomationActionID(rawValue: "add_individual_tester_to_build")
