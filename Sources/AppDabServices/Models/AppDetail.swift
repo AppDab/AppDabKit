@@ -23,8 +23,8 @@ public struct AppDetail: Codable, Equatable, Hashable, Sendable {
         case primaryLocale
         case iconURL
         case contentRightsDeclaration
-        // Keep the public response compatible while making the in process API
-        // explicit about this being a display only projection.
+        /// Keep the public response compatible while making the in process API
+        /// explicit about this being a display only projection.
         case displayVersions = "versions"
     }
 
@@ -36,7 +36,7 @@ public struct AppDetail: Codable, Equatable, Hashable, Sendable {
         primaryLocale: String,
         iconURL: URL?,
         contentRightsDeclaration: String?,
-        displayVersions: [AppVersion]
+        displayVersions: [AppVersion],
     ) {
         self.appID = appID
         self.name = name
@@ -57,7 +57,7 @@ public struct AppDetail: Codable, Equatable, Hashable, Sendable {
             primaryLocale: app.attributes?.primaryLocale ?? "",
             iconURL: iconAsset.flatMap { $0.getImageUrl() },
             contentRightsDeclaration: app.attributes?.contentRightsDeclaration.map(String.init(describing:)),
-            displayVersions: AppVersion.displayProjection(versions)
+            displayVersions: AppVersion.displayProjection(versions),
         )
     }
 }

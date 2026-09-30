@@ -20,7 +20,7 @@ public struct AutomationMutationPlan: Codable, Equatable, Sendable {
         confirmationFingerprint: String,
         remotePreconditions: [String: AutomationValue],
         createdAt: Date,
-        expiresAt: Date
+        expiresAt: Date,
     ) {
         self.planID = planID
         self.actionID = actionID

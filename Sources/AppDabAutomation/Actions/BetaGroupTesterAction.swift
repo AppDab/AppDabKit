@@ -17,43 +17,43 @@ public struct BetaGroupTesterAction<Spec: BetaGroupTesterActionSpec>: Replayable
             inputSchema: Schema.object(properties: [
                 "accountID": Schema.string(description: "The AppDab account identifier."),
                 "betaGroupID": Schema.string(description: "The App Store Connect beta group identifier."),
-                "testerID": Schema.string(description: "The App Store Connect beta tester identifier.")
+                "testerID": Schema.string(description: "The App Store Connect beta tester identifier."),
             ], required: ["accountID", "betaGroupID", "testerID"]),
             outputSchema: Schema.object(properties: [
                 "membership": Schema.object(properties: [
                     "betaGroupID": Schema.string(description: "The beta group identifier."),
                     "betaGroupName": Schema.string(description: "The beta group name."),
                     "testerID": Schema.string(description: "The beta tester identifier."),
-                    "isMember": Schema.outputBoolean
-                ], required: ["betaGroupID", "betaGroupName", "testerID", "isMember"])
+                    "isMember": Schema.outputBoolean,
+                ], required: ["betaGroupID", "betaGroupName", "testerID", "isMember"]),
             ], required: ["membership"]),
             outputType: "betaGroupTesterMembership",
-            safety: .write
+            safety: .write,
         )
     }
 
     public init() {}
 
-    public func perform(input: BetaGroupTesterInput, dataProvider: any AutomationDataProviding) async throws -> BetaGroupTesterMembership {
+    public func perform(input _: BetaGroupTesterInput, dataProvider _: any AutomationDataProviding) async throws -> BetaGroupTesterMembership {
         throw AutomationExecutionError.unsupportedExecutionMode(action: Spec.id.rawValue, mode: .execute)
     }
 
     public func prepareMutation(input: BetaGroupTesterInput, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationPreparation {
         let membership = try await dataProvider.betaGroupTesterMembership(
-            accountID: input.accountID, betaGroupID: input.betaGroupID, testerID: input.testerID
+            accountID: input.accountID, betaGroupID: input.betaGroupID, testerID: input.testerID,
         )
-        return .init(
+        return try .init(
             targetIdentifiers: [input.accountID, input.betaGroupID, input.testerID],
             redactedSummary: "\(Spec.title) in \(membership.betaGroupName).",
-            remotePreconditions: ["membership": try .fromEncodable(membership)]
+            remotePreconditions: ["membership": .fromEncodable(membership)],
         )
     }
 
     public func validateMutation(input: BetaGroupTesterInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws {
         let membership = try await dataProvider.betaGroupTesterMembership(
-            accountID: input.accountID, betaGroupID: input.betaGroupID, testerID: input.testerID
+            accountID: input.accountID, betaGroupID: input.betaGroupID, testerID: input.testerID,
         )
-        guard plan.remotePreconditions["membership"] == (try JSONValue.fromEncodable(membership)) else {
+        guard try plan.remotePreconditions["membership"] == (JSONValue.fromEncodable(membership)) else {
             throw AutomationExecutionError.preconditionFailed("Beta group tester membership changed after preview.")
         }
     }
@@ -66,13 +66,13 @@ public struct BetaGroupTesterAction<Spec: BetaGroupTesterActionSpec>: Replayable
         guard membership.isMember != Spec.desiredMembership else { return membership }
         return try await dataProvider.mutateBetaGroupTester(
             accountID: input.accountID, betaGroupID: input.betaGroupID,
-            mutation: Spec.mutation(testerID: input.testerID)
+            mutation: Spec.mutation(testerID: input.testerID),
         )
     }
 
-    public func reconcileMutation(input: BetaGroupTesterInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationReconciliation<BetaGroupTesterMembership> {
+    public func reconcileMutation(input: BetaGroupTesterInput, plan _: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationReconciliation<BetaGroupTesterMembership> {
         let membership = try await dataProvider.betaGroupTesterMembership(
-            accountID: input.accountID, betaGroupID: input.betaGroupID, testerID: input.testerID
+            accountID: input.accountID, betaGroupID: input.betaGroupID, testerID: input.testerID,
         )
         return membership.isMember == Spec.desiredMembership ? .succeeded(membership) : .unresolved
     }
@@ -82,10 +82,12 @@ public struct BetaGroupTesterAction<Spec: BetaGroupTesterActionSpec>: Replayable
     }
 
     public func data(for output: BetaGroupTesterMembership) throws -> JSONValue {
-        .object(["membership": try .fromEncodable(output)])
+        try .object(["membership": .fromEncodable(output)])
     }
 
-    public func redactedReplayData(for output: BetaGroupTesterMembership) throws -> JSONValue { try data(for: output) }
+    public func redactedReplayData(for output: BetaGroupTesterMembership) throws -> JSONValue {
+        try data(for: output)
+    }
 
     public func output(fromReplayData data: JSONValue) throws -> BetaGroupTesterMembership {
         guard let membership = data.objectValue?["membership"] else {
@@ -99,14 +101,18 @@ public enum AddTesterToBetaGroupSpec: BetaGroupTesterActionSpec {
     public static let id: AutomationActionID = .addTesterToBetaGroup
     public static let title = "Add Tester to Beta Group"
     public static let desiredMembership = true
-    public static func mutation(testerID: String) -> BetaGroupTesterMutation { .add(testerID: testerID) }
+    public static func mutation(testerID: String) -> BetaGroupTesterMutation {
+        .add(testerID: testerID)
+    }
 }
 
 public enum RemoveTesterFromBetaGroupSpec: BetaGroupTesterActionSpec {
     public static let id: AutomationActionID = .removeTesterFromBetaGroup
     public static let title = "Remove Tester from Beta Group"
     public static let desiredMembership = false
-    public static func mutation(testerID: String) -> BetaGroupTesterMutation { .remove(testerID: testerID) }
+    public static func mutation(testerID: String) -> BetaGroupTesterMutation {
+        .remove(testerID: testerID)
+    }
 }
 
 public typealias AddTesterToBetaGroupAction = BetaGroupTesterAction<AddTesterToBetaGroupSpec>

@@ -7,13 +7,13 @@ public struct RemoveAccountAction: AutomationAction {
         title: "Remove Account",
         description: "Remove an App Store Connect API key from the local AppDab Keychain.",
         inputSchema: Schema.object(properties: [
-            "accountID": Schema.string(description: "The AppDab account identifier.")
+            "accountID": Schema.string(description: "The AppDab account identifier."),
         ], required: ["accountID"]),
         outputSchema: Schema.object(properties: [
-            "account": Schema.accountSummaryOutput
+            "account": Schema.accountSummaryOutput,
         ], required: ["account"]),
         outputType: "account_removal",
-        safety: .write
+        safety: .write,
     )
 
     public static let supportsDirectWriteExecution = true
@@ -30,7 +30,6 @@ public struct RemoveAccountAction: AutomationAction {
     }
 
     public func data(for output: AccountSummary) throws -> JSONValue {
-        .object(["account": try .fromEncodable(output)])
+        try .object(["account": .fromEncodable(output)])
     }
-
 }

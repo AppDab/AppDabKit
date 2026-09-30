@@ -91,11 +91,11 @@ public struct BetaGroupChanges: Codable, Equatable, Sendable {
 
     public func isApplied(to group: BetaGroupSummary) -> Bool {
         (name == nil || group.name == name) &&
-        (feedbackEnabled == nil || group.feedbackEnabled == feedbackEnabled) &&
-        (iosBuildsAvailableForAppleSiliconMac == nil || group.iosBuildsAvailableForAppleSiliconMac == iosBuildsAvailableForAppleSiliconMac) &&
-        (iosBuildsAvailableForAppleVision == nil || group.iosBuildsAvailableForAppleVision == iosBuildsAvailableForAppleVision) &&
-        (publicLinkEnabled == nil || group.publicLinkEnabled == publicLinkEnabled) &&
-        (publicLinkLimit == nil || group.publicLinkLimit == publicLinkLimit) &&
-        (publicLinkLimitEnabled == nil || group.publicLinkLimitEnabled == publicLinkLimitEnabled)
+            (feedbackEnabled == nil || group.feedbackEnabled == feedbackEnabled) &&
+            (iosBuildsAvailableForAppleSiliconMac == nil || group.iosBuildsAvailableForAppleSiliconMac == iosBuildsAvailableForAppleSiliconMac) &&
+            (iosBuildsAvailableForAppleVision == nil || group.iosBuildsAvailableForAppleVision == iosBuildsAvailableForAppleVision) &&
+            (publicLinkEnabled == nil || group.publicLinkEnabled == publicLinkEnabled) &&
+            (publicLinkLimit == nil || group.publicLinkLimit == publicLinkLimit) &&
+            (publicLinkLimitEnabled == nil || group.publicLinkLimitEnabled == publicLinkLimitEnabled)
     }
 }

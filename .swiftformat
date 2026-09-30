@@ -1,0 +1,3 @@
+--swift-version 6.1
+--min-version 0.63.0
+--disable swiftTestingTestCaseNames

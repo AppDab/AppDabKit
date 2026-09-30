@@ -7,6 +7,6 @@ public protocol AppCatalogServing: Sendable {
         accountID: String,
         appID: String,
         platform: String,
-        version: String
+        version: String,
     ) async throws -> AppVersion
 }

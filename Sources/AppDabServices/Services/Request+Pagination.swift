@@ -17,9 +17,9 @@ extension Request {
                 sorts: existing?.sorts,
                 limits: existing?.limits,
                 limit: existing?.limit,
-                customs: customs
+                customs: customs,
             ),
-            requestBody: requestBody
+            requestBody: requestBody,
         )
     }
 }

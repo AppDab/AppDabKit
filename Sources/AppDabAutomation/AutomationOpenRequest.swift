@@ -10,7 +10,7 @@ public struct AutomationOpenRequest: Codable, Equatable, Hashable, Sendable {
         requestID: String? = nil,
         destination: AutomationOpenDestination,
         accountID: String,
-        appID: String
+        appID: String,
     ) {
         self.requestID = requestID
         self.destination = destination
@@ -28,7 +28,7 @@ public struct AutomationOpenRequest: Codable, Equatable, Hashable, Sendable {
         }
         var queryItems = [
             URLQueryItem(name: "account_id", value: accountID),
-            URLQueryItem(name: "app_id", value: appID)
+            URLQueryItem(name: "app_id", value: appID),
         ]
         if let requestID {
             queryItems.append(URLQueryItem(name: "request_id", value: requestID))
@@ -40,7 +40,8 @@ public struct AutomationOpenRequest: Codable, Equatable, Hashable, Sendable {
     public static func parse(url: URL) -> AutomationOpenRequest? {
         guard url.scheme == "appdab",
               url.host == "automation",
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else {
             return nil
         }
         let destination: AutomationOpenDestination
@@ -56,14 +57,15 @@ public struct AutomationOpenRequest: Codable, Equatable, Hashable, Sendable {
         guard let accountID = queryItems.first(where: { $0.name == "account_id" })?.value,
               let appID = queryItems.first(where: { $0.name == "app_id" })?.value,
               !accountID.isEmpty,
-              !appID.isEmpty else {
+              !appID.isEmpty
+        else {
             return nil
         }
         return .init(
             requestID: queryItems.first(where: { $0.name == "request_id" })?.value,
             destination: destination,
             accountID: accountID,
-            appID: appID
+            appID: appID,
         )
     }
 }

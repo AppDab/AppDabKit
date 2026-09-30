@@ -16,7 +16,7 @@ public struct AutomationActionDescriptor: Codable, Equatable, Sendable {
         inputSchema: JSONValue,
         outputSchema: JSONValue,
         outputType: String,
-        safety: AutomationExecutionSafety
+        safety: AutomationExecutionSafety,
     ) {
         self.id = id
         self.title = title

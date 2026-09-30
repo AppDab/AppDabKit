@@ -9,23 +9,23 @@ public struct ListAppsAction: AutomationAction {
             properties: [
                 "accountID": Schema.string(description: "The AppDab account identifier."),
                 "cursor": Schema.paginationCursor,
-                "limit": Schema.paginationLimit
+                "limit": Schema.paginationLimit,
             ],
-            required: ["accountID"]
+            required: ["accountID"],
         ),
         outputSchema: Schema.object(properties: [
             "apps": Schema.array(items: Schema.appSummaryOutput),
-            "pagination": Schema.paginationOutput
+            "pagination": Schema.paginationOutput,
         ], required: ["apps", "pagination"]),
         outputType: "apps",
-        safety: .read
+        safety: .read,
     )
 
     public init() {}
 
     public func perform(
         input: ListAppsInput,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AppList {
         try await dataProvider.listApps(accountID: input.accountID, pagination: input.pagination)
     }

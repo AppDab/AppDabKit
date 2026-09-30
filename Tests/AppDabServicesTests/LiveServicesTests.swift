@@ -27,6 +27,6 @@ private struct TestAccountProvider: AccountProviding, APIKeyProviding {
     }
 
     func verifyAccount(accountID: String) async throws -> AppDabServices.AccountVerification {
-        return .init(account: .init(accountID: accountID, name: "Test account"), issue: .none)
+        .init(account: .init(accountID: accountID, name: "Test account"), issue: .none)
     }
 }

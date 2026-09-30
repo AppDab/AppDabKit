@@ -16,7 +16,7 @@ public struct AddAccountInput: AutomationActionInput {
     public init(arguments: [String: JSONValue]) throws(AutomationActionError) {
         let arguments = try Arguments(
             arguments,
-            allowedKeys: ["name", "keyID", "issuerID", "privateKeyFile"]
+            allowedKeys: ["name", "keyID", "issuerID", "privateKeyFile"],
         )
         name = try arguments.requiredString("name").trimmingCharacters(in: .whitespacesAndNewlines)
         keyID = try arguments.requiredString("keyID").trimmingCharacters(in: .whitespacesAndNewlines)

@@ -14,7 +14,7 @@ struct PaginationTests {
             "https://api.appstoreconnect.apple.com/v1/apps?limit=10",
             "https://api.appstoreconnect.apple.com/v1/apps?cursor=",
             "https://api.appstoreconnect.apple.com/v1/apps?cursor=one&cursor=two",
-            "https://[invalid"
+            "https://[invalid",
         ] {
             #expect(throws: ServiceError.upstream("App Store Connect returned an invalid pagination cursor.")) {
                 try PaginationCursor.extract(from: url)
@@ -38,7 +38,7 @@ struct PaginationTests {
         let original = Request<String, String>(
             path: "/v1/apps",
             method: .get,
-            parameters: .init(limit: 10, customs: ["existing": "value"])
+            parameters: .init(limit: 10, customs: ["existing": "value"]),
         )
         let continuation = original.withPaginationCursor("opaque=value")
 

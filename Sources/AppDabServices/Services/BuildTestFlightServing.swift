@@ -3,6 +3,6 @@ public protocol BuildTestFlightServing: Sendable {
     func mutateBuild(
         accountID: String,
         buildID: String,
-        mutation: BuildTestFlightMutation
+        mutation: BuildTestFlightMutation,
     ) async throws -> BuildSummary
 }

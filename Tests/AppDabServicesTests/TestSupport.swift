@@ -13,6 +13,6 @@ func previewAPIKey() throws -> APIKey {
         name: "Preview",
         keyId: "AAAAAAAAAA",
         issuerId: "00000000-0000-0000-0000-000000000000",
-        privateKey: previewPrivateKey
+        privateKey: previewPrivateKey,
     )
 }

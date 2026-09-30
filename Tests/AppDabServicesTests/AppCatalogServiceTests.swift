@@ -11,7 +11,7 @@ struct AppCatalogServiceTests {
             appStoreVersion(id: "older", platform: .iOS, state: .readyForDistribution, version: "1.0", createdDate: 100),
             appStoreVersion(id: "newer", platform: .iOS, state: .readyForDistribution, version: "1.1", createdDate: 200),
             appStoreVersion(id: "replaced", platform: .iOS, state: .replacedWithNewVersion, version: "0.9", createdDate: 50),
-            appStoreVersion(id: "mac", platform: .macOS, state: .prepareForSubmission, version: "2.0", createdDate: 300)
+            appStoreVersion(id: "mac", platform: .macOS, state: .prepareForSubmission, version: "2.0", createdDate: 300),
         ])
 
         #expect(versions.map(\.versionID) == ["newer", "mac"])
@@ -19,7 +19,7 @@ struct AppCatalogServiceTests {
 
     @Test func appVersionServiceModelUsesPrettyNames() {
         let version = AppVersion.displayProjection([
-            appStoreVersion(id: "version", platform: .iOS, state: .readyForDistribution, version: "1.0", createdDate: 100)
+            appStoreVersion(id: "version", platform: .iOS, state: .readyForDistribution, version: "1.0", createdDate: 100),
         ])
 
         #expect(version.first?.platform == "iOS")
@@ -44,15 +44,15 @@ struct AppCatalogServiceTests {
                         primaryLocale: "en-US",
                         iconURL: nil,
                         contentRightsDeclaration: nil,
-                        displayVersions: []
-                    )
+                        displayVersions: [],
+                    ),
                 ], total: 2, nextCursor: "cursor-2")
-            }
+            },
         )
 
         let apps = try await service.listApps(
             accountID: apiKey.id,
-            pagination: .init(cursor: "cursor-1", limit: 25)
+            pagination: .init(cursor: "cursor-1", limit: 25),
         )
 
         #expect(apps.apps.count == 1)
@@ -72,14 +72,14 @@ struct AppCatalogServiceTests {
                 appID: appID,
                 builds: [.init(
                     buildID: "build-1", version: "42", platform: "iOS", processingState: "VALID",
-                    uploadedDate: Date(timeIntervalSince1970: 100), expirationDate: nil, expired: false
+                    uploadedDate: Date(timeIntervalSince1970: 100), expirationDate: nil, expired: false,
                 )],
-                pagination: .init(limit: 25, total: 200, nextCursor: "cursor-2")
+                pagination: .init(limit: 25, total: 200, nextCursor: "cursor-2"),
             )
         })
 
         let page = try await service.listBuilds(
-            accountID: apiKey.id, appID: "app-1", pagination: .init(cursor: "cursor-1", limit: 25)
+            accountID: apiKey.id, appID: "app-1", pagination: .init(cursor: "cursor-1", limit: 25),
         )
 
         #expect(page.builds.map(\.buildID) == ["build-1"])
@@ -89,7 +89,7 @@ struct AppCatalogServiceTests {
 
     @Test func buildServiceListingRequestIsScopedAndPreservesTheCursor() throws {
         let request = try BuildService.buildsRequest(
-            appID: "app-1", pagination: .init(cursor: "cursor-2", limit: 25)
+            appID: "app-1", pagination: .init(cursor: "cursor-2", limit: 25),
         )
 
         #expect(request.path == "/v1/builds")
@@ -114,7 +114,7 @@ struct AppCatalogServiceTests {
             #expect(buildID == "build-1")
             return .init(
                 buildID: buildID, version: "42", platform: "iOS", processingState: "VALID",
-                uploadedDate: Date(timeIntervalSince1970: 100), expirationDate: nil, expired: false
+                uploadedDate: Date(timeIntervalSince1970: 100), expirationDate: nil, expired: false,
             )
         })
 
@@ -140,16 +140,16 @@ struct AppCatalogServiceTests {
                     state: "Prepare for Submission",
                     version: version,
                     createdDate: Date(timeIntervalSince1970: 200),
-                    isFirstVersion: false
+                    isFirstVersion: false,
                 )
-            }
+            },
         )
 
         let version = try await service.createAppVersion(
             accountID: apiKey.id,
             appID: "app-1",
             platform: "IOS",
-            version: "2.0"
+            version: "2.0",
         )
 
         #expect(version.versionID == "version-2")
@@ -161,13 +161,13 @@ struct AppCatalogServiceTests {
         let service = AppCatalogService(accountProvider: provider)
 
         await #expect(throws: ServiceError.invalidArguments(
-            "Argument platform must be one of \(Platform.allCases.map(\.rawValue).joined(separator: ", "))."
+            "Argument platform must be one of \(Platform.allCases.map(\.rawValue).joined(separator: ", ")).",
         )) {
             try await service.createAppVersion(
                 accountID: apiKey.id,
                 appID: "app-1",
                 platform: "WATCH_OS",
-                version: "2.0"
+                version: "2.0",
             )
         }
     }
@@ -177,7 +177,7 @@ struct AppCatalogServiceTests {
         platform: Platform,
         state: AppVersionState,
         version: String,
-        createdDate: TimeInterval
+        createdDate: TimeInterval,
     ) -> AppStoreVersion {
         AppStoreVersion(
             id: id,
@@ -185,8 +185,8 @@ struct AppCatalogServiceTests {
                 appVersionState: state,
                 createdDate: Date(timeIntervalSince1970: createdDate),
                 platform: platform,
-                versionString: version
-            )
+                versionString: version,
+            ),
         )
     }
 }

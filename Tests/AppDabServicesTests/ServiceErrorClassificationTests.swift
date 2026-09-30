@@ -15,7 +15,7 @@ struct ServiceErrorClassificationTests {
         // Deliberately misleading descriptions must not override the SDK case.
         let response = ErrorResponse(errors: [.init(
             code: "OTHER", detail: "Resource not found (404); credentials forbidden",
-            status: "500", title: "Unrelated text"
+            status: "500", title: "Unrelated text",
         )])
         let authentication = try AppDabServices.ServiceError.classify(BagbutikCore.ServiceError.unauthorized(response))
         let permission = try AppDabServices.ServiceError.classify(BagbutikCore.ServiceError.forbidden(response))
@@ -32,7 +32,7 @@ struct ServiceErrorClassificationTests {
     func preservesHTTPStatusAndResponseBody(status: Int) throws {
         let body = Data(#"{"errors":[{"code":"REMOTE_CODE","status":"503","title":"Remote error","detail":"Details"}]}"#.utf8)
         let mapped = try AppDabServices.ServiceError.classify(
-            BagbutikCore.ServiceError.unknownHTTPError(statusCode: status, data: body)
+            BagbutikCore.ServiceError.unknownHTTPError(statusCode: status, data: body),
         )
         switch (status, mapped) {
         case (400, .invalidArguments), (422, .invalidArguments),
@@ -50,7 +50,7 @@ struct ServiceErrorClassificationTests {
             .init(code: "INVALID_RELATIONSHIP", detail: "Invalid relationship", id: "trace",
                   meta: .init(additionalProperties: ["key": "value"]),
                   source: .jsonPointer(.init(pointer: "/data/relationships/app")), status: "409", title: "Conflict"),
-            .init(code: "INVALID_PARAMETER", source: .parameter(.init(parameter: "filter")), status: "409", title: "Filter")
+            .init(code: "INVALID_PARAMETER", source: .parameter(.init(parameter: "filter")), status: "409", title: "Filter"),
         ])
         let mapped = try AppDabServices.ServiceError.classify(BagbutikCore.ServiceError.conflict(response))
         guard case .upstream = mapped else {
@@ -61,8 +61,9 @@ struct ServiceErrorClassificationTests {
         #expect(errors.map(\.code) == ["INVALID_RELATIONSHIP", "INVALID_PARAMETER"])
         #expect(errors.first?.id == "trace")
         #expect(errors.first?.meta?.additionalProperties == ["key": "value"])
-        guard case .jsonPointer(let pointer) = errors[0].source,
-              case .parameter(let parameter) = errors[1].source else {
+        guard case let .jsonPointer(pointer) = errors[0].source,
+              case let .parameter(parameter) = errors[1].source
+        else {
             Issue.record("Expected both structured error sources.")
             return
         }
@@ -76,7 +77,8 @@ struct ServiceErrorClassificationTests {
         guard case .invalidArguments = try AppDabServices.ServiceError.classify(BagbutikCore.ServiceError.badRequest(response)),
               case .invalidArguments = try AppDabServices.ServiceError.classify(BagbutikCore.ServiceError.unprocessableEntity(response)),
               case .upstream = try AppDabServices.ServiceError.classify(BagbutikCore.ServiceError.notFound(response)),
-              case .upstream = try AppDabServices.ServiceError.classify(BagbutikCore.ServiceError.wrongDateFormat(dateString: "invalid")) else {
+              case .upstream = try AppDabServices.ServiceError.classify(BagbutikCore.ServiceError.wrongDateFormat(dateString: "invalid"))
+        else {
             Issue.record("Incorrect SDK case mapping.")
             return
         }
@@ -100,7 +102,7 @@ struct ServiceErrorClassificationTests {
 
     @Test func doesNotInferClassificationFromLocalizedText() throws {
         guard case .upstream = try AppDabServices.ServiceError.classify(
-            FixtureError(message: "HTTP status code 401: forbidden; permission denied; not found 404")
+            FixtureError(message: "HTTP status code 401: forbidden; permission denied; not found 404"),
         ) else {
             Issue.record("Unstructured errors must remain upstream failures.")
             return
@@ -110,5 +112,7 @@ struct ServiceErrorClassificationTests {
 
 private struct FixtureError: LocalizedError {
     let message: String
-    var errorDescription: String? { message }
+    var errorDescription: String? {
+        message
+    }
 }

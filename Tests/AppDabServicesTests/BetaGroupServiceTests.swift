@@ -6,7 +6,7 @@ import Testing
 struct BetaGroupServiceTests {
     @Test func updateRequestOmitsUnspecifiedFieldsAndPreservesFalse() throws {
         let body = BetaGroupService.updateRequestBody(
-            betaGroupID: "group-1", changes: .init(name: "Renamed", feedbackEnabled: false)
+            betaGroupID: "group-1", changes: .init(name: "Renamed", feedbackEnabled: false),
         )
         let payload = try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(body))
         let data = try #require(payload.objectValue?["data"]?.objectValue)

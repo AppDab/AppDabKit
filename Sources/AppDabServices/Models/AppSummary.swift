@@ -16,7 +16,7 @@ public struct AppSummary: Codable, Equatable, Hashable, Sendable {
         sku: String,
         primaryLocale: String,
         iconURL: URL?,
-        versions: [AppVersion]
+        versions: [AppVersion],
     ) {
         self.appID = appID
         self.name = name
@@ -35,7 +35,7 @@ public struct AppSummary: Codable, Equatable, Hashable, Sendable {
             sku: detail.sku,
             primaryLocale: detail.primaryLocale,
             iconURL: detail.iconURL,
-            versions: detail.displayVersions
+            versions: detail.displayVersions,
         )
     }
 }

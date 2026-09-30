@@ -14,7 +14,7 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
         appError: ServiceError? = nil,
         returnsEmptyCollections: Bool = false,
         includesReviewResponse: Bool = true,
-        reviewRating: Int = 5
+        reviewRating: Int = 5,
     ) {
         self.appError = appError
         self.returnsEmptyCollections = returnsEmptyCollections
@@ -23,7 +23,7 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
     }
 
     public func accountStore() throws -> any AppDabAutomation.AutomationAccountStoring {
-        return MockAutomationAccountStore()
+        MockAutomationAccountStore()
     }
 
     public func listAccounts() async throws -> [AccountSummary] {
@@ -40,7 +40,7 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
         return .init(account: .init(accountID: accountID, name: "Primary"))
     }
 
-    public func listApps(accountID: String, pagination: PaginationRequest) async throws -> AppList {
+    public func listApps(accountID _: String, pagination: PaginationRequest) async throws -> AppList {
         if let appError {
             throw appError
         }
@@ -50,26 +50,26 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
         }
         let apps: [AppSummary] = [
             .init(
-                    appID: "app-1",
-                    name: "AppDab",
-                    bundleID: "app.appdab",
-                    sku: "APPDAB",
-                    primaryLocale: "en-US",
-                    iconURL: nil,
-                    versions: [appVersion]
-            )
+                appID: "app-1",
+                name: "AppDab",
+                bundleID: "app.appdab",
+                sku: "APPDAB",
+                primaryLocale: "en-US",
+                iconURL: nil,
+                versions: [appVersion],
+            ),
         ]
         return .init(
             apps: apps,
             pagination: .init(
                 limit: limit,
                 total: limit == 1 ? 2 : apps.count,
-                nextCursor: limit == 1 ? "next-app" : nil
-            )
+                nextCursor: limit == 1 ? "next-app" : nil,
+            ),
         )
     }
 
-    public func getApp(accountID: String, appID: String) async throws -> AppDetail {
+    public func getApp(accountID _: String, appID: String) async throws -> AppDetail {
         .init(
             appID: appID,
             name: "AppDab",
@@ -78,15 +78,15 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
             primaryLocale: "en-US",
             iconURL: nil,
             contentRightsDeclaration: "doesNotUseThirdPartyContent",
-            displayVersions: [appVersion]
+            displayVersions: [appVersion],
         )
     }
 
-    public func createAppVersion(accountID: String, appID: String, platform: String, version: String) async throws -> AppDabServices.AppVersion {
-        return .init(versionID: UUID().uuidString, platform: platform, state: AppVersionState.prepareForSubmission.prettyName, version: version, createdDate: .now, isFirstVersion: false)
+    public func createAppVersion(accountID _: String, appID _: String, platform: String, version: String) async throws -> AppDabServices.AppVersion {
+        .init(versionID: UUID().uuidString, platform: platform, state: AppVersionState.prepareForSubmission.prettyName, version: version, createdDate: .now, isFirstVersion: false)
     }
 
-    public func listCustomerReviews(accountID: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
+    public func listCustomerReviews(accountID _: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
         let limit = try pagination.resolvedLimit()
         guard !returnsEmptyCollections else {
             return .init(appID: appID, reviews: [], pagination: .init(limit: limit, total: 0, nextCursor: nil))
@@ -96,7 +96,7 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
                 responseID: "response-1",
                 lastModifiedDate: Date(timeIntervalSince1970: 300),
                 responseBody: "Thank you!",
-                state: "PUBLISHED"
+                state: "PUBLISHED",
             )
             : nil
         return .init(appID: appID, reviews: [
@@ -108,51 +108,59 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
                 rating: reviewRating,
                 reviewerNickname: "Taylor",
                 territory: "USA",
-                response: response
-            )
+                response: response,
+            ),
         ], pagination: .init(
             limit: limit,
             total: limit == 1 ? 2 : 1,
-            nextCursor: limit == 1 ? "next-review" : nil
+            nextCursor: limit == 1 ? "next-review" : nil,
         ))
     }
 
-    public func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList {
-        if let appError { throw appError }
+    public func listAppVersions(accountID _: String, appID: String, filter _: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList {
+        if let appError {
+            throw appError
+        }
         let versions = returnsEmptyCollections ? [] : [appVersion]
         return try .init(appID: appID, versions: versions, pagination: .init(limit: pagination.resolvedLimit(), total: versions.count, nextCursor: nil))
     }
 
-    public func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion {
-        if let appError { throw appError }
+    public func getAppVersion(accountID _: String, appID _: String, versionID: String) async throws -> AppVersion {
+        if let appError {
+            throw appError
+        }
         guard !returnsEmptyCollections, versionID == appVersion.versionID else { throw ServiceError.upstream("Version not found.") }
         return appVersion
     }
 
-    public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BuildList {
-        if let appError { throw appError }
+    public func listBuilds(accountID _: String, appID: String, pagination: PaginationRequest) async throws -> BuildList {
+        if let appError {
+            throw appError
+        }
         let limit = try pagination.resolvedLimit()
         let builds: [BuildSummary] = returnsEmptyCollections ? [] : [
             .init(
                 buildID: "build-1", version: "42", platform: "iOS", processingState: "VALID",
-                uploadedDate: Date(timeIntervalSince1970: 200), expirationDate: nil, expired: false
-            )
+                uploadedDate: Date(timeIntervalSince1970: 200), expirationDate: nil, expired: false,
+            ),
         ]
         return .init(appID: appID, builds: builds, pagination: .init(limit: limit, total: builds.count, nextCursor: nil))
     }
 
-    public func getBuild(accountID: String, buildID: String) async throws -> BuildSummary {
-        if let appError { throw appError }
+    public func getBuild(accountID _: String, buildID: String) async throws -> BuildSummary {
+        if let appError {
+            throw appError
+        }
         guard !returnsEmptyCollections, buildID == "build-1" else {
             throw ServiceError.upstream("Build not found.")
         }
         return .init(
             buildID: buildID, version: "42", platform: "iOS", processingState: "VALID",
-            uploadedDate: Date(timeIntervalSince1970: 200), expirationDate: nil, expired: false
+            uploadedDate: Date(timeIntervalSince1970: 200), expirationDate: nil, expired: false,
         )
     }
 
-    public func getCustomerReview(accountID: String, reviewID: String) async throws -> AppDabServices.CustomerReview {
+    public func getCustomerReview(accountID _: String, reviewID: String) async throws -> AppDabServices.CustomerReview {
         .init(
             reviewID: reviewID,
             title: "Great",
@@ -166,9 +174,9 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
                     responseID: "response-1",
                     lastModifiedDate: Date(timeIntervalSince1970: 300),
                     responseBody: "Thank you!",
-                    state: "PUBLISHED"
+                    state: "PUBLISHED",
                 )
-                : nil
+                : nil,
         )
     }
 
@@ -179,7 +187,7 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
             state: "READY_FOR_SALE",
             version: "1.2.3",
             createdDate: Date(timeIntervalSince1970: 200),
-            isFirstVersion: false
+            isFirstVersion: false,
         )
     }
 }

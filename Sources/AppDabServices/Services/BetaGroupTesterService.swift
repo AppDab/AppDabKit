@@ -20,7 +20,7 @@ public final class BetaGroupTesterService: BetaGroupTesterServing, @unchecked Se
                 betaGroupID: betaGroupID,
                 betaGroupName: group.data.attributes?.name ?? betaGroupID,
                 testerID: testerID,
-                isMember: testers.data.contains { $0.id == testerID }
+                isMember: testers.data.contains { $0.id == testerID },
             )
         } catch {
             throw try ServiceError.classify(error)
@@ -34,19 +34,19 @@ public final class BetaGroupTesterService: BetaGroupTesterServing, @unchecked Se
         let isMember: Bool
         do {
             switch mutation {
-            case .add(let id):
+            case let .add(id):
                 testerID = id
                 isMember = true
                 _ = try await service.request(.createBetaTestersForBetaGroupV1(
                     id: betaGroupID,
-                    requestBody: .init(data: [.init(id: id)])
+                    requestBody: .init(data: [.init(id: id)]),
                 ))
-            case .remove(let id):
+            case let .remove(id):
                 testerID = id
                 isMember = false
                 _ = try await service.request(.deleteBetaTestersForBetaGroupV1(
                     id: betaGroupID,
-                    requestBody: .init(data: [.init(id: id)])
+                    requestBody: .init(data: [.init(id: id)]),
                 ))
             }
             let group = try await service.request(.getBetaGroupV1(id: betaGroupID))
@@ -54,7 +54,7 @@ public final class BetaGroupTesterService: BetaGroupTesterServing, @unchecked Se
                 betaGroupID: betaGroupID,
                 betaGroupName: group.data.attributes?.name ?? betaGroupID,
                 testerID: testerID,
-                isMember: isMember
+                isMember: isMember,
             )
         } catch {
             throw try ServiceError.classify(error)

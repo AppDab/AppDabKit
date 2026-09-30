@@ -21,12 +21,14 @@ public struct CreateBetaGroupInput: AutomationActionInput {
         accountID = try args.requiredString("accountID")
         appID = try args.requiredString("appID")
         name = try args.requiredString("name").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard case .bool(let internalGroup) = args.value("isInternalGroup") else { throw .invalidArguments("Argument isInternalGroup must be a boolean.") }
+        guard case let .bool(internalGroup) = args.value("isInternalGroup") else { throw .invalidArguments("Argument isInternalGroup must be a boolean.") }
         isInternalGroup = internalGroup
         if let value = args.value("hasAccessToAllBuilds") {
-            guard case .bool(let access) = value else { throw .invalidArguments("Argument hasAccessToAllBuilds must be a boolean.") }
+            guard case let .bool(access) = value else { throw .invalidArguments("Argument hasAccessToAllBuilds must be a boolean.") }
             hasAccessToAllBuilds = access
-        } else { hasAccessToAllBuilds = isInternalGroup ? true : nil }
+        } else {
+            hasAccessToAllBuilds = isInternalGroup ? true : nil
+        }
     }
 
     public func validate() throws(AutomationActionError) {

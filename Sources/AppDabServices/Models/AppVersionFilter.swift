@@ -1,5 +1,5 @@
-import BagbutikCore
 import BagbutikAppStoreModels
+import BagbutikCore
 
 /// Server side filters for authoritative version reads. Empty arrays mean no filter.
 public struct AppVersionFilter: Codable, Sendable, Equatable {

@@ -18,34 +18,34 @@ public struct ListAppVersionsAction: AutomationAction {
                     description: "Maximum versions to return, from 1 through 200.",
                     minimum: 1,
                     maximum: PaginationRequest.maximumLimit,
-                    default: PaginationRequest.defaultLimit
-                )
+                    default: PaginationRequest.defaultLimit,
+                ),
             ],
-            required: ["account_id", "app_id"]
+            required: ["account_id", "app_id"],
         ),
         outputSchema: Schema.object(
             properties: [
                 "appID": Schema.string(description: "The App Store Connect app identifier."),
                 "versions": Schema.array(items: Schema.appVersionOutput),
-                "pagination": Schema.paginationOutput
+                "pagination": Schema.paginationOutput,
             ],
-            required: ["appID", "versions", "pagination"]
+            required: ["appID", "versions", "pagination"],
         ),
         outputType: "app_versions",
-        safety: .read
+        safety: .read,
     )
 
     public init() {}
 
     public func perform(
         input: ListAppVersionsInput,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AppVersionList {
         try await dataProvider.listAppVersions(
             accountID: input.accountID,
             appID: input.appID,
             filter: input.filter,
-            pagination: input.pagination
+            pagination: input.pagination,
         )
     }
 

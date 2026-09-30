@@ -12,7 +12,7 @@ public struct AccountImportEffects: Sendable {
         loadPrivateKey: @escaping @Sendable (String) throws -> String,
         validateCredential: @escaping @Sendable (AddAccountInput, String) throws -> APIKey,
         verifyCredential: @escaping @Sendable (APIKey) async throws -> AccountVerificationIssue?,
-        persistCredential: @escaping @Sendable (APIKey, any AutomationAccountStoring) async throws -> Void
+        persistCredential: @escaping @Sendable (APIKey, any AutomationAccountStoring) async throws -> Void,
     ) {
         self.loadPrivateKey = loadPrivateKey
         self.validateCredential = validateCredential
@@ -29,7 +29,8 @@ public struct AccountImportEffects: Sendable {
                 throw AutomationActionError.invalidArguments("Could not read the private key file. Check the path and permissions.")
             }
             guard let privateKey = String(data: data, encoding: .utf8),
-                  !privateKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                  !privateKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else {
                 throw AutomationActionError.invalidArguments("The private key file is empty or is not valid text.")
             }
             return privateKey
@@ -55,7 +56,7 @@ public struct AccountImportEffects: Sendable {
                 throw AutomationActionError.invalidArguments("An API key with this key ID is already configured.")
             }
             try await store.saveAPIKey(apiKey)
-        }
+        },
     )
 }
 
@@ -68,14 +69,14 @@ public struct AddAccountAction: AutomationAction {
             "name": Schema.string(description: "The display name for this account."),
             "keyID": Schema.string(description: "The App Store Connect API key identifier."),
             "issuerID": Schema.string(description: "The optional issuer identifier for a Team API key."),
-            "privateKeyFile": Schema.string(description: "The path to a local .p8 private key file.")
+            "privateKeyFile": Schema.string(description: "The path to a local .p8 private key file."),
         ], required: ["name", "keyID", "privateKeyFile"]),
         outputSchema: Schema.object(properties: [
             "account": Schema.accountSummaryOutput,
-            "issue": Schema.accountIssueOutput
+            "issue": Schema.accountIssueOutput,
         ], required: ["account"]),
         outputType: "account_addition",
-        safety: .write
+        safety: .write,
     )
 
     public static let supportsDirectWriteExecution = true
@@ -97,7 +98,7 @@ public struct AddAccountAction: AutomationAction {
         try await effects.persistCredential(apiKey, dataProvider.accountStore())
         return .init(
             account: .init(accountID: apiKey.id, name: apiKey.name),
-            issue: issue.map { .init(message: $0.message, resolutionURL: $0.resolutionURL) }
+            issue: issue.map { .init(message: $0.message, resolutionURL: $0.resolutionURL) },
         )
     }
 
@@ -108,7 +109,7 @@ public struct AddAccountAction: AutomationAction {
     }
 
     public func data(for output: AccountAddition) throws -> JSONValue {
-        var data: [String: JSONValue] = ["account": try .fromEncodable(output.account)]
+        var data: [String: JSONValue] = try ["account": .fromEncodable(output.account)]
         if let issue = output.issue {
             data["issue"] = try .fromEncodable(issue)
         }

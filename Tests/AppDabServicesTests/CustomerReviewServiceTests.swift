@@ -8,14 +8,14 @@ struct CustomerReviewServiceTests {
         let apiKey = try previewAPIKey()
         let provider = StoredAccountProvider(loadAPIKeys: { [apiKey] })
         let service = CustomerReviewService(accountProvider: provider, listReviewsHandler: { _, appID, pagination in
-            .init(appID: appID, reviews: [], pagination: .init(limit: try pagination.resolvedLimit(), total: 0, nextCursor: nil))
+            try .init(appID: appID, reviews: [], pagination: .init(limit: pagination.resolvedLimit(), total: 0, nextCursor: nil))
         })
 
         await #expect(throws: ServiceError.invalidLimit(0)) {
             _ = try await service.listCustomerReviews(
                 accountID: apiKey.id,
                 appID: "123",
-                pagination: .init(limit: 0)
+                pagination: .init(limit: 0),
             )
         }
     }
@@ -26,7 +26,7 @@ struct CustomerReviewServiceTests {
         let service = CustomerReviewService(
             accountProvider: provider,
             listReviewsHandler: { apiKey, appID, pagination in
-                .init(appID: appID, reviews: [
+                try .init(appID: appID, reviews: [
                     CustomerReview(
                         reviewID: "review-1",
                         title: "Great",
@@ -39,17 +39,17 @@ struct CustomerReviewServiceTests {
                             responseID: "response-1",
                             lastModifiedDate: Date(timeIntervalSince1970: 150),
                             responseBody: "Thanks",
-                            state: "published"
-                        )
-                    )
-                ], pagination: .init(limit: try pagination.resolvedLimit(), total: 1, nextCursor: nil))
-            }
+                            state: "published",
+                        ),
+                    ),
+                ], pagination: .init(limit: pagination.resolvedLimit(), total: 1, nextCursor: nil))
+            },
         )
 
         let reviews = try await service.listCustomerReviews(
             accountID: apiKey.id,
             appID: "123",
-            pagination: .init(limit: 1)
+            pagination: .init(limit: 1),
         )
 
         #expect(reviews.appID == "123")
@@ -64,18 +64,18 @@ struct CustomerReviewServiceTests {
             accountProvider: provider,
             listReviewsHandler: { _, appID, pagination in
                 #expect(pagination == .init(cursor: "cursor-1", limit: 25))
-                return .init(
+                return try .init(
                     appID: appID,
                     reviews: [],
-                    pagination: .init(limit: try pagination.resolvedLimit(), total: 51, nextCursor: nil)
+                    pagination: .init(limit: pagination.resolvedLimit(), total: 51, nextCursor: nil),
                 )
-            }
+            },
         )
 
         let reviews = try await service.listCustomerReviews(
             accountID: apiKey.id,
             appID: "123",
-            pagination: .init(cursor: "cursor-1", limit: 25)
+            pagination: .init(cursor: "cursor-1", limit: 25),
         )
 
         #expect(reviews.pagination.total == 51)
@@ -88,8 +88,8 @@ struct CustomerReviewServiceTests {
             attributes: .init(
                 lastModifiedDate: Date(timeIntervalSince1970: 150),
                 responseBody: "Thanks",
-                state: .published
-            )
+                state: .published,
+            ),
         )
 
         let record = CustomerReviewResponse(response: response)

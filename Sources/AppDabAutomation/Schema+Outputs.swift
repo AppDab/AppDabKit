@@ -6,7 +6,7 @@ extension Schema {
     static let outputBoolean: JSONValue = .object(["type": .string("boolean")])
     static let outputDate: JSONValue = .object([
         "type": .string("string"),
-        "format": .string("date-time")
+        "format": .string("date-time"),
     ])
 
     static func array(items: JSONValue) -> JSONValue {
@@ -15,12 +15,12 @@ extension Schema {
 
     static let accountSummaryOutput = object(properties: [
         "accountID": outputString,
-        "name": outputString
+        "name": outputString,
     ], required: ["accountID", "name"])
 
     static let accountIssueOutput = object(properties: [
         "message": outputString,
-        "resolutionURL": outputString
+        "resolutionURL": outputString,
     ], required: ["message"])
 
     static let appVersionOutput = object(properties: [
@@ -29,9 +29,9 @@ extension Schema {
         "state": outputString,
         "version": outputString,
         "createdDate": outputDate,
-        "isFirstVersion": outputBoolean
+        "isFirstVersion": outputBoolean,
     ], required: [
-        "versionID", "platform", "state", "version", "createdDate", "isFirstVersion"
+        "versionID", "platform", "state", "version", "createdDate", "isFirstVersion",
     ])
 
     static let buildSummaryOutput = object(properties: [
@@ -41,7 +41,7 @@ extension Schema {
         "processingState": outputString,
         "uploadedDate": outputDate,
         "expirationDate": outputDate,
-        "expired": outputBoolean
+        "expired": outputBoolean,
     ], required: ["buildID", "version"])
 
     static let betaGroupOutput = object(properties: [
@@ -51,11 +51,11 @@ extension Schema {
         "iosBuildsAvailableForAppleSiliconMac": outputBoolean,
         "iosBuildsAvailableForAppleVision": outputBoolean,
         "publicLinkEnabled": outputBoolean, "publicLinkLimit": outputInteger,
-        "publicLinkLimitEnabled": outputBoolean, "publicLink": outputString
+        "publicLinkLimitEnabled": outputBoolean, "publicLink": outputString,
     ], required: ["betaGroupID", "name"])
 
     static let betaGroupBuildMembershipOutput = object(properties: [
-        "betaGroup": betaGroupOutput, "buildID": outputString, "isMember": outputBoolean
+        "betaGroup": betaGroupOutput, "buildID": outputString, "isMember": outputBoolean,
     ], required: ["betaGroup", "buildID", "isMember"])
 
     static let appSummaryOutput = object(properties: [
@@ -65,7 +65,7 @@ extension Schema {
         "sku": outputString,
         "primaryLocale": outputString,
         "iconURL": outputString,
-        "versions": array(items: appVersionOutput)
+        "versions": array(items: appVersionOutput),
     ], required: ["appID", "name", "bundleID", "sku", "primaryLocale", "versions"])
 
     static let appDetailOutput = object(properties: [
@@ -76,14 +76,14 @@ extension Schema {
         "primaryLocale": outputString,
         "iconURL": outputString,
         "contentRightsDeclaration": outputString,
-        "versions": array(items: appVersionOutput)
+        "versions": array(items: appVersionOutput),
     ], required: ["appID", "name", "bundleID", "sku", "primaryLocale", "versions"])
 
     static let reviewResponseOutput = object(properties: [
         "responseID": outputString,
         "lastModifiedDate": outputDate,
         "responseBody": outputString,
-        "state": outputString
+        "state": outputString,
     ], required: ["responseID", "lastModifiedDate", "responseBody", "state"])
 
     static let customerReviewOutput = object(properties: [
@@ -94,8 +94,8 @@ extension Schema {
         "rating": outputInteger,
         "reviewerNickname": outputString,
         "territory": outputString,
-        "response": reviewResponseOutput
+        "response": reviewResponseOutput,
     ], required: [
-        "reviewID", "title", "body", "createdDate", "rating", "reviewerNickname", "territory"
+        "reviewID", "title", "body", "createdDate", "rating", "reviewerNickname", "territory",
     ])
 }

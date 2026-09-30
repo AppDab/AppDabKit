@@ -9,7 +9,7 @@ public actor CreateVersionDataProvider: AutomationDataProviding {
 
     public init(
         versions: [String] = ["1.0"],
-        failure: CreateVersionFailure? = nil
+        failure: CreateVersionFailure? = nil,
     ) {
         self.versions = versions
         self.failure = failure
@@ -23,11 +23,11 @@ public actor CreateVersionDataProvider: AutomationDataProviding {
         []
     }
 
-    public func listApps(accountID: String, pagination: PaginationRequest) async throws -> AppList {
+    public func listApps(accountID _: String, pagination: PaginationRequest) async throws -> AppList {
         try .init(apps: [], pagination: .init(limit: pagination.resolvedLimit(), total: 0, nextCursor: nil))
     }
 
-    public func getApp(accountID: String, appID: String) async throws -> AppDetail {
+    public func getApp(accountID _: String, appID: String) async throws -> AppDetail {
         .init(
             appID: appID,
             name: "AppDab",
@@ -36,11 +36,11 @@ public actor CreateVersionDataProvider: AutomationDataProviding {
             primaryLocale: "en-US",
             iconURL: nil,
             contentRightsDeclaration: nil,
-            displayVersions: []
+            displayVersions: [],
         )
     }
 
-    public func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList {
+    public func listAppVersions(accountID _: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList {
         let offset = Int(pagination.cursor ?? "0") ?? 0
         let matches = versions.enumerated().filter { filter.versions.isEmpty || filter.versions.contains($0.element) }
         // Small pages ensure write preconditions exercise pagination in tests.
@@ -50,19 +50,19 @@ public actor CreateVersionDataProvider: AutomationDataProviding {
         }
         return try .init(appID: appID, versions: items, pagination: .init(
             limit: pagination.resolvedLimit(), total: matches.count,
-            nextCursor: offset + items.count < matches.count ? String(offset + items.count) : nil
+            nextCursor: offset + items.count < matches.count ? String(offset + items.count) : nil,
         ))
     }
 
-    public func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
+    public func getCustomerReview(accountID _: String, reviewID _: String) async throws -> CustomerReview {
         throw ServiceError.upstream("Customer review lookup is unavailable in this fixture.")
     }
 
     public func createAppVersion(
-        accountID: String,
-        appID: String,
-        platform: String,
-        version: String
+        accountID _: String,
+        appID _: String,
+        platform _: String,
+        version: String,
     ) async throws -> AppVersion {
         if failure == .beforeCreating {
             throw ServiceError.upstream("The create request failed before applying.")
@@ -78,15 +78,15 @@ public actor CreateVersionDataProvider: AutomationDataProviding {
             state: "Prepare for Submission",
             version: version,
             createdDate: Date(timeIntervalSince1970: TimeInterval(versions.count)),
-            isFirstVersion: false
+            isFirstVersion: false,
         )
     }
 
-    public func listCustomerReviews(accountID: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
+    public func listCustomerReviews(accountID _: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
         try .init(
             appID: appID,
             reviews: [],
-            pagination: .init(limit: pagination.resolvedLimit(), total: 0, nextCursor: nil)
+            pagination: .init(limit: pagination.resolvedLimit(), total: 0, nextCursor: nil),
         )
     }
 }
@@ -100,27 +100,27 @@ public extension AutomationDataProviding {
         throw ServiceError.accountNotFound(accountID)
     }
 
-    func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList {
+    func listAppVersions(accountID _: String, appID _: String, filter _: AppVersionFilter, pagination _: PaginationRequest) async throws -> AppVersionList {
         throw ServiceError.upstream("Version listing is unavailable in this fixture.")
     }
 
-    func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion {
+    func getAppVersion(accountID _: String, appID _: String, versionID _: String) async throws -> AppVersion {
         throw ServiceError.upstream("Version lookup is unavailable in this fixture.")
     }
 
-    func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BuildList {
+    func listBuilds(accountID _: String, appID _: String, pagination _: PaginationRequest) async throws -> BuildList {
         throw ServiceError.upstream("Build listing is unavailable in this fixture.")
     }
 
-    func getBuild(accountID: String, buildID: String) async throws -> BuildSummary {
+    func getBuild(accountID _: String, buildID _: String) async throws -> BuildSummary {
         throw ServiceError.upstream("Build lookup is unavailable in this fixture.")
     }
 
     func createAppVersion(
-        accountID: String,
-        appID: String,
-        platform: String,
-        version: String
+        accountID _: String,
+        appID _: String,
+        platform _: String,
+        version _: String,
     ) async throws -> AppVersion {
         throw ServiceError.upstream("Creating app versions is unavailable for this data provider.")
     }

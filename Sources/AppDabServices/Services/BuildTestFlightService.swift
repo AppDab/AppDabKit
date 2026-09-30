@@ -20,7 +20,7 @@ public final class BuildTestFlightService: BuildTestFlightServing, @unchecked Se
         do {
             let response = try await service.request(.getBuildV1(
                 id: buildID,
-                includes: [.preReleaseVersion, .buildBetaDetail, .betaAppReviewSubmission]
+                includes: [.preReleaseVersion, .buildBetaDetail, .betaAppReviewSubmission],
             ))
             let testerIDs: [String]
             let betaGroupIDs: [String]
@@ -28,11 +28,11 @@ public final class BuildTestFlightService: BuildTestFlightServing, @unchecked Se
             case .build:
                 testerIDs = []
                 betaGroupIDs = []
-            case .individualTester(let targetID):
+            case let .individualTester(targetID):
                 let matchingTesters = try await service.request(Self.testerMembershipRequest(buildID: buildID, testerID: targetID))
                 testerIDs = matchingTesters.data.contains { $0.id == targetID } ? [targetID] : []
                 betaGroupIDs = []
-            case .betaGroup(let targetID):
+            case let .betaGroup(targetID):
                 let matchingGroups = try await service.request(Self.groupMembershipRequest(buildID: buildID, groupID: targetID))
                 testerIDs = []
                 betaGroupIDs = matchingGroups.data.contains { $0.id == targetID } ? [targetID] : []
@@ -40,13 +40,13 @@ public final class BuildTestFlightService: BuildTestFlightServing, @unchecked Se
             return .init(
                 build: .init(
                     build: response.data,
-                    platform: response.getPreReleaseVersion()?.attributes?.platform?.prettyName
+                    platform: response.getPreReleaseVersion()?.attributes?.platform?.prettyName,
                 ),
                 individualTesterIDs: testerIDs,
                 betaGroupIDs: betaGroupIDs,
                 betaReviewSubmissionID: response.data.relationships?.betaAppReviewSubmission?.data?.id,
                 externalBetaState: response.getBuildBetaDetail()?.attributes?.externalBuildState?.rawValue,
-                autoNotifyEnabled: response.getBuildBetaDetail()?.attributes?.autoNotifyEnabled
+                autoNotifyEnabled: response.getBuildBetaDetail()?.attributes?.autoNotifyEnabled,
             )
         } catch {
             throw try ServiceError.classify(error)
@@ -64,7 +64,7 @@ public final class BuildTestFlightService: BuildTestFlightServing, @unchecked Se
     public func mutateBuild(
         accountID: String,
         buildID: String,
-        mutation: BuildTestFlightMutation
+        mutation: BuildTestFlightMutation,
     ) async throws -> BuildSummary {
         guard !buildID.isEmpty else {
             throw ServiceError.invalidArguments("Argument buildID must be a nonempty string.")
@@ -73,27 +73,27 @@ public final class BuildTestFlightService: BuildTestFlightServing, @unchecked Se
         let service = BagbutikService(jwt: key.jwt)
         do {
             switch mutation {
-            case .addIndividualTesters(let testerIDs):
+            case let .addIndividualTesters(testerIDs):
                 try await service.request(.createIndividualTestersForBuildV1(
                     id: buildID,
-                    requestBody: .init(data: testerIDs.map(BuildIndividualTestersLinkagesRequest.Data.init(id:)))
+                    requestBody: .init(data: testerIDs.map(BuildIndividualTestersLinkagesRequest.Data.init(id:))),
                 ))
-            case .removeIndividualTesters(let testerIDs):
+            case let .removeIndividualTesters(testerIDs):
                 try await service.request(.deleteIndividualTestersForBuildV1(
                     id: buildID,
-                    requestBody: .init(data: testerIDs.map(BuildIndividualTestersLinkagesRequest.Data.init(id:)))
+                    requestBody: .init(data: testerIDs.map(BuildIndividualTestersLinkagesRequest.Data.init(id:))),
                 ))
-            case .addBetaGroups(let betaGroupIDs):
+            case let .addBetaGroups(betaGroupIDs):
                 try await service.request(.createBetaGroupsForBuildV1(
                     id: buildID,
-                    requestBody: .init(data: betaGroupIDs.map(BuildBetaGroupsLinkagesRequest.Data.init(id:)))
+                    requestBody: .init(data: betaGroupIDs.map(BuildBetaGroupsLinkagesRequest.Data.init(id:))),
                 ))
-            case .removeBetaGroups(let betaGroupIDs):
+            case let .removeBetaGroups(betaGroupIDs):
                 try await service.request(.deleteBetaGroupsForBuildV1(
                     id: buildID,
-                    requestBody: .init(data: betaGroupIDs.map(BuildBetaGroupsLinkagesRequest.Data.init(id:)))
+                    requestBody: .init(data: betaGroupIDs.map(BuildBetaGroupsLinkagesRequest.Data.init(id:))),
                 ))
-            case .submitForBetaReview(let autoNotifyEnabled):
+            case let .submitForBetaReview(autoNotifyEnabled):
                 let build = try await service.request(.getBuildV1(id: buildID))
                 guard let detailID = build.data.relationships?.buildBetaDetail?.data?.id else {
                     throw ServiceError.invalidArguments("Build has no beta detail to submit.")
@@ -102,16 +102,16 @@ public final class BuildTestFlightService: BuildTestFlightServing, @unchecked Se
                     id: detailID,
                     requestBody: .init(data: .init(
                         id: detailID,
-                        attributes: .init(autoNotifyEnabled: autoNotifyEnabled)
-                    ))
+                        attributes: .init(autoNotifyEnabled: autoNotifyEnabled),
+                    )),
                 ))
                 _ = try await service.request(.createBetaAppReviewSubmissionV1(
-                    requestBody: .init(data: .init(relationships: .init(build: .init(data: .init(id: buildID)))))
+                    requestBody: .init(data: .init(relationships: .init(build: .init(data: .init(id: buildID))))),
                 ))
             case .expire:
                 _ = try await service.request(.updateBuildV1(
                     id: buildID,
-                    requestBody: .init(data: .init(id: buildID, attributes: .init(expired: true)))
+                    requestBody: .init(data: .init(id: buildID, attributes: .init(expired: true))),
                 ))
             }
             let response = try await service.request(.getBuildV1(id: buildID, includes: [.preReleaseVersion]))

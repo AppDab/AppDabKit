@@ -15,11 +15,12 @@ public enum AutomationOpenRequestStore {
 
     public static func takePendingRequest(
         matching requestID: String,
-        userDefaults: UserDefaults = .standard
+        userDefaults: UserDefaults = .standard,
     ) -> AutomationOpenRequest? {
         guard let data = userDefaults.data(forKey: pendingRequestKey),
               let request = try? JSONDecoder().decode(AutomationOpenRequest.self, from: data),
-              request.requestID == requestID else {
+              request.requestID == requestID
+        else {
             return nil
         }
         userDefaults.removeObject(forKey: pendingRequestKey)

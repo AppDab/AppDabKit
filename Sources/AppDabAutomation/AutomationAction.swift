@@ -15,5 +15,7 @@ public protocol AutomationAction: Sendable {
 }
 
 public extension AutomationAction {
-    static var supportsDirectWriteExecution: Bool { false }
+    static var supportsDirectWriteExecution: Bool {
+        false
+    }
 }

@@ -18,14 +18,14 @@ public struct CreateAppVersionInput: AutomationActionInput {
     public init(arguments: [String: JSONValue]) throws(AutomationActionError) {
         let arguments = try Arguments(
             arguments,
-            allowedKeys: ["accountID", "appID", "platform", "version"]
+            allowedKeys: ["accountID", "appID", "platform", "version"],
         )
         accountID = try arguments.requiredString("accountID")
         appID = try arguments.requiredString("appID")
         let platformValue = try arguments.requiredString("platform")
         guard let platform = Platform(rawValue: platformValue) else {
             throw AutomationActionError.invalidArguments(
-                "Argument platform must be one of \(Self.platformValues)."
+                "Argument platform must be one of \(Self.platformValues).",
             )
         }
         self.platform = platform

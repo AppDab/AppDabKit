@@ -16,87 +16,87 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
                     "description": .string("The App Store Connect platform."),
                     "enum": .array(Platform.allCases.map { .string($0.rawValue) }),
                 ]),
-                "version": Schema.string(description: "The new version string.")
+                "version": Schema.string(description: "The new version string."),
             ],
-            required: ["accountID", "appID", "platform", "version"]
+            required: ["accountID", "appID", "platform", "version"],
         ),
         outputSchema: Schema.object(properties: [
-            "version": Schema.appVersionOutput
+            "version": Schema.appVersionOutput,
         ], required: ["version"]),
         outputType: "version",
-        safety: .write
+        safety: .write,
     )
 
     public init() {}
 
     public func perform(
-        input: CreateAppVersionInput,
-        dataProvider: any AutomationDataProviding
+        input _: CreateAppVersionInput,
+        dataProvider _: any AutomationDataProviding,
     ) async throws -> AppVersion {
         throw AutomationExecutionError.unsupportedExecutionMode(
             action: Self.descriptor.id.rawValue,
-            mode: .execute
+            mode: .execute,
         )
     }
 
     public func prepareMutation(
         input: CreateAppVersionInput,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AutomationMutationPreparation {
         let app = try await dataProvider.getApp(accountID: input.accountID, appID: input.appID)
         let targetVersions = try await targetVersions(input: input, dataProvider: dataProvider)
         guard !targetVersions.contains(where: { $0.version == input.version }) else {
             throw AutomationActionError.invalidArguments(
-                "Version \(input.version) already exists for \(input.platform.prettyName) on \(app.name)."
+                "Version \(input.version) already exists for \(input.platform.prettyName) on \(app.name).",
             )
         }
-        return .init(
+        return try .init(
             targetIdentifiers: [input.accountID, input.appID, input.platform.rawValue],
             redactedSummary: "Create version \(input.version) for \(input.platform.prettyName) on \(app.name).",
-            remotePreconditions: try remotePreconditions(for: targetVersions, input: input)
+            remotePreconditions: remotePreconditions(for: targetVersions, input: input),
         )
     }
 
     public func validateMutation(
         input: CreateAppVersionInput,
         plan: AutomationMutationPlan,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws {
         let app = try await dataProvider.getApp(accountID: input.accountID, appID: input.appID)
-        let currentPreconditions = try remotePreconditions(
-            for: try await targetVersions(input: input, dataProvider: dataProvider),
-            input: input
+        let currentPreconditions = try await remotePreconditions(
+            for: targetVersions(input: input, dataProvider: dataProvider),
+            input: input,
         )
         guard plan.remotePreconditions == currentPreconditions else {
             throw AutomationExecutionError.preconditionFailed(
-                "The \(input.platform.prettyName) versions for \(app.name) changed after preview."
+                "The \(input.platform.prettyName) versions for \(app.name) changed after preview.",
             )
         }
     }
 
     public func commitMutation(
         input: CreateAppVersionInput,
-        plan: AutomationMutationPlan,
-        dataProvider: any AutomationDataProviding
+        plan _: AutomationMutationPlan,
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AppVersion {
         try await dataProvider.createAppVersion(
             accountID: input.accountID,
             appID: input.appID,
             platform: input.platform.rawValue,
-            version: input.version
+            version: input.version,
         )
     }
 
     public func reconcileMutation(
         input: CreateAppVersionInput,
         plan: AutomationMutationPlan,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AutomationMutationReconciliation<AppVersion> {
         let targetVersions = try await targetVersions(input: input, dataProvider: dataProvider)
         if let version = targetVersions.first(where: { $0.version == input.version }) {
             return .succeeded(version)
         }
-        if plan.remotePreconditions == (try remotePreconditions(for: targetVersions, input: input)) {
+        if try plan.remotePreconditions == remotePreconditions(for: targetVersions, input: input) {
             return .notApplied
         }
         return .unresolved
@@ -107,7 +107,7 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
     }
 
     public func data(for output: AppVersion) throws -> JSONValue {
-        .object(["version": try JSONValue.fromEncodable(output)])
+        try .object(["version": JSONValue.fromEncodable(output)])
     }
 
     public func redactedReplayData(for output: AppVersion) throws -> JSONValue {
@@ -125,7 +125,7 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
 
     private func targetVersions(
         input: CreateAppVersionInput,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> [AppVersion] {
         var versions = [AppVersion]()
         var cursor: String?
@@ -134,7 +134,7 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
             let page = try await dataProvider.listAppVersions(
                 accountID: input.accountID, appID: input.appID,
                 filter: .init(platforms: [input.platform]),
-                pagination: .init(cursor: cursor, limit: PaginationRequest.maximumLimit)
+                pagination: .init(cursor: cursor, limit: PaginationRequest.maximumLimit),
             )
             versions.append(contentsOf: page.versions)
             cursor = page.pagination.nextCursor
@@ -147,11 +147,11 @@ public struct CreateAppVersionAction: ReplayableGuardedAutomationAction {
 
     private func remotePreconditions(
         for targetVersions: [AppVersion],
-        input: CreateAppVersionInput
+        input: CreateAppVersionInput,
     ) throws -> [String: JSONValue] {
-        [
+        try [
             "platform": .string(input.platform.rawValue),
-            "versions": try JSONValue.fromEncodable(targetVersions),
+            "versions": JSONValue.fromEncodable(targetVersions),
         ]
     }
 }

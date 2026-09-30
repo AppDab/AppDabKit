@@ -8,9 +8,13 @@ let invalidAPIKeyMessage = "The entered keys are invalid. Check that they match 
 enum APIKeyVerificationErrorResolution { case agreementIssue(AccountVerificationIssue); case invalidCredentials; case other(ServiceError) }
 
 func mapAPIKeyVerificationError(_ error: Error) throws -> APIKeyVerificationErrorResolution {
-    if let issue = agreementIssue(from: error) { return .agreementIssue(issue) }
-    if isUnauthorized(error) || appStoreConnectErrors(in: error).contains(where: { $0.code == "NOT_AUTHORIZED" }) { return .invalidCredentials }
-    return .other(try ServiceError.classify(error))
+    if let issue = agreementIssue(from: error) {
+        return .agreementIssue(issue)
+    }
+    if isUnauthorized(error) || appStoreConnectErrors(in: error).contains(where: { $0.code == "NOT_AUTHORIZED" }) {
+        return .invalidCredentials
+    }
+    return try .other(ServiceError.classify(error))
 }
 
 private func agreementIssue(from error: Error) -> AccountVerificationIssue? {
@@ -19,14 +23,20 @@ private func agreementIssue(from error: Error) -> AccountVerificationIssue? {
 }
 
 private func resolveAppStoreConnectURL(_ pathOrURL: String) -> URL? {
-    if let url = URL(string: pathOrURL), url.scheme != nil { return url }
+    if let url = URL(string: pathOrURL), url.scheme != nil {
+        return url
+    }
     return URL(string: pathOrURL, relativeTo: URL(string: "https://appstoreconnect.apple.com")!)?.absoluteURL
 }
 
-private func appStoreConnectErrors(in error: Error) -> [ErrorResponse.Errors] { (error as? BagbutikCore.ServiceError)?.errorResponse?.errors ?? [] }
+private func appStoreConnectErrors(in error: Error) -> [ErrorResponse.Errors] {
+    (error as? BagbutikCore.ServiceError)?.errorResponse?.errors ?? []
+}
 
 private func isUnauthorized(_ error: Error) -> Bool {
     guard let serviceError = error as? BagbutikCore.ServiceError else { return false }
-    if case .unauthorized = serviceError { return true }
+    if case .unauthorized = serviceError {
+        return true
+    }
     return false
 }

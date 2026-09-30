@@ -35,9 +35,9 @@ public enum AutomationExecutionError: Error, Equatable, LocalizedError, Sendable
 
     public var errorDescription: String? {
         switch self {
-        case .unsupportedExecutionMode(let action, let mode):
+        case let .unsupportedExecutionMode(action, mode):
             "Action \(action) does not support \(mode.rawValue) execution."
-        case .invalidExecutionContext(let message):
+        case let .invalidExecutionContext(message):
             message
         case .confirmationRequired:
             "A confirmation fingerprint and idempotency key are required."
@@ -49,17 +49,17 @@ public enum AutomationExecutionError: Error, Equatable, LocalizedError, Sendable
             "The action arguments changed after preview. Create a new preview."
         case .actionChanged:
             "The confirmed preview belongs to a different action."
-        case .preconditionFailed(let message):
+        case let .preconditionFailed(message):
             message
         case .idempotencyCollision:
             "The idempotency key was already used with different input."
-        case .commitBlocked(let status):
+        case let .commitBlocked(status):
             "The mutation preview or idempotency key already has a \(status.rawValue) outcome. Use the original idempotency key to recover the operation."
         case .indeterminate:
             "The mutation outcome is indeterminate. Reconcile remote state before retrying."
         case .reconciliationUnresolved:
             "Remote state did not resolve the indeterminate mutation outcome."
-        case .persistence(let message):
+        case let .persistence(message):
             "The automation audit store failed: \(message)"
         }
     }

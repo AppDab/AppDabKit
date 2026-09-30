@@ -10,7 +10,7 @@ public struct AutomationAuditRecord: Codable, Equatable, Sendable {
         confirmationFingerprint: String,
         idempotencyKey: String,
         status: AutomationAuditStatus,
-        receipt: AutomationMutationReceipt? = nil
+        receipt: AutomationMutationReceipt? = nil,
     ) {
         self.actionID = actionID
         self.confirmationFingerprint = confirmationFingerprint

@@ -21,7 +21,7 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
         if var container = try? decoder.unkeyedContainer() {
             var values = [JSONValue]()
             while !container.isAtEnd {
-                values.append(try container.decode(JSONValue.self))
+                try values.append(container.decode(JSONValue.self))
             }
             self = .array(values)
             return
@@ -36,32 +36,32 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
         } else if let doubleValue = try? container.decode(Double.self) {
             self = .double(doubleValue)
         } else {
-            self = .string(try container.decode(String.self))
+            self = try .string(container.decode(String.self))
         }
     }
 
     public func encode(to encoder: any Encoder) throws {
         switch self {
-        case .object(let object):
+        case let .object(object):
             var container = encoder.container(keyedBy: DynamicCodingKey.self)
             for (key, value) in object {
                 try container.encode(value, forKey: DynamicCodingKey(stringValue: key)!)
             }
-        case .array(let array):
+        case let .array(array):
             var container = encoder.unkeyedContainer()
             for value in array {
                 try container.encode(value)
             }
-        case .string(let string):
+        case let .string(string):
             var container = encoder.singleValueContainer()
             try container.encode(string)
-        case .integer(let integer):
+        case let .integer(integer):
             var container = encoder.singleValueContainer()
             try container.encode(integer)
-        case .double(let double):
+        case let .double(double):
             var container = encoder.singleValueContainer()
             try container.encode(double)
-        case .bool(let bool):
+        case let .bool(bool):
             var container = encoder.singleValueContainer()
             try container.encode(bool)
         case .null:
@@ -71,19 +71,19 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
     }
 
     public var objectValue: [String: JSONValue]? {
-        guard case .object(let object) = self else { return nil }
+        guard case let .object(object) = self else { return nil }
         return object
     }
 
     public var stringValue: String? {
-        guard case .string(let string) = self else { return nil }
+        guard case let .string(string) = self else { return nil }
         return string
     }
 
     public var intValue: Int? {
         switch self {
-        case .integer(let integer): integer
-        case .double(let double): Int(double)
+        case let .integer(integer): integer
+        case let .double(double): Int(double)
         default: nil
         }
     }

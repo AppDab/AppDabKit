@@ -19,7 +19,7 @@ public struct CustomerReview: Codable, Equatable, Hashable, Sendable {
         rating: Int,
         reviewerNickname: String,
         territory: String,
-        response: CustomerReviewResponse?
+        response: CustomerReviewResponse?,
     ) {
         self.reviewID = reviewID
         self.title = title
@@ -40,7 +40,7 @@ public struct CustomerReview: Codable, Equatable, Hashable, Sendable {
             rating: customerReview.attributes?.rating ?? 0,
             reviewerNickname: customerReview.attributes?.reviewerNickname ?? "",
             territory: (customerReview.attributes?.territory ?? .usa).rawValue,
-            response: response.map(CustomerReviewResponse.init(response:))
+            response: response.map(CustomerReviewResponse.init(response:)),
         )
     }
 }

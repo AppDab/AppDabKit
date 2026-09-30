@@ -18,7 +18,7 @@ public final class Executor: Sendable {
         previewLifetime: TimeInterval = 10 * 60,
         pendingLeaseDuration: TimeInterval = 10 * 60,
         now: @escaping @Sendable () -> Date = Date.init,
-        makePlanID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() }
+        makePlanID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() },
     ) {
         self.dataProvider = dataProvider
         self.registry = registry
@@ -37,24 +37,24 @@ public final class Executor: Sendable {
                 guard request.executionContext.mode == .execute else {
                     throw AutomationExecutionError.unsupportedExecutionMode(
                         action: request.actionID.rawValue,
-                        mode: request.executionContext.mode
+                        mode: request.executionContext.mode,
                     )
                 }
                 return try await action.execute(
                     arguments: request.arguments,
-                    dataProvider: dataProvider
+                    dataProvider: dataProvider,
                 )
             case .write:
                 if action.supportsDirectWriteExecution {
                     guard request.executionContext.mode == .execute else {
                         throw AutomationExecutionError.unsupportedExecutionMode(
                             action: request.actionID.rawValue,
-                            mode: request.executionContext.mode
+                            mode: request.executionContext.mode,
                         )
                     }
                     return try await action.execute(
                         arguments: request.arguments,
-                        dataProvider: dataProvider
+                        dataProvider: dataProvider,
                     )
                 }
                 switch request.executionContext.mode {
@@ -73,19 +73,19 @@ public final class Executor: Sendable {
 
     public func execute<Action: AutomationAction>(
         _ actionType: Action.Type,
-        input: Action.Input
+        input: Action.Input,
     ) async throws -> Action.Output {
         do {
             let registeredAction = try registry.action(for: actionType.descriptor.id)
             guard registeredAction.isRegistered(actionType) else {
                 throw AutomationActionError.invalidArguments(
-                    "The registered action for \(actionType.descriptor.id.rawValue) does not match the requested implementation."
+                    "The registered action for \(actionType.descriptor.id.rawValue) does not match the requested implementation.",
                 )
             }
             guard actionType.descriptor.safety != .write || actionType.supportsDirectWriteExecution else {
                 throw AutomationExecutionError.unsupportedExecutionMode(
                     action: actionType.descriptor.id.rawValue,
-                    mode: .execute
+                    mode: .execute,
                 )
             }
             try input.validate()
@@ -98,7 +98,7 @@ public final class Executor: Sendable {
     /// Prepares a guarded mutation using native input while retaining the shared audit flow.
     public func preview<Action: GuardedAutomationAction>(
         _ actionType: Action.Type,
-        input: Action.Input
+        input: Action.Input,
     ) async throws -> AutomationMutationPlan {
         do {
             let request = try guardedRequest(actionType, input: input, context: .init(mode: .preview))
@@ -118,11 +118,11 @@ public final class Executor: Sendable {
         _ actionType: Action.Type,
         input: Action.Input,
         confirmationFingerprint: String,
-        idempotencyKey: String
+        idempotencyKey: String,
     ) async throws -> Action.Output {
         guard let output = try await commitResult(
             actionType, input: input, confirmationFingerprint: confirmationFingerprint,
-            idempotencyKey: idempotencyKey
+            idempotencyKey: idempotencyKey,
         ).output else {
             throw AutomationExecutionError.persistence("A committed action returned no output.")
         }
@@ -133,20 +133,20 @@ public final class Executor: Sendable {
         _ actionType: Action.Type,
         input: Action.Input,
         confirmationFingerprint: String,
-        idempotencyKey: String
+        idempotencyKey: String,
     ) async throws -> AutomationTypedResult<Action.Output> {
         do {
             let request = try guardedRequest(actionType, input: input, context: .init(
                 mode: .commit,
                 confirmationFingerprint: confirmationFingerprint,
-                idempotencyKey: idempotencyKey
+                idempotencyKey: idempotencyKey,
             ))
             let action = actionType.init()
             return try await commit(request: request, validate: { plan in
                 try await action.validateMutation(input: input, plan: plan, dataProvider: self.dataProvider)
             }, perform: { plan in
                 let output = try await action.commitMutation(input: input, plan: plan, dataProvider: self.dataProvider)
-                return (try self.committedResponse(action: action, output: output), output)
+                return try (self.committedResponse(action: action, output: output), output)
             }, result: { response, output in .init(response: response, output: output) }, replay: { response in
                 try .init(response: response, output: action.output(fromReplayData: response.data))
             })
@@ -159,23 +159,23 @@ public final class Executor: Sendable {
         _ actionType: Action.Type,
         input: Action.Input,
         confirmationFingerprint: String,
-        idempotencyKey: String
+        idempotencyKey: String,
     ) async throws -> AutomationTypedResult<Action.Output> {
         do {
             let request = try guardedRequest(actionType, input: input, context: .init(
                 mode: .reconcile,
                 confirmationFingerprint: confirmationFingerprint,
-                idempotencyKey: idempotencyKey
+                idempotencyKey: idempotencyKey,
             ))
             let action = actionType.init()
             return try await reconcile(request: request, perform: { plan in
                 switch try await action.reconcileMutation(input: input, plan: plan, dataProvider: self.dataProvider) {
-                case .succeeded(let output):
-                    return (.succeeded(try self.committedResponse(action: action, output: output)), output)
+                case let .succeeded(output):
+                    try (.succeeded(self.committedResponse(action: action, output: output)), output)
                 case .notApplied:
-                    return (.notApplied, nil)
+                    (.notApplied, nil)
                 case .unresolved:
-                    return (.unresolved, nil)
+                    (.unresolved, nil)
                 }
             }, result: { response, output in
                 .init(response: response, output: output)
@@ -190,12 +190,12 @@ public final class Executor: Sendable {
     private func guardedRequest<Action: GuardedAutomationAction>(
         _ actionType: Action.Type,
         input: Action.Input,
-        context: AutomationExecutionContext
+        context: AutomationExecutionContext,
     ) throws -> AutomationRequest {
         let registered = try registry.action(for: actionType.descriptor.id)
         guard registered.isRegistered(actionType), registered.supportsGuardedMutation else {
             throw AutomationActionError.invalidArguments(
-                "The registered action for \(actionType.descriptor.id.rawValue) does not match the requested guarded implementation."
+                "The registered action for \(actionType.descriptor.id.rawValue) does not match the requested guarded implementation.",
             )
         }
         try input.validate()
@@ -215,7 +215,8 @@ public final class Executor: Sendable {
 
     private func normalizedError(_ error: Error) -> any Error {
         if error is CancellationError || (error as NSError).domain == NSURLErrorDomain
-            && (error as NSError).code == URLError.cancelled.rawValue {
+            && (error as NSError).code == URLError.cancelled.rawValue
+        {
             return error
         }
         if let automationError = error as? AutomationActionError {
@@ -232,18 +233,18 @@ public final class Executor: Sendable {
 
     private func preview(
         action: AnyAutomationAction,
-        request: AutomationRequest
+        request: AutomationRequest,
     ) async throws -> AutomationResponse {
         let preparation = try await action.prepareMutation(
             arguments: request.arguments,
-            dataProvider: dataProvider
+            dataProvider: dataProvider,
         )
         return try await preview(request: request, preparation: preparation)
     }
 
     private func preview(
         request: AutomationRequest,
-        preparation: AutomationMutationPreparation
+        preparation: AutomationMutationPreparation,
     ) async throws -> AutomationResponse {
         let createdAt = now()
         let inputHash = try hash(.object(request.arguments))
@@ -255,7 +256,7 @@ public final class Executor: Sendable {
             preparation: preparation,
             inputHash: inputHash,
             createdAt: createdAt,
-            expiresAt: expiresAt
+            expiresAt: expiresAt,
         )
         let plan = AutomationMutationPlan(
             planID: planID,
@@ -266,28 +267,28 @@ public final class Executor: Sendable {
             confirmationFingerprint: fingerprint,
             remotePreconditions: preparation.remotePreconditions,
             createdAt: createdAt,
-            expiresAt: expiresAt
+            expiresAt: expiresAt,
         )
         try await auditStore.savePreview(plan)
         return .init(
             actionID: request.actionID,
             summary: preparation.redactedSummary,
             data: .object([:]),
-            plan: plan
+            plan: plan,
         )
     }
 
     private func commit(
         action: AnyAutomationAction,
-        request: AutomationRequest
+        request: AutomationRequest,
     ) async throws -> AutomationResponse {
         try await commit(request: request, validate: { plan in
             try await action.validateMutation(
-                arguments: request.arguments, plan: plan, dataProvider: self.dataProvider
+                arguments: request.arguments, plan: plan, dataProvider: self.dataProvider,
             )
         }, perform: { plan in
             let committed = try await action.commitMutation(
-                arguments: request.arguments, plan: plan, dataProvider: self.dataProvider
+                arguments: request.arguments, plan: plan, dataProvider: self.dataProvider,
             )
             return (committed, ())
         }, result: { response, _ in response }, replay: { $0 })
@@ -298,7 +299,7 @@ public final class Executor: Sendable {
         validate: (AutomationMutationPlan) async throws -> Void,
         perform: (AutomationMutationPlan) async throws -> (CommittedResponse, Output),
         result: (AutomationResponse, Output) -> Result,
-        replay: (AutomationResponse) throws -> Result
+        replay: (AutomationResponse) throws -> Result,
     ) async throws -> Result {
         let confirmation = try confirmation(from: request.executionContext)
 
@@ -310,7 +311,7 @@ public final class Executor: Sendable {
             case .succeeded:
                 guard let receipt = existing.receipt else {
                     throw AutomationExecutionError.persistence(
-                        "A successful audit record is missing its receipt."
+                        "A successful audit record is missing its receipt.",
                     )
                 }
                 return try replay(replayResponse(receipt, request: request))
@@ -323,7 +324,7 @@ public final class Executor: Sendable {
             actionID: request.actionID,
             arguments: request.arguments,
             confirmationFingerprint: confirmation.fingerprint,
-            requireUnexpired: true
+            requireUnexpired: true,
         )
         try await validate(plan)
 
@@ -332,11 +333,11 @@ public final class Executor: Sendable {
             actionID: request.actionID,
             confirmationFingerprint: confirmation.fingerprint,
             idempotencyKey: confirmation.key,
-            now: now()
+            now: now(),
         ) {
-        case .replay(let receipt):
+        case let .replay(receipt):
             return try replay(replayResponse(receipt, request: request))
-        case .execute(let commitClaimID):
+        case let .execute(commitClaimID):
             claimID = commitClaimID
         }
 
@@ -349,21 +350,21 @@ public final class Executor: Sendable {
                 canonicalInputHash: plan.canonicalInputHash,
                 redactedSummary: committed.response.summary,
                 redactedReplayData: committed.redactedReplayData,
-                committedAt: now()
+                committedAt: now(),
             )
             try await auditStore.completeCommit(receipt, claimID: claimID)
             return result(.init(
                 actionID: committed.response.actionID,
                 summary: committed.response.summary,
                 data: committed.response.data,
-                receipt: receipt
+                receipt: receipt,
             ), output)
         } catch {
             try? await auditStore.markIndeterminate(
                 actionID: request.actionID,
                 confirmationFingerprint: confirmation.fingerprint,
                 idempotencyKey: confirmation.key,
-                claimID: claimID
+                claimID: claimID,
             )
             throw AutomationExecutionError.indeterminate
         }
@@ -371,13 +372,13 @@ public final class Executor: Sendable {
 
     private func reconcile(
         action: AnyAutomationAction,
-        request: AutomationRequest
+        request: AutomationRequest,
     ) async throws -> AutomationResponse {
         try await reconcile(request: request, perform: { plan in
             let reconciliation = try await action.reconcileMutation(
-                arguments: request.arguments, plan: plan, dataProvider: self.dataProvider
+                arguments: request.arguments, plan: plan, dataProvider: self.dataProvider,
             )
-            return (reconciliation, Optional<Void>.none)
+            return (reconciliation, Void?.none)
         }, result: { response, _ in response }, replay: { $0 })
     }
 
@@ -385,7 +386,7 @@ public final class Executor: Sendable {
         request: AutomationRequest,
         perform: (AutomationMutationPlan) async throws -> (MutationReconciliation, Output?),
         result: (AutomationResponse, Output?) -> Result,
-        replay: (AutomationResponse) throws -> Result
+        replay: (AutomationResponse) throws -> Result,
     ) async throws -> Result {
         let confirmation = try confirmation(from: request.executionContext)
         let claimID: String
@@ -393,11 +394,11 @@ public final class Executor: Sendable {
             confirmationFingerprint: confirmation.fingerprint,
             idempotencyKey: confirmation.key,
             now: now(),
-            pendingLeaseDuration: pendingLeaseDuration
+            pendingLeaseDuration: pendingLeaseDuration,
         ) {
-        case .replay(let receipt):
+        case let .replay(receipt):
             return try replay(replayResponse(receipt, request: request))
-        case .reconcile(let reconciliationClaimID):
+        case let .reconcile(reconciliationClaimID):
             claimID = reconciliationClaimID
         }
 
@@ -406,11 +407,11 @@ public final class Executor: Sendable {
                 actionID: request.actionID,
                 arguments: request.arguments,
                 confirmationFingerprint: confirmation.fingerprint,
-                requireUnexpired: false
+                requireUnexpired: false,
             )
             let (reconciliation, output) = try await perform(plan)
             switch reconciliation {
-            case .succeeded(let committed):
+            case let .succeeded(committed):
                 let receipt = AutomationMutationReceipt(
                     actionID: committed.response.actionID,
                     confirmationFingerprint: confirmation.fingerprint,
@@ -418,25 +419,25 @@ public final class Executor: Sendable {
                     canonicalInputHash: plan.canonicalInputHash,
                     redactedSummary: committed.response.summary,
                     redactedReplayData: committed.redactedReplayData,
-                    committedAt: now()
+                    committedAt: now(),
                 )
                 try await auditStore.completeReconciliation(receipt, claimID: claimID)
                 return result(.init(
                     actionID: committed.response.actionID,
                     summary: committed.response.summary,
                     data: committed.response.data,
-                    receipt: receipt
+                    receipt: receipt,
                 ), output)
             case .notApplied:
                 try await auditStore.resolveNotApplied(
                     confirmationFingerprint: confirmation.fingerprint,
                     idempotencyKey: confirmation.key,
-                    claimID: claimID
+                    claimID: claimID,
                 )
                 return result(.init(
                     actionID: request.actionID,
                     summary: "Reconciliation confirmed that no mutation was applied.",
-                    data: .object([:])
+                    data: .object([:]),
                 ), nil)
             case .unresolved:
                 throw AutomationExecutionError.reconciliationUnresolved
@@ -444,7 +445,7 @@ public final class Executor: Sendable {
         } catch {
             try? await auditStore.releaseReconciliation(
                 idempotencyKey: confirmation.key,
-                claimID: claimID
+                claimID: claimID,
             )
             throw error
         }
@@ -452,15 +453,15 @@ public final class Executor: Sendable {
 
     private func committedResponse<Action: GuardedAutomationAction>(
         action: Action,
-        output: Action.Output
+        output: Action.Output,
     ) throws -> CommittedResponse {
         try .init(
             response: .init(
                 actionID: Action.descriptor.id,
                 summary: action.summary(for: output),
-                data: action.data(for: output)
+                data: action.data(for: output),
             ),
-            redactedReplayData: action.redactedReplayData(for: output)
+            redactedReplayData: action.redactedReplayData(for: output),
         )
     }
 
@@ -468,19 +469,19 @@ public final class Executor: Sendable {
         actionID: AutomationActionID,
         arguments: [String: JSONValue],
         confirmationFingerprint: String,
-        requireUnexpired: Bool
+        requireUnexpired: Bool,
     ) async throws -> AutomationMutationPlan {
         let validationTime = now()
         guard let plan = try await auditStore.preview(
             confirmationFingerprint: confirmationFingerprint,
-            now: validationTime
+            now: validationTime,
         ) else {
             throw AutomationExecutionError.previewNotFound
         }
         guard plan.actionID == actionID else {
             throw AutomationExecutionError.actionChanged
         }
-        guard plan.canonicalInputHash == (try hash(.object(arguments))) else {
+        guard try plan.canonicalInputHash == hash(.object(arguments)) else {
             throw AutomationExecutionError.inputChanged
         }
         if requireUnexpired, plan.expiresAt <= validationTime {
@@ -491,12 +492,13 @@ public final class Executor: Sendable {
     }
 
     private func confirmation(
-        from context: AutomationExecutionContext
+        from context: AutomationExecutionContext,
     ) throws -> (fingerprint: String, key: String) {
         guard let fingerprint = context.confirmationFingerprint,
               !fingerprint.isEmpty,
               let key = context.idempotencyKey,
-              !key.isEmpty else {
+              !key.isEmpty
+        else {
             throw AutomationExecutionError.confirmationRequired
         }
         return (fingerprint, key)
@@ -504,19 +506,19 @@ public final class Executor: Sendable {
 
     private func replayResponse(
         _ receipt: AutomationMutationReceipt,
-        request: AutomationRequest
+        request: AutomationRequest,
     ) throws -> AutomationResponse {
         guard receipt.actionID == request.actionID else {
             throw AutomationExecutionError.actionChanged
         }
-        guard receipt.canonicalInputHash == (try hash(.object(request.arguments))) else {
+        guard try receipt.canonicalInputHash == hash(.object(request.arguments)) else {
             throw AutomationExecutionError.inputChanged
         }
         return .init(
             actionID: receipt.actionID,
             summary: receipt.redactedSummary,
             data: receipt.redactedReplayData,
-            receipt: receipt
+            receipt: receipt,
         )
     }
 
@@ -526,7 +528,7 @@ public final class Executor: Sendable {
         preparation: AutomationMutationPreparation,
         inputHash: String,
         createdAt: Date,
-        expiresAt: Date
+        expiresAt: Date,
     ) throws -> String {
         try hash(.object([
             "planID": .string(planID),
