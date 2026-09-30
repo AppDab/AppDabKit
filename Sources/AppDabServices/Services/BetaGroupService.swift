@@ -70,6 +70,28 @@ public final class BetaGroupService: BetaGroupServing, @unchecked Sendable {
         } catch { throw try ServiceError.classify(error) }
     }
 
+    public func deleteBetaGroup(accountID: String, betaGroupID: String) async throws {
+        let key = try await accountProvider.apiKey(forAccountID: accountID)
+        let service = BagbutikService(jwt: key.jwt)
+        do {
+            try await service.request(.deleteBetaGroupV1(id: betaGroupID))
+        } catch {
+            throw try ServiceError.classify(error)
+        }
+    }
+
+    public func betaGroupExists(accountID: String, betaGroupID: String) async throws -> Bool {
+        do {
+            _ = try await getBetaGroup(accountID: accountID, betaGroupID: betaGroupID)
+            return true
+        } catch let error as ServiceError {
+            if error.diagnostics?.httpStatusCode == 404 {
+                return false
+            }
+            throw error
+        }
+    }
+
     static func updateRequestBody(betaGroupID: String, changes: BetaGroupChanges) -> BetaGroupUpdateRequest {
         .init(data: .init(id: betaGroupID, attributes: .init(
             feedbackEnabled: changes.feedbackEnabled,

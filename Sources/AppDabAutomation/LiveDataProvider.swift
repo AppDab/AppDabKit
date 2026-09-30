@@ -73,6 +73,14 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.betaGroupService.updateBetaGroup(accountID: accountID, betaGroupID: betaGroupID, changes: changes)
     }
 
+    public func deleteBetaGroup(accountID: String, betaGroupID: String) async throws {
+        try await services.betaGroupService.deleteBetaGroup(accountID: accountID, betaGroupID: betaGroupID)
+    }
+
+    public func betaGroupExists(accountID: String, betaGroupID: String) async throws -> Bool {
+        try await services.betaGroupService.betaGroupExists(accountID: accountID, betaGroupID: betaGroupID)
+    }
+
     public func betaGroupBuildMembership(accountID: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership {
         try await services.betaGroupService.buildMembership(accountID: accountID, betaGroupID: betaGroupID, buildID: buildID)
     }

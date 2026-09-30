@@ -28,11 +28,11 @@ struct AutomationActionCatalogTests {
             .addTesterToBetaGroup, .removeTesterFromBetaGroup,
             .submitBuildForBetaReview, .expireBuild,
         ]
-        let writes = Set(buildWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup])
+        let writes = Set(buildWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup])
         #expect(descriptors.map(\.id) == [
             .listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp,
             .listAppVersions, .getAppVersion, .listBuilds, .getBuild,
-            .listBetaGroups, .getBetaGroup, .createBetaGroup, .updateBetaGroup,
+            .listBetaGroups, .getBetaGroup, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup,
             .addBuildToBetaGroup, .removeBuildFromBetaGroup,
         ] + buildWrites.filter { $0 != .addBuildToBetaGroup && $0 != .removeBuildFromBetaGroup } + [.createAppVersion, .listCustomerReviews, .getCustomerReview])
         #expect(descriptors.allSatisfy { $0.safety == (writes.contains($0.id) ? .write : .read) })

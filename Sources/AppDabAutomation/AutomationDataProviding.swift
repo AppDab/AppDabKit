@@ -19,6 +19,8 @@ public protocol AutomationDataProviding: Sendable {
     func getBetaGroup(accountID: String, betaGroupID: String) async throws -> BetaGroupSummary
     func createBetaGroup(accountID: String, appID: String, name: String, isInternalGroup: Bool, hasAccessToAllBuilds: Bool?) async throws -> BetaGroupSummary
     func updateBetaGroup(accountID: String, betaGroupID: String, changes: BetaGroupChanges) async throws -> BetaGroupSummary
+    func deleteBetaGroup(accountID: String, betaGroupID: String) async throws
+    func betaGroupExists(accountID: String, betaGroupID: String) async throws -> Bool
     func betaGroupBuildMembership(accountID: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership
     func mutateBetaGroupBuild(accountID: String, betaGroupID: String, buildID: String, add: Bool) async throws -> BetaGroupBuildMembership
     func createAppVersion(
@@ -45,6 +47,14 @@ public extension AutomationDataProviding {
 
     func updateBetaGroup(accountID _: String, betaGroupID _: String, changes _: BetaGroupChanges) async throws -> BetaGroupSummary {
         throw ServiceError.upstream("Beta group updates are unavailable for this data provider.")
+    }
+
+    func deleteBetaGroup(accountID _: String, betaGroupID _: String) async throws {
+        throw ServiceError.upstream("Beta group deletion is unavailable for this data provider.")
+    }
+
+    func betaGroupExists(accountID _: String, betaGroupID _: String) async throws -> Bool {
+        throw ServiceError.upstream("Beta group lookup is unavailable for this data provider.")
     }
 
     func betaGroupBuildMembership(accountID _: String, betaGroupID _: String, buildID _: String) async throws -> BetaGroupBuildMembership {
