@@ -1,10 +1,21 @@
 import Foundation
 
+/// A locale supported by the localized fields in App Store Connect schemas.
+///
+/// `supportedLocales` lists the locale identifiers accepted for those fields.
+/// This is a curated App Store Connect list, not the full set of locales known
+/// to Foundation. Display names are localized in US English.
 public struct AppLocale: Hashable, Identifiable, Sendable {
+    /// The locale identifier used by App Store Connect, such as `en-US`.
     public let id: String
+
+    /// A flag associated with the locale for compact display.
     public let emoji: String
+
+    /// The locale name displayed in US English.
     public let name: String
 
+    /// The locale identifiers supported by localized App Store Connect schema fields.
     public static let supportedLocales: [AppLocale] = [
         (id: "ar-SA", emoji: "🇸🇦"),
         (id: "bn-BD", emoji: "🇧🇩"),
@@ -60,23 +71,28 @@ public struct AppLocale: Hashable, Identifiable, Sendable {
     .map { AppLocale(id: $0.id, emoji: $0.emoji, name: Self.getDisplayName(forLocale: $0.id)) }
     .sorted(by: { $0.name < $1.name })
 
+    /// Returns the locale's display name in US English, or the identifier if it is unknown to Foundation.
     public static func getDisplayName(forLocale localeIdentifier: String) -> String {
         usLocale.localizedString(forIdentifier: localeIdentifier) ?? localeIdentifier
     }
 
+    /// Returns the given locale's display name in US English.
     public static func getDisplayName(forLocale locale: Locale) -> String {
         getDisplayName(forLocale: locale.identifier)
     }
 
+    /// Returns the time zone's generic display name in US English, when available.
     public static func getDisplayName(forTimeZone timeZone: TimeZone) -> String? {
         timeZone.localizedName(for: .generic, locale: usLocale)
     }
 
+    /// Finds a supported locale by identifier, ignoring identifier letter case.
     public static func getStrict(fromId localeId: String) -> AppLocale? {
         let localeId = localeId.lowercased()
         return supportedLocales.first(where: { $0.id.lowercased() == localeId })
     }
 
+    /// Finds a supported locale, returning an `Unknown` placeholder when the identifier is unsupported.
     public static func get(fromId localeId: String) -> AppLocale {
         getStrict(fromId: localeId) ?? AppLocale(id: "?", emoji: "🏳", name: "Unknown")
     }
