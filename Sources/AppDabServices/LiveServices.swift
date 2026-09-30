@@ -6,6 +6,7 @@ public struct LiveServices: ServiceProviding {
     public let buildTestFlightService: any BuildTestFlightServing
     public let betaGroupTesterService: any BetaGroupTesterServing
     public let betaGroupService: any BetaGroupServing
+    public let betaAppTestingService: any BetaAppTestingServing
     public let customerReviewService: any CustomerReviewServing
 
     public init(accountProvider: some AccountProviding & APIKeyProviding) {
@@ -16,6 +17,7 @@ public struct LiveServices: ServiceProviding {
         buildTestFlightService = BuildTestFlightService(accountProvider: accountProvider)
         betaGroupTesterService = BetaGroupTesterService(accountProvider: accountProvider)
         betaGroupService = BetaGroupService(accountProvider: accountProvider)
+        betaAppTestingService = BetaAppTestingService(accountProvider: accountProvider)
         customerReviewService = CustomerReviewService(accountProvider: accountProvider)
     }
 
@@ -27,6 +29,7 @@ public struct LiveServices: ServiceProviding {
         buildTestFlightService: any BuildTestFlightServing,
         betaGroupTesterService: any BetaGroupTesterServing,
         betaGroupService: any BetaGroupServing,
+        betaAppTestingService: any BetaAppTestingServing,
         customerReviewService: any CustomerReviewServing,
     ) {
         self.accountProvider = accountProvider
@@ -36,6 +39,7 @@ public struct LiveServices: ServiceProviding {
         self.buildTestFlightService = buildTestFlightService
         self.betaGroupTesterService = betaGroupTesterService
         self.betaGroupService = betaGroupService
+        self.betaAppTestingService = betaAppTestingService
         self.customerReviewService = customerReviewService
     }
 }

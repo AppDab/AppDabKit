@@ -58,6 +58,44 @@ extension Schema {
         "betaGroup": betaGroupOutput, "buildID": outputString, "isMember": outputBoolean,
     ], required: ["betaGroup", "buildID", "isMember"])
 
+    static let betaAppLocalizationOutput = object(properties: [
+        "localizationID": outputString, "locale": outputString, "description": outputString,
+        "feedbackEmail": outputString, "marketingURL": outputString, "privacyPolicyURL": outputString,
+        "tvOSPrivacyPolicy": outputString,
+    ], required: ["localizationID", "locale", "description", "feedbackEmail", "marketingURL", "privacyPolicyURL", "tvOSPrivacyPolicy"])
+
+    static let betaAppReviewDetailOutput = object(properties: [
+        "reviewDetailID": outputString, "contactFirstName": outputString, "contactLastName": outputString,
+        "contactPhone": outputString, "contactEmail": outputString, "demoAccountRequired": outputBoolean,
+        "demoAccountName": outputString, "demoAccountPassword": outputString, "notes": outputString,
+    ], required: ["reviewDetailID", "contactFirstName", "contactLastName", "contactPhone", "contactEmail", "demoAccountRequired", "demoAccountName", "demoAccountPassword", "notes"])
+
+    static let betaLicenseAgreementOutput = object(properties: [
+        "agreementID": outputString, "agreementText": outputString,
+    ], required: ["agreementID", "agreementText"])
+
+    static let betaBuildLocalizationOutput = object(properties: [
+        "localizationID": outputString,
+        "locale": outputString,
+        "whatsNew": outputString,
+    ], required: ["localizationID", "locale", "whatsNew"])
+
+    static let betaTesterOutput = object(properties: [
+        "betaTesterID": outputString,
+        "email": outputString,
+        "firstName": outputString,
+        "lastName": outputString,
+        "inviteType": outputString,
+        "state": outputString,
+        "betaGroupIDs": array(items: outputString),
+    ], required: ["betaTesterID", "email", "betaGroupIDs"])
+
+    static let betaTesterListOutput = object(properties: [
+        "scopeID": outputString,
+        "testers": array(items: betaTesterOutput),
+        "pagination": paginationOutput,
+    ], required: ["scopeID", "testers", "pagination"])
+
     static let appSummaryOutput = object(properties: [
         "appID": outputString,
         "name": outputString,
