@@ -8,7 +8,7 @@ struct AutomationOpenRequestTests {
             requestID: "request-1",
             destination: .app,
             accountID: "account-1",
-            appID: "app-1"
+            appID: "app-1",
         )
         let url = try #require(request.url)
 
@@ -35,18 +35,18 @@ struct AutomationOpenRequestTests {
             requestID: "request-1",
             destination: .app,
             accountID: "account-1",
-            appID: "app-1"
+            appID: "app-1",
         )
 
         try AutomationOpenRequestStore.savePendingRequest(request, userDefaults: userDefaults)
 
         #expect(AutomationOpenRequestStore.takePendingRequest(
             matching: "request-1",
-            userDefaults: userDefaults
+            userDefaults: userDefaults,
         ) == request)
         #expect(AutomationOpenRequestStore.takePendingRequest(
             matching: "request-1",
-            userDefaults: userDefaults
+            userDefaults: userDefaults,
         ) == nil)
     }
 
@@ -58,13 +58,13 @@ struct AutomationOpenRequestTests {
             requestID: "request-1",
             destination: .app,
             accountID: "account-1",
-            appID: "app-1"
+            appID: "app-1",
         )
         let second = AutomationOpenRequest(
             requestID: "request-2",
             destination: .customerReviews,
             accountID: "account-1",
-            appID: "app-2"
+            appID: "app-2",
         )
 
         try AutomationOpenRequestStore.savePendingRequest(first, userDefaults: userDefaults)
@@ -72,11 +72,11 @@ struct AutomationOpenRequestTests {
 
         #expect(AutomationOpenRequestStore.takePendingRequest(
             matching: "request-1",
-            userDefaults: userDefaults
+            userDefaults: userDefaults,
         ) == nil)
         #expect(AutomationOpenRequestStore.takePendingRequest(
             matching: "request-2",
-            userDefaults: userDefaults
+            userDefaults: userDefaults,
         ) == second)
     }
 
@@ -88,7 +88,7 @@ struct AutomationOpenRequestTests {
             requestID: "request-1",
             destination: .app,
             accountID: "account-1",
-            appID: "app-1"
+            appID: "app-1",
         )
 
         try AutomationOpenRequestStore.savePendingRequest(request, userDefaults: userDefaults)

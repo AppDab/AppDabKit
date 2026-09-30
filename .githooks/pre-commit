@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euo pipefail
+
+repo=$(git rev-parse --show-toplevel)
+cd "$repo"
+
+if ! command -v swiftformat >/dev/null 2>&1; then
+    echo "SwiftFormat is required. Install it with: brew install swiftformat" >&2
+    exit 1
+fi
+
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+
+while IFS= read -r -d '' file; do
+    git show ":$file" > "$scratch/before"
+    swiftformat stdin --stdin-path "$file" --config "$repo/.swiftformat" --cache ignore \
+        < "$scratch/before" > "$scratch/after" 2> "$scratch/formatter.log" || {
+        cat "$scratch/formatter.log" >&2
+        exit 1
+    }
+
+    if cmp -s "$scratch/before" "$scratch/after"; then
+        continue
+    fi
+
+    mode=$(git ls-files --format='%(objectmode)' -- "$file")
+    blob=$(git hash-object -w --path="$file" --stdin < "$scratch/after")
+    git update-index --cacheinfo "$mode,$blob,$file"
+
+    if [ -f "$file" ] && cmp -s "$scratch/before" "$file"; then
+        cat "$scratch/after" > "$file"
+    fi
+
+    echo "SwiftFormat formatted staged file: $file"
+done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.swift')

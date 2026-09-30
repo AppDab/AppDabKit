@@ -9,55 +9,65 @@ public struct SubmitBuildForBetaReviewAction: ReplayableGuardedAutomationAction 
         inputSchema: Schema.object(properties: [
             "accountID": Schema.string(description: "The AppDab account identifier."),
             "buildID": Schema.string(description: "The App Store Connect build identifier."),
-            "autoNotifyEnabled": Schema.outputBoolean
+            "autoNotifyEnabled": Schema.outputBoolean,
         ], required: ["accountID", "buildID", "autoNotifyEnabled"]),
         outputSchema: Schema.object(properties: ["build": Schema.buildSummaryOutput], required: ["build"]),
         outputType: "build",
-        safety: .write
+        safety: .write,
     )
 
     public init() {}
 
-    public func perform(input: SubmitBuildForBetaReviewInput, dataProvider: any AutomationDataProviding) async throws -> BuildSummary {
+    public func perform(input _: SubmitBuildForBetaReviewInput, dataProvider _: any AutomationDataProviding) async throws -> BuildSummary {
         throw AutomationExecutionError.unsupportedExecutionMode(action: Self.descriptor.id.rawValue, mode: .execute)
     }
 
     public func prepareMutation(input: SubmitBuildForBetaReviewInput, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationPreparation {
         let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: .build)
         guard snapshot.build.expired != true, snapshot.betaReviewSubmissionID == nil,
-              snapshot.externalBetaState == "READY_FOR_BETA_SUBMISSION" else {
+              snapshot.externalBetaState == "READY_FOR_BETA_SUBMISSION"
+        else {
             throw AutomationActionError.invalidArguments("Build is not ready for beta review submission.")
         }
-        return .init(
+        return try .init(
             targetIdentifiers: [input.accountID, input.buildID],
             redactedSummary: "Submit build \(snapshot.build.version) for beta review.",
-            remotePreconditions: ["snapshot": try .fromEncodable(snapshot)]
+            remotePreconditions: ["snapshot": .fromEncodable(snapshot)],
         )
     }
 
     public func validateMutation(input: SubmitBuildForBetaReviewInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws {
         let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: .build)
-        guard plan.remotePreconditions["snapshot"] == (try JSONValue.fromEncodable(snapshot)) else {
+        guard try plan.remotePreconditions["snapshot"] == (JSONValue.fromEncodable(snapshot)) else {
             throw AutomationExecutionError.preconditionFailed("Build review state changed after preview.")
         }
     }
 
-    public func commitMutation(input: SubmitBuildForBetaReviewInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> BuildSummary {
+    public func commitMutation(input: SubmitBuildForBetaReviewInput, plan _: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> BuildSummary {
         try await dataProvider.mutateBuild(
             accountID: input.accountID,
             buildID: input.buildID,
-            mutation: .submitForBetaReview(autoNotifyEnabled: input.autoNotifyEnabled)
+            mutation: .submitForBetaReview(autoNotifyEnabled: input.autoNotifyEnabled),
         )
     }
 
-    public func reconcileMutation(input: SubmitBuildForBetaReviewInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationReconciliation<BuildSummary> {
+    public func reconcileMutation(input: SubmitBuildForBetaReviewInput, plan _: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationReconciliation<BuildSummary> {
         let snapshot = try await dataProvider.buildSnapshot(accountID: input.accountID, buildID: input.buildID, scope: .build)
         return snapshot.betaReviewSubmissionID != nil ? .succeeded(snapshot.build) : .unresolved
     }
 
-    public func summary(for output: BuildSummary) -> String { "Submitted build \(output.version) for beta review." }
-    public func data(for output: BuildSummary) throws -> JSONValue { .object(["build": try .fromEncodable(output)]) }
-    public func redactedReplayData(for output: BuildSummary) throws -> JSONValue { try data(for: output) }
+    public func summary(for output: BuildSummary) -> String {
+        "Submitted build \(output.version) for beta review."
+    }
+
+    public func data(for output: BuildSummary) throws -> JSONValue {
+        try .object(["build": .fromEncodable(output)])
+    }
+
+    public func redactedReplayData(for output: BuildSummary) throws -> JSONValue {
+        try data(for: output)
+    }
+
     public func output(fromReplayData data: JSONValue) throws -> BuildSummary {
         struct Replay: Decodable { let build: BuildSummary }
         let decoder = JSONDecoder()

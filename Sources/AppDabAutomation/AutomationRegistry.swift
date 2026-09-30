@@ -31,7 +31,7 @@ public struct AutomationRegistry: Sendable {
                 AnyAutomationAction.guarded(ExpireBuildAction.self),
                 AnyAutomationAction.guarded(CreateAppVersionAction.self),
                 AnyAutomationAction(ListCustomerReviewsAction.self),
-                AnyAutomationAction(GetCustomerReviewAction.self)
+                AnyAutomationAction(GetCustomerReviewAction.self),
             ])
         } catch {
             preconditionFailure("Invalid standard automation registry: \(error.localizedDescription)")
@@ -47,20 +47,20 @@ public struct AutomationRegistry: Sendable {
             try Self.validate(action.descriptor)
             guard actionsByID[action.descriptor.id] == nil else {
                 throw AutomationActionError.invalidArguments(
-                    "Duplicate automation action \(action.descriptor.id.rawValue)."
+                    "Duplicate automation action \(action.descriptor.id.rawValue).",
                 )
             }
             switch action.descriptor.safety {
             case .write:
                 guard action.supportsGuardedMutation || action.supportsDirectWriteExecution else {
                     throw AutomationActionError.invalidArguments(
-                        "Write action \(action.descriptor.id.rawValue) must support guarded or direct execution."
+                        "Write action \(action.descriptor.id.rawValue) must support guarded or direct execution.",
                     )
                 }
             case .read, .draft:
                 guard !action.supportsGuardedMutation else {
                     throw AutomationActionError.invalidArguments(
-                        "Read or draft action \(action.descriptor.id.rawValue) must not conform to GuardedAutomationAction."
+                        "Read or draft action \(action.descriptor.id.rawValue) must not conform to GuardedAutomationAction.",
                     )
                 }
             }
@@ -71,7 +71,7 @@ public struct AutomationRegistry: Sendable {
     }
 
     private static func validate(
-        _ descriptor: AutomationActionDescriptor
+        _ descriptor: AutomationActionDescriptor,
     ) throws(AutomationActionError) {
         let actionID = descriptor.id.rawValue
         let validIDCharacters = CharacterSet.lowercaseLetters
@@ -79,7 +79,8 @@ public struct AutomationRegistry: Sendable {
             .union(CharacterSet(charactersIn: "_"))
         guard !actionID.isEmpty,
               actionID.unicodeScalars.allSatisfy(validIDCharacters.contains),
-              !actionID.contains("__") else {
+              !actionID.contains("__")
+        else {
             throw .invalidArguments("Automation action IDs must use lowercase snake case: \(actionID).")
         }
         try validateObjectSchema(descriptor.inputSchema, named: "input", actionID: actionID)
@@ -89,11 +90,12 @@ public struct AutomationRegistry: Sendable {
     private static func validateObjectSchema(
         _ schema: JSONValue,
         named name: String,
-        actionID: String
+        actionID: String,
     ) throws(AutomationActionError) {
         guard let definition = schema.objectValue,
               definition["type"] == .string("object"),
-              definition["properties"]?.objectValue != nil else {
+              definition["properties"]?.objectValue != nil
+        else {
             throw .invalidArguments("The \(name) schema for \(actionID) must be an object schema.")
         }
     }

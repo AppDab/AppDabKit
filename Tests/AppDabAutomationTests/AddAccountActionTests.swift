@@ -12,7 +12,7 @@ struct AddAccountActionTests {
         let calls = ImportCalls()
         let issue = AccountVerificationIssue(
             message: "Agreement required",
-            resolutionURL: URL(string: "https://example.com/agreements")
+            resolutionURL: URL(string: "https://example.com/agreements"),
         )
         let action = AddAccountAction(effects: .init(
             loadPrivateKey: { path in
@@ -32,7 +32,7 @@ struct AddAccountActionTests {
             persistCredential: { key, _ in
                 #expect(key.id == apiKey.id)
                 await calls.record("persisted")
-            }
+            },
         ))
 
         let result = try await action.perform(input: input(), dataProvider: MockAutomationDataProvider())
@@ -50,7 +50,7 @@ struct AddAccountActionTests {
             loadPrivateKey: { _ in "injected key" },
             validateCredential: { _, _ in apiKey },
             verifyCredential: { _ in throw ImportFailure.verification },
-            persistCredential: { _, _ in await calls.record("persisted") }
+            persistCredential: { _, _ in await calls.record("persisted") },
         ))
 
         await #expect(throws: ImportFailure.verification) {
@@ -65,7 +65,7 @@ struct AddAccountActionTests {
         let store = RecordingAccountStore(existing: [apiKey])
 
         await #expect(throws: AutomationActionError.invalidArguments(
-            "An API key with this key ID is already configured."
+            "An API key with this key ID is already configured.",
         )) {
             try await AccountImportEffects.live.persistCredential(apiKey, store)
         }
@@ -94,7 +94,9 @@ private actor RecordingAccountStore: AutomationAccountStoring {
         self.existing = existing
     }
 
-    func loadAPIKeys() async throws -> [APIKey] { existing }
+    func loadAPIKeys() async throws -> [APIKey] {
+        existing
+    }
 
     func saveAPIKey(_ apiKey: APIKey) async throws {
         savedKeys.append(apiKey)
@@ -119,6 +121,6 @@ private func testAPIKey() throws -> APIKey {
         LKQn9bjdI9x+EutHAjA0wDfDkgShRANCAATpj+9nvBg4ipcHGSY/xqrJi8VE2qNb
         vZh9AwQzLqwcZOne8kuNMeyAtJAF1S4vNhCWqbvh1hd6nZydA8I7NHNA
         -----END PRIVATE KEY-----
-        """
+        """,
     )
 }

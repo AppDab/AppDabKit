@@ -1,7 +1,7 @@
 struct AnyEncodable: Encodable {
     let encodeValue: (any Encoder) throws -> Void
 
-    init<T: Encodable>(_ value: T) {
+    init(_ value: some Encodable) {
         encodeValue = { encoder in
             try value.encode(to: encoder)
         }

@@ -12,7 +12,7 @@ public struct BuildTestFlightSnapshot: Codable, Equatable, Sendable {
         betaGroupIDs: [String],
         betaReviewSubmissionID: String?,
         externalBetaState: String?,
-        autoNotifyEnabled: Bool?
+        autoNotifyEnabled: Bool?,
     ) {
         self.build = build
         self.individualTesterIDs = individualTesterIDs.sorted()

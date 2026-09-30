@@ -15,7 +15,7 @@ public struct CreateVersionHarness {
         try await execute(context: .init(
             mode: .commit,
             confirmationFingerprint: plan.confirmationFingerprint,
-            idempotencyKey: key
+            idempotencyKey: key,
         ))
     }
 
@@ -23,7 +23,7 @@ public struct CreateVersionHarness {
         try await execute(context: .init(
             mode: .reconcile,
             confirmationFingerprint: plan.confirmationFingerprint,
-            idempotencyKey: key
+            idempotencyKey: key,
         ))
     }
 
@@ -36,7 +36,7 @@ public struct CreateVersionHarness {
                 "platform": .string("IOS"),
                 "version": .string("2.0"),
             ],
-            executionContext: context
+            executionContext: context,
         ))
     }
 }

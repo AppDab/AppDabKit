@@ -3,20 +3,20 @@ import AppDabServices
 enum Schema {
     static func object(
         properties: [String: JSONValue],
-        required: [String] = []
+        required: [String] = [],
     ) -> JSONValue {
         .object([
             "type": .string("object"),
             "properties": .object(properties),
             "required": .array(required.map(JSONValue.string)),
-            "additionalProperties": .bool(false)
+            "additionalProperties": .bool(false),
         ])
     }
 
     static func string(description: String) -> JSONValue {
         .object([
             "type": .string("string"),
-            "description": .string(description)
+            "description": .string(description),
         ])
     }
 
@@ -24,14 +24,14 @@ enum Schema {
         description: String,
         minimum: Int,
         maximum: Int,
-        default defaultValue: Int
+        default defaultValue: Int,
     ) -> JSONValue {
         .object([
             "type": .string("integer"),
             "description": .string(description),
             "minimum": .integer(minimum),
             "maximum": .integer(maximum),
-            "default": .integer(defaultValue)
+            "default": .integer(defaultValue),
         ])
     }
 
@@ -41,13 +41,13 @@ enum Schema {
         description: "Maximum items to return, from 1 through 200.",
         minimum: 1,
         maximum: PaginationRequest.maximumLimit,
-        default: PaginationRequest.defaultLimit
+        default: PaginationRequest.defaultLimit,
     )
 
     static let paginationOutput = object(properties: [
         "limit": .object(["type": .string("integer")]),
         "total": .object(["type": .string("integer")]),
         "hasMore": .object(["type": .string("boolean")]),
-        "nextCursor": .object(["type": .string("string")])
+        "nextCursor": .object(["type": .string("string")]),
     ], required: ["limit", "total", "hasMore"])
 }

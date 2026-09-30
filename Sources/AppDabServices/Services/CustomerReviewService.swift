@@ -1,6 +1,6 @@
-import BagbutikCore
 import BagbutikAppStore
 import BagbutikAppStoreModels
+import BagbutikCore
 import ConnectAccounts
 import Foundation
 
@@ -15,7 +15,7 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
     public init(
         accountProvider: any APIKeyProviding,
         listReviewsHandler: ListReviewsHandler? = nil,
-        getReviewHandler: GetReviewHandler? = nil
+        getReviewHandler: GetReviewHandler? = nil,
     ) {
         self.accountProvider = accountProvider
         self.listReviewsHandler = listReviewsHandler ?? Self.listReviewsLive
@@ -25,7 +25,7 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
     public func listCustomerReviews(
         accountID: String,
         appID: String,
-        pagination: PaginationRequest = .init()
+        pagination: PaginationRequest = .init(),
     ) async throws -> ReviewList {
         try pagination.validate()
         return try await fetchReviews(accountID: accountID, appID: appID, pagination: pagination)
@@ -43,7 +43,7 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
     private func fetchReviews(
         accountID: String,
         appID: String,
-        pagination: PaginationRequest
+        pagination: PaginationRequest,
     ) async throws -> ReviewList {
         let apiKey = try await accountProvider.apiKey(forAccountID: accountID)
         do {
@@ -56,33 +56,33 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
     private static func listReviewsLive(
         apiKey: APIKey,
         appID: String,
-        pagination: PaginationRequest
+        pagination: PaginationRequest,
     ) async throws -> ReviewList {
         let limit = try pagination.resolvedLimit()
         let service = BagbutikService(jwt: apiKey.jwt)
         let response: CustomerReviewsResponse
         response = try await service.request(
-            reviewsRequest(appID: appID, limit: limit, cursor: try pagination.validatedCursor())
+            reviewsRequest(appID: appID, limit: limit, cursor: pagination.validatedCursor()),
         )
         let nextCursor = try PaginationCursor.extract(from: response.links.next)
         let metadata = try paginationMetadata(
             limit: limit,
             total: response.meta?.paging.total,
-            nextCursor: nextCursor
+            nextCursor: nextCursor,
         )
         return .init(
             appID: appID,
             reviews: response.data.map { review in
                 CustomerReview(customerReview: review, response: response.getResponse(for: review))
             },
-            pagination: metadata
+            pagination: metadata,
         )
     }
 
     static func paginationMetadata(
         limit: Int,
         total: Int?,
-        nextCursor: String?
+        nextCursor: String?,
     ) throws -> PaginationMetadata {
         guard let total else {
             throw ServiceError.upstream("App Store Connect did not provide a paging total.")
@@ -93,13 +93,13 @@ public final class CustomerReviewService: CustomerReviewServing, @unchecked Send
     private static func reviewsRequest(
         appID: String,
         limit: Int,
-        cursor: String?
+        cursor: String?,
     ) -> Request<CustomerReviewsResponse, ErrorResponse> {
         let request: Request<CustomerReviewsResponse, ErrorResponse> = .listCustomerReviewsForAppV1(
             id: appID,
             includes: [.response],
             sorts: [.createdDateDescending],
-            limit: limit
+            limit: limit,
         )
         return request.withPaginationCursor(cursor)
     }

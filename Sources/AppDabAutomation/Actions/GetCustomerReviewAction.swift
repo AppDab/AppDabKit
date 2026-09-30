@@ -8,22 +8,22 @@ public struct GetCustomerReviewAction: AutomationAction {
         inputSchema: Schema.object(
             properties: [
                 "accountID": Schema.string(description: "The AppDab account identifier."),
-                "reviewID": Schema.string(description: "The App Store Connect customer review identifier.")
+                "reviewID": Schema.string(description: "The App Store Connect customer review identifier."),
             ],
-            required: ["accountID", "reviewID"]
+            required: ["accountID", "reviewID"],
         ),
         outputSchema: Schema.object(properties: [
-            "review": Schema.customerReviewOutput
+            "review": Schema.customerReviewOutput,
         ], required: ["review"]),
         outputType: "customer_review",
-        safety: .read
+        safety: .read,
     )
 
     public init() {}
 
     public func perform(
         input: GetCustomerReviewInput,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> CustomerReview {
         try await dataProvider.getCustomerReview(accountID: input.accountID, reviewID: input.reviewID)
     }
@@ -33,6 +33,6 @@ public struct GetCustomerReviewAction: AutomationAction {
     }
 
     public func data(for output: CustomerReview) throws -> JSONValue {
-        .object(["review": try JSONValue.fromEncodable(output)])
+        try .object(["review": JSONValue.fromEncodable(output)])
     }
 }

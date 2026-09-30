@@ -10,13 +10,13 @@ public struct AnyAutomationAction: Sendable {
     private let commitAction: (@Sendable ([String: JSONValue], AutomationMutationPlan, any AutomationDataProviding) async throws -> CommittedResponse)?
     private let reconcileAction: (@Sendable ([String: JSONValue], AutomationMutationPlan, any AutomationDataProviding) async throws -> MutationReconciliation)?
 
-    public init<Action: AutomationAction>(_ actionType: Action.Type) {
+    public init(_ actionType: (some AutomationAction).Type) {
         self.init(
             actionType,
             prepareAction: nil,
             validateMutationAction: nil,
             commitAction: nil,
-            reconcileAction: nil
+            reconcileAction: nil,
         )
     }
 
@@ -39,7 +39,7 @@ public struct AnyAutomationAction: Sendable {
                 let output = try await action.commitMutation(
                     input: input,
                     plan: plan,
-                    dataProvider: dataProvider
+                    dataProvider: dataProvider,
                 )
                 return try Self.committedResponse(action: action, output: output)
             },
@@ -49,16 +49,16 @@ public struct AnyAutomationAction: Sendable {
                 switch try await action.reconcileMutation(
                     input: input,
                     plan: plan,
-                    dataProvider: dataProvider
+                    dataProvider: dataProvider,
                 ) {
-                case .succeeded(let output):
-                    return .succeeded(try Self.committedResponse(action: action, output: output))
+                case let .succeeded(output):
+                    return try .succeeded(Self.committedResponse(action: action, output: output))
                 case .notApplied:
                     return .notApplied
                 case .unresolved:
                     return .unresolved
                 }
-            }
+            },
         )
     }
 
@@ -67,7 +67,7 @@ public struct AnyAutomationAction: Sendable {
         prepareAction: (@Sendable ([String: JSONValue], any AutomationDataProviding) async throws -> AutomationMutationPreparation)?,
         validateMutationAction: (@Sendable ([String: JSONValue], AutomationMutationPlan, any AutomationDataProviding) async throws -> Void)?,
         commitAction: (@Sendable ([String: JSONValue], AutomationMutationPlan, any AutomationDataProviding) async throws -> CommittedResponse)?,
-        reconcileAction: (@Sendable ([String: JSONValue], AutomationMutationPlan, any AutomationDataProviding) async throws -> MutationReconciliation)?
+        reconcileAction: (@Sendable ([String: JSONValue], AutomationMutationPlan, any AutomationDataProviding) async throws -> MutationReconciliation)?,
     ) {
         descriptor = actionType.descriptor
         supportsDirectWriteExecution = actionType.supportsDirectWriteExecution
@@ -86,19 +86,19 @@ public struct AnyAutomationAction: Sendable {
 
     func execute(
         arguments: [String: JSONValue],
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AutomationResponse {
         try await executeAction(arguments, dataProvider)
     }
 
     func prepareMutation(
         arguments: [String: JSONValue],
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AutomationMutationPreparation {
         guard let prepareAction else {
             throw AutomationExecutionError.unsupportedExecutionMode(
                 action: descriptor.id.rawValue,
-                mode: .preview
+                mode: .preview,
             )
         }
         return try await prepareAction(arguments, dataProvider)
@@ -107,12 +107,12 @@ public struct AnyAutomationAction: Sendable {
     func validateMutation(
         arguments: [String: JSONValue],
         plan: AutomationMutationPlan,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws {
         guard let validateMutationAction else {
             throw AutomationExecutionError.unsupportedExecutionMode(
                 action: descriptor.id.rawValue,
-                mode: .commit
+                mode: .commit,
             )
         }
         try await validateMutationAction(arguments, plan, dataProvider)
@@ -121,12 +121,12 @@ public struct AnyAutomationAction: Sendable {
     func commitMutation(
         arguments: [String: JSONValue],
         plan: AutomationMutationPlan,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> CommittedResponse {
         guard let commitAction else {
             throw AutomationExecutionError.unsupportedExecutionMode(
                 action: descriptor.id.rawValue,
-                mode: .commit
+                mode: .commit,
             )
         }
         return try await commitAction(arguments, plan, dataProvider)
@@ -135,12 +135,12 @@ public struct AnyAutomationAction: Sendable {
     func reconcileMutation(
         arguments: [String: JSONValue],
         plan: AutomationMutationPlan,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> MutationReconciliation {
         guard let reconcileAction else {
             throw AutomationExecutionError.unsupportedExecutionMode(
                 action: descriptor.id.rawValue,
-                mode: .reconcile
+                mode: .reconcile,
             )
         }
         return try await reconcileAction(arguments, plan, dataProvider)
@@ -150,13 +150,13 @@ public struct AnyAutomationAction: Sendable {
         prepareAction != nil && validateMutationAction != nil && commitAction != nil && reconcileAction != nil
     }
 
-    func isRegistered<Action: AutomationAction>(_ actionType: Action.Type) -> Bool {
+    func isRegistered(_ actionType: (some AutomationAction).Type) -> Bool {
         actionTypeID == ObjectIdentifier(actionType)
     }
 
     private static func input<Input: AutomationActionInput>(
-        _ type: Input.Type,
-        arguments: [String: JSONValue]
+        _: Input.Type,
+        arguments: [String: JSONValue],
     ) throws(AutomationActionError) -> Input {
         let input = try Input(arguments: arguments)
         try input.validate()
@@ -165,22 +165,22 @@ public struct AnyAutomationAction: Sendable {
 
     private static func response<Action: AutomationAction>(
         action: Action,
-        output: Action.Output
+        output: Action.Output,
     ) throws -> AutomationResponse {
-        .init(
+        try .init(
             actionID: Action.descriptor.id,
             summary: action.summary(for: output),
-            data: try action.data(for: output)
+            data: action.data(for: output),
         )
     }
 
     private static func committedResponse<Action: GuardedAutomationAction>(
         action: Action,
-        output: Action.Output
+        output: Action.Output,
     ) throws -> CommittedResponse {
-        .init(
-            response: try response(action: action, output: output),
-            redactedReplayData: try action.redactedReplayData(for: output)
+        try .init(
+            response: response(action: action, output: output),
+            redactedReplayData: action.redactedReplayData(for: output),
         )
     }
 }

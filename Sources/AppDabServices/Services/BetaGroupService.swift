@@ -23,9 +23,9 @@ public final class BetaGroupService: BetaGroupServing, @unchecked Sendable {
             guard let total = response.meta?.paging.total else {
                 throw ServiceError.upstream("App Store Connect did not provide a paging total.")
             }
-            return .init(appID: appID, betaGroups: response.data.map(BetaGroupSummary.init),
-                         pagination: .init(limit: try pagination.resolvedLimit(), total: total,
-                                           nextCursor: try PaginationCursor.extract(from: response.links.next)))
+            return try .init(appID: appID, betaGroups: response.data.map(BetaGroupSummary.init),
+                             pagination: .init(limit: pagination.resolvedLimit(), total: total,
+                                               nextCursor: PaginationCursor.extract(from: response.links.next)))
         } catch {
             throw try ServiceError.classify(error)
         }
@@ -33,7 +33,7 @@ public final class BetaGroupService: BetaGroupServing, @unchecked Sendable {
 
     static func listRequest(appID: String, pagination: PaginationRequest) throws -> Request<BetaGroupsResponse, ErrorResponse> {
         let request: Request<BetaGroupsResponse, ErrorResponse> = try .listBetaGroupsV1(
-            filters: [.app([appID])], sorts: [.nameAscending], limits: [.limit(pagination.resolvedLimit())]
+            filters: [.app([appID])], sorts: [.nameAscending], limits: [.limit(pagination.resolvedLimit())],
         )
         return try request.withPaginationCursor(pagination.validatedCursor())
     }
@@ -53,7 +53,7 @@ public final class BetaGroupService: BetaGroupServing, @unchecked Sendable {
         do {
             let response = try await service.request(.createBetaGroupV1(requestBody: .init(data: .init(
                 attributes: .init(hasAccessToAllBuilds: hasAccessToAllBuilds, isInternalGroup: isInternalGroup, name: name),
-                relationships: .init(app: .init(data: .init(id: appID)))
+                relationships: .init(app: .init(data: .init(id: appID))),
             ))))
             return .init(response.data)
         } catch { throw try ServiceError.classify(error) }
@@ -64,7 +64,7 @@ public final class BetaGroupService: BetaGroupServing, @unchecked Sendable {
         let service = BagbutikService(jwt: key.jwt)
         do {
             let response = try await service.request(.updateBetaGroupV1(
-                id: betaGroupID, requestBody: Self.updateRequestBody(betaGroupID: betaGroupID, changes: changes)
+                id: betaGroupID, requestBody: Self.updateRequestBody(betaGroupID: betaGroupID, changes: changes),
             ))
             return .init(response.data)
         } catch { throw try ServiceError.classify(error) }
@@ -78,7 +78,7 @@ public final class BetaGroupService: BetaGroupServing, @unchecked Sendable {
             name: changes.name,
             publicLinkEnabled: changes.publicLinkEnabled,
             publicLinkLimit: changes.publicLinkLimit,
-            publicLinkLimitEnabled: changes.publicLinkLimitEnabled
+            publicLinkLimitEnabled: changes.publicLinkLimitEnabled,
         )))
     }
 

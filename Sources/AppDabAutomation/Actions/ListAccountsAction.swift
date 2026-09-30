@@ -7,17 +7,17 @@ public struct ListAccountsAction: AutomationAction {
         description: "List the App Store Connect accounts configured in AppDab.",
         inputSchema: Schema.object(properties: [:]),
         outputSchema: Schema.object(properties: [
-            "accounts": Schema.array(items: Schema.accountSummaryOutput)
+            "accounts": Schema.array(items: Schema.accountSummaryOutput),
         ], required: ["accounts"]),
         outputType: "accounts",
-        safety: .read
+        safety: .read,
     )
 
     public init() {}
 
     public func perform(
-        input: ListAccountsInput,
-        dataProvider: any AutomationDataProviding
+        input _: ListAccountsInput,
+        dataProvider: any AutomationDataProviding,
     ) async throws -> [AccountSummary] {
         try await dataProvider.listAccounts()
     }
@@ -27,6 +27,6 @@ public struct ListAccountsAction: AutomationAction {
     }
 
     public func data(for output: [AccountSummary]) throws -> JSONValue {
-        .object(["accounts": try JSONValue.fromEncodable(output)])
+        try .object(["accounts": JSONValue.fromEncodable(output)])
     }
 }

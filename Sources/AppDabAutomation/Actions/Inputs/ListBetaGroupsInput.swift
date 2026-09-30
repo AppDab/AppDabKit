@@ -16,7 +16,7 @@ public struct ListBetaGroupsInput: AutomationActionInput {
         let args = try Arguments(arguments, allowedKeys: ["accountID", "appID", "cursor", "limit"])
         accountID = try args.requiredString("accountID")
         appID = try args.requiredString("appID")
-        pagination = .init(cursor: try args.optionalString("cursor"), limit: try args.optionalInteger("limit"))
+        pagination = try .init(cursor: args.optionalString("cursor"), limit: args.optionalInteger("limit"))
     }
 
     public func validate() throws(AutomationActionError) {

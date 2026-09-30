@@ -20,7 +20,7 @@ struct AutomationExecutorTests {
 
         let result = try await executor.execute(request(
             actionID: .verifyAccount,
-            arguments: ["accountID": .string("account-1")]
+            arguments: ["accountID": .string("account-1")],
         ))
 
         #expect(result.text == "API key for Primary is valid.")
@@ -40,7 +40,7 @@ struct AutomationExecutorTests {
 
         let result = try await executor.execute(request(
             actionID: .listBuilds,
-            arguments: ["accountID": .string("account-1"), "appID": .string("app-1"), "limit": .integer(25)]
+            arguments: ["accountID": .string("account-1"), "appID": .string("app-1"), "limit": .integer(25)],
         ))
 
         #expect(result.text == "Found 1 builds.")
@@ -49,11 +49,11 @@ struct AutomationExecutorTests {
         #expect(result.structuredContent.objectValue?["pagination"]?.objectValue?["limit"] == .integer(25))
 
         await #expect(throws: AutomationActionError.invalidArguments(
-            "Argument limit is required when cursor is provided."
+            "Argument limit is required when cursor is provided.",
         )) {
             try await executor.execute(request(
                 actionID: .listBuilds,
-                arguments: ["accountID": .string("account-1"), "appID": .string("app-1"), "cursor": .string("next")]
+                arguments: ["accountID": .string("account-1"), "appID": .string("app-1"), "cursor": .string("next")],
             ))
         }
     }
@@ -63,22 +63,22 @@ struct AutomationExecutorTests {
 
         let result = try await executor.execute(request(
             actionID: .getBuild,
-            arguments: ["accountID": .string("account-1"), "buildID": .string("build-1")]
+            arguments: ["accountID": .string("account-1"), "buildID": .string("build-1")],
         ))
 
         #expect(result.text == "Fetched build 42.")
         #expect(result.structuredContent.objectValue?["build"]?.objectValue?["buildID"] == .string("build-1"))
 
         await #expect(throws: AutomationActionError.invalidArguments(
-            "Unknown argument appID."
+            "Unknown argument appID.",
         )) {
             try await executor.execute(request(
                 actionID: .getBuild,
                 arguments: [
                     "accountID": .string("account-1"),
                     "buildID": .string("build-1"),
-                    "appID": .string("app-1")
-                ]
+                    "appID": .string("app-1"),
+                ],
             ))
         }
     }
@@ -92,8 +92,8 @@ struct AutomationExecutorTests {
                 arguments: [
                     "accountID": .string("account-1"),
                     "appID": .string("app-1"),
-                    "limit": .integer(500)
-                ]
+                    "limit": .integer(500),
+                ],
             ))
         }
     }
@@ -105,8 +105,8 @@ struct AutomationExecutorTests {
             actionID: .getCustomerReview,
             arguments: [
                 "accountID": .string("account-1"),
-                "reviewID": .string("review-1")
-            ]
+                "reviewID": .string("review-1"),
+            ],
         ))
 
         let review = result.structuredContent.objectValue?["review"]?.objectValue
@@ -123,8 +123,8 @@ struct AutomationExecutorTests {
                 actionID: .listApps,
                 arguments: [
                     "accountID": .string("account-1"),
-                    "limit": .integer(0)
-                ]
+                    "limit": .integer(0),
+                ],
             ))
         }
     }
@@ -134,7 +134,7 @@ struct AutomationExecutorTests {
 
         let result = try await executor.execute(request(
             actionID: .listApps,
-            arguments: ["accountID": .string("account-1")]
+            arguments: ["accountID": .string("account-1")],
         ))
         let pagination = result.structuredContent.objectValue?["pagination"]?.objectValue
         #expect(pagination?["limit"] == .integer(50))
@@ -142,24 +142,24 @@ struct AutomationExecutorTests {
         #expect(pagination?["hasMore"] == .bool(false))
 
         await #expect(throws: AutomationActionError.invalidArguments(
-            "Argument limit is required when cursor is provided."
+            "Argument limit is required when cursor is provided.",
         )) {
             try await executor.execute(request(
                 actionID: .listApps,
-                arguments: ["accountID": .string("account-1"), "cursor": .string("cursor-1")]
+                arguments: ["accountID": .string("account-1"), "cursor": .string("cursor-1")],
             ))
         }
 
         await #expect(throws: AutomationActionError.invalidArguments(
-            "Argument cursor must be an opaque pagination token."
+            "Argument cursor must be an opaque pagination token.",
         )) {
             try await executor.execute(request(
                 actionID: .listApps,
                 arguments: [
                     "accountID": .string("account-1"),
                     "cursor": .string(""),
-                    "limit": .integer(50)
-                ]
+                    "limit": .integer(50),
+                ],
             ))
         }
     }
@@ -170,13 +170,13 @@ struct AutomationExecutorTests {
         await #expect(throws: AutomationActionError.invalidArguments("Unknown argument typo.")) {
             try await executor.execute(request(
                 actionID: .listApps,
-                arguments: ["accountID": .string("account-1"), "typo": .bool(true)]
+                arguments: ["accountID": .string("account-1"), "typo": .bool(true)],
             ))
         }
         await #expect(throws: AutomationActionError.invalidArguments("Argument accountID must be a nonempty string.")) {
             try await executor.execute(request(
                 actionID: .listApps,
-                arguments: ["accountID": .integer(1)]
+                arguments: ["accountID": .integer(1)],
             ))
         }
     }
@@ -203,15 +203,15 @@ struct AutomationExecutorTests {
         let registry = try AutomationRegistry(actions: [AnyAutomationAction(ListAccountsAction.self)])
         let executor = Executor(
             dataProvider: MockAutomationDataProvider(),
-            registry: registry
+            registry: registry,
         )
 
         await #expect(throws: AutomationActionError.invalidArguments(
-            "The registered action for list_accounts does not match the requested implementation."
+            "The registered action for list_accounts does not match the requested implementation.",
         )) {
             try await executor.execute(
                 UnregisteredListAccountsAction.self,
-                input: ListAccountsInput()
+                input: ListAccountsInput(),
             )
         }
     }
@@ -219,7 +219,7 @@ struct AutomationExecutorTests {
     @Test func executorPreservesStructuredServiceDiagnostics() async {
         let diagnostics = ServiceErrorDiagnostics(httpStatusCode: 403, responseBody: Data([1, 2]))
         let executor = Executor(dataProvider: MockAutomationDataProvider(
-            appError: .permissionDenied("Denied", diagnostics: diagnostics)
+            appError: .permissionDenied("Denied", diagnostics: diagnostics),
         ))
         await #expect(throws: AutomationActionError.permissionDenied("Denied", diagnostics: diagnostics)) {
             try await executor.execute(request(actionID: .listApps, arguments: ["accountID": .string("account-1")]))
@@ -233,13 +233,13 @@ struct AutomationExecutorTests {
 
     @Test func executorTranslatesServiceFailuresToAutomationErrors() async {
         let executor = Executor(
-            dataProvider: MockAutomationDataProvider(appError: .appNotFound("missing"))
+            dataProvider: MockAutomationDataProvider(appError: .appNotFound("missing")),
         )
 
         await #expect(throws: AutomationActionError.appNotFound("missing")) {
             try await executor.execute(request(
                 actionID: .listApps,
-                arguments: ["accountID": .string("account-1")]
+                arguments: ["accountID": .string("account-1")],
             ))
         }
     }
@@ -247,7 +247,7 @@ struct AutomationExecutorTests {
 
 private func request(
     actionID: AutomationActionID,
-    arguments: [String: JSONValue]
+    arguments: [String: JSONValue],
 ) -> AutomationRequest {
     .init(actionID: actionID, arguments: arguments)
 }
@@ -258,13 +258,13 @@ private struct UnregisteredListAccountsAction: AutomationAction {
     init() {}
 
     func perform(
-        input: ListAccountsInput,
-        dataProvider: any AutomationDataProviding
+        input _: ListAccountsInput,
+        dataProvider _: any AutomationDataProviding,
     ) async throws -> [AccountSummary] {
         []
     }
 
-    func summary(for output: [AccountSummary]) -> String {
+    func summary(for _: [AccountSummary]) -> String {
         "Found no accounts."
     }
 
@@ -275,7 +275,7 @@ private struct UnregisteredListAccountsAction: AutomationAction {
 
 extension JSONValue {
     var arrayValue: [JSONValue]? {
-        guard case .array(let array) = self else {
+        guard case let .array(array) = self else {
             return nil
         }
         return array

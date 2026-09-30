@@ -15,7 +15,7 @@ public struct SubmitBuildForBetaReviewInput: AutomationActionInput {
         let arguments = try Arguments(arguments, allowedKeys: ["accountID", "buildID", "autoNotifyEnabled"])
         accountID = try arguments.requiredString("accountID")
         buildID = try arguments.requiredString("buildID")
-        guard case .bool(let enabled) = arguments.value("autoNotifyEnabled") else {
+        guard case let .bool(enabled) = arguments.value("autoNotifyEnabled") else {
             throw .invalidArguments("Argument autoNotifyEnabled must be a boolean.")
         }
         autoNotifyEnabled = enabled

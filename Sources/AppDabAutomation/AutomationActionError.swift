@@ -13,9 +13,9 @@ public enum AutomationActionError: Error, Equatable, LocalizedError, Sendable {
 
     public var diagnostics: ServiceErrorDiagnostics? {
         switch self {
-        case .appNotFound(_, let diagnostics), .invalidArguments(_, let diagnostics),
-             .authentication(_, let diagnostics), .permissionDenied(_, let diagnostics),
-             .network(_, let diagnostics), .upstream(_, let diagnostics):
+        case let .appNotFound(_, diagnostics), let .invalidArguments(_, diagnostics),
+             let .authentication(_, diagnostics), let .permissionDenied(_, diagnostics),
+             let .network(_, diagnostics), let .upstream(_, diagnostics):
             diagnostics
         case .accountNotFound, .invalidLimit:
             nil
@@ -36,29 +36,29 @@ public enum AutomationActionError: Error, Equatable, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .accountNotFound(let accountID):
+        case let .accountNotFound(accountID):
             "Could not find account \(accountID)."
-        case .appNotFound(let appID, _):
+        case let .appNotFound(appID, _):
             "Could not find app \(appID)."
-        case .invalidArguments(let message, _):
+        case let .invalidArguments(message, _):
             message
-        case .invalidLimit(let limit):
+        case let .invalidLimit(limit):
             "The review limit \(limit) is invalid. Use a value between 1 and 200."
-        case .authentication(let message, _), .permissionDenied(let message, _), .network(let message, _), .upstream(let message, _):
+        case let .authentication(message, _), let .permissionDenied(message, _), let .network(message, _), let .upstream(message, _):
             message
         }
     }
 
     static func from(serviceError: ServiceError) -> Self {
         switch serviceError {
-        case .accountNotFound(let accountID): .accountNotFound(accountID)
-        case .appNotFound(let appID, let diagnostics): .appNotFound(appID, diagnostics: diagnostics)
-        case .invalidArguments(let message, let diagnostics): .invalidArguments(message, diagnostics: diagnostics)
-        case .invalidLimit(let limit): .invalidLimit(limit)
-        case .authentication(let message, let diagnostics): .authentication(message, diagnostics: diagnostics)
-        case .permissionDenied(let message, let diagnostics): .permissionDenied(message, diagnostics: diagnostics)
-        case .network(let message, let diagnostics): .network(message, diagnostics: diagnostics)
-        case .upstream(let message, let diagnostics): .upstream(message, diagnostics: diagnostics)
+        case let .accountNotFound(accountID): .accountNotFound(accountID)
+        case let .appNotFound(appID, diagnostics): .appNotFound(appID, diagnostics: diagnostics)
+        case let .invalidArguments(message, diagnostics): .invalidArguments(message, diagnostics: diagnostics)
+        case let .invalidLimit(limit): .invalidLimit(limit)
+        case let .authentication(message, diagnostics): .authentication(message, diagnostics: diagnostics)
+        case let .permissionDenied(message, diagnostics): .permissionDenied(message, diagnostics: diagnostics)
+        case let .network(message, diagnostics): .network(message, diagnostics: diagnostics)
+        case let .upstream(message, diagnostics): .upstream(message, diagnostics: diagnostics)
         }
     }
 }

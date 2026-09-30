@@ -12,7 +12,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
     public static func defaultDatabaseURL(fileManager: FileManager = .default) -> URL {
         let applicationSupport = fileManager.urls(
             for: .applicationSupportDirectory,
-            in: .userDomainMask
+            in: .userDomainMask,
         ).first ?? fileManager.temporaryDirectory
         return applicationSupport
             .appendingPathComponent("AppDabKit", isDirectory: true)
@@ -25,7 +25,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         try transaction {
             try pruneExpiredPreviews(
                 now: plan.createdAt,
-                excluding: plan.confirmationFingerprint
+                excluding: plan.confirmationFingerprint,
             )
             try execute(
                 """
@@ -39,20 +39,20 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                     .text(plan.confirmationFingerprint),
                     .text(record),
                     .text(String(plan.expiresAt.timeIntervalSince1970)),
-                ]
+                ],
             )
         }
     }
 
     public func preview(
         confirmationFingerprint: String,
-        now: Date
+        now: Date,
     ) async throws -> AutomationMutationPlan? {
         try transaction {
             try pruneExpiredPreviews(now: now, excluding: confirmationFingerprint)
             guard let record = try firstText(
                 "SELECT record FROM mutation_previews WHERE fingerprint = ?",
-                bindings: [.text(confirmationFingerprint)]
+                bindings: [.text(confirmationFingerprint)],
             ) else {
                 return nil
             }
@@ -68,7 +68,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         actionID: AutomationActionID,
         confirmationFingerprint: String,
         idempotencyKey: String,
-        now: Date
+        now: Date,
     ) async throws -> AutomationCommitClaim {
         try transaction {
             try pruneExpiredPreviews(now: now, excluding: confirmationFingerprint)
@@ -80,7 +80,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                 case .succeeded:
                     guard let receipt = existing.receipt else {
                         throw AutomationExecutionError.persistence(
-                            "A successful audit record is missing its receipt."
+                            "A successful audit record is missing its receipt.",
                         )
                     }
                     return .replay(receipt)
@@ -94,7 +94,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
             // Successful records also reserve the fingerprint after its preview is removed.
             if let record = try firstText(
                 "SELECT record FROM mutation_audits WHERE json_extract(record, '$.confirmationFingerprint') = ? LIMIT 1",
-                bindings: [.text(confirmationFingerprint)]
+                bindings: [.text(confirmationFingerprint)],
             ) {
                 let existing = try decode(AutomationAuditRecord.self, from: record)
                 throw AutomationExecutionError.commitBlocked(existing.status)
@@ -104,7 +104,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                 actionID: actionID,
                 confirmationFingerprint: confirmationFingerprint,
                 idempotencyKey: idempotencyKey,
-                status: .pending
+                status: .pending,
             ))
             let claimID = UUID().uuidString.lowercased()
             try writePendingClaim(idempotencyKey: idempotencyKey, claimedAt: now, claimID: claimID)
@@ -117,14 +117,14 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
             try validatePendingClaim(
                 idempotencyKey: receipt.idempotencyKey,
                 confirmationFingerprint: receipt.confirmationFingerprint,
-                claimID: claimID
+                claimID: claimID,
             )
             try writeAuditRecord(.init(
                 actionID: receipt.actionID,
                 confirmationFingerprint: receipt.confirmationFingerprint,
                 idempotencyKey: receipt.idempotencyKey,
                 status: .succeeded,
-                receipt: receipt
+                receipt: receipt,
             ))
             try removePendingClaim(idempotencyKey: receipt.idempotencyKey)
             try removeReconciliationClaim(idempotencyKey: receipt.idempotencyKey)
@@ -136,19 +136,19 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         actionID: AutomationActionID,
         confirmationFingerprint: String,
         idempotencyKey: String,
-        claimID: String
+        claimID: String,
     ) async throws {
         try transaction {
             try validatePendingClaim(
                 idempotencyKey: idempotencyKey,
                 confirmationFingerprint: confirmationFingerprint,
-                claimID: claimID
+                claimID: claimID,
             )
             try writeAuditRecord(.init(
                 actionID: actionID,
                 confirmationFingerprint: confirmationFingerprint,
                 idempotencyKey: idempotencyKey,
-                status: .indeterminate
+                status: .indeterminate,
             ))
             try removePendingClaim(idempotencyKey: idempotencyKey)
         }
@@ -158,7 +158,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         confirmationFingerprint: String,
         idempotencyKey: String,
         now: Date,
-        pendingLeaseDuration: TimeInterval
+        pendingLeaseDuration: TimeInterval,
     ) async throws -> AutomationReconciliationClaim {
         try transaction {
             try pruneExpiredPreviews(now: now, excluding: confirmationFingerprint)
@@ -172,7 +172,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
             case .succeeded:
                 guard let receipt = existing.receipt else {
                     throw AutomationExecutionError.persistence(
-                        "A successful audit record is missing its receipt."
+                        "A successful audit record is missing its receipt.",
                     )
                 }
                 return .replay(receipt)
@@ -180,12 +180,12 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                 return try claimReconciliation(
                     idempotencyKey: idempotencyKey,
                     now: now,
-                    leaseDuration: pendingLeaseDuration
+                    leaseDuration: pendingLeaseDuration,
                 )
             case .pending:
                 guard let claimedAt = try pendingClaimedAt(idempotencyKey: idempotencyKey) else {
                     throw AutomationExecutionError.persistence(
-                        "A pending audit record is missing its claim timestamp."
+                        "A pending audit record is missing its claim timestamp.",
                     )
                 }
                 guard claimedAt.addingTimeInterval(pendingLeaseDuration) <= now else {
@@ -195,13 +195,13 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                     actionID: existing.actionID,
                     confirmationFingerprint: existing.confirmationFingerprint,
                     idempotencyKey: existing.idempotencyKey,
-                    status: .indeterminate
+                    status: .indeterminate,
                 ))
                 try removePendingClaim(idempotencyKey: idempotencyKey)
                 return try claimReconciliation(
                     idempotencyKey: idempotencyKey,
                     now: now,
-                    leaseDuration: pendingLeaseDuration
+                    leaseDuration: pendingLeaseDuration,
                 )
             }
         }
@@ -209,16 +209,17 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
 
     public func completeReconciliation(
         _ receipt: AutomationMutationReceipt,
-        claimID: String
+        claimID: String,
     ) async throws {
         try transaction {
             try validateReconciliationClaim(
                 idempotencyKey: receipt.idempotencyKey,
-                claimID: claimID
+                claimID: claimID,
             )
             guard let existing = try readAuditRecord(idempotencyKey: receipt.idempotencyKey),
                   existing.confirmationFingerprint == receipt.confirmationFingerprint,
-                  existing.status == .indeterminate else {
+                  existing.status == .indeterminate
+            else {
                 throw AutomationExecutionError.commitBlocked(.indeterminate)
             }
             try writeAuditRecord(.init(
@@ -226,7 +227,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                 confirmationFingerprint: receipt.confirmationFingerprint,
                 idempotencyKey: receipt.idempotencyKey,
                 status: .succeeded,
-                receipt: receipt
+                receipt: receipt,
             ))
             try removeReconciliationClaim(idempotencyKey: receipt.idempotencyKey)
             try deletePreview(confirmationFingerprint: receipt.confirmationFingerprint)
@@ -240,7 +241,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
     public func resolveNotApplied(
         confirmationFingerprint: String,
         idempotencyKey: String,
-        claimID: String
+        claimID: String,
     ) async throws {
         try transaction {
             try validateReconciliationClaim(idempotencyKey: idempotencyKey, claimID: claimID)
@@ -255,7 +256,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
             }
             try execute(
                 "DELETE FROM mutation_audits WHERE idempotency_key = ?",
-                bindings: [.text(idempotencyKey)]
+                bindings: [.text(idempotencyKey)],
             )
             try removePendingClaim(idempotencyKey: idempotencyKey)
             try removeReconciliationClaim(idempotencyKey: idempotencyKey)
@@ -292,26 +293,26 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
             VALUES (?, ?)
             ON CONFLICT(idempotency_key) DO UPDATE SET record = excluded.record
             """,
-            bindings: [.text(record.idempotencyKey), .text(try encode(record))]
+            bindings: [.text(record.idempotencyKey), .text(encode(record))],
         )
     }
 
-    // Confirmation expiry only limits new commits. Keep the plan needed to recover
-    // an unresolved operation until it is resolved or the store is explicitly cleared.
+    /// Confirmation expiry only limits new commits. Keep the plan needed to recover
+    /// an unresolved operation until it is resolved or the store is explicitly cleared.
     private static let hasNoUnresolvedOperation = """
-        NOT EXISTS (
-            SELECT 1 FROM mutation_audits
-            WHERE json_extract(record, '$.confirmationFingerprint') = mutation_previews.fingerprint
-                AND json_extract(record, '$.status') IN ('pending', 'indeterminate')
-        )
-        """
+    NOT EXISTS (
+        SELECT 1 FROM mutation_audits
+        WHERE json_extract(record, '$.confirmationFingerprint') = mutation_previews.fingerprint
+            AND json_extract(record, '$.status') IN ('pending', 'indeterminate')
+    )
+    """
 
     private func pruneExpiredPreviews(now: Date, excluding fingerprint: String? = nil) throws {
         var sql = """
-            DELETE FROM mutation_previews
-            WHERE CAST(expires_at AS REAL) <= CAST(? AS REAL)
-                AND \(Self.hasNoUnresolvedOperation)
-            """
+        DELETE FROM mutation_previews
+        WHERE CAST(expires_at AS REAL) <= CAST(? AS REAL)
+            AND \(Self.hasNoUnresolvedOperation)
+        """
         var bindings: [SQLiteBinding] = [.text(String(now.timeIntervalSince1970))]
         if let fingerprint {
             sql += " AND fingerprint != ?"
@@ -326,14 +327,14 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
             DELETE FROM mutation_previews
             WHERE fingerprint = ? AND \(Self.hasNoUnresolvedOperation)
             """,
-            bindings: [.text(confirmationFingerprint)]
+            bindings: [.text(confirmationFingerprint)],
         )
     }
 
     private func readAuditRecord(idempotencyKey: String) throws -> AutomationAuditRecord? {
         guard let record = try firstText(
             "SELECT record FROM mutation_audits WHERE idempotency_key = ?",
-            bindings: [.text(idempotencyKey)]
+            bindings: [.text(idempotencyKey)],
         ) else {
             return nil
         }
@@ -343,23 +344,24 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
     private func writePendingClaim(idempotencyKey: String, claimedAt: Date, claimID: String) throws {
         try execute(
             "INSERT INTO mutation_pending_claims (idempotency_key, claimed_at, claim_id) VALUES (?, ?, ?)",
-            bindings: [.text(idempotencyKey), .text(String(claimedAt.timeIntervalSince1970)), .text(claimID)]
+            bindings: [.text(idempotencyKey), .text(String(claimedAt.timeIntervalSince1970)), .text(claimID)],
         )
     }
 
     private func validatePendingClaim(
         idempotencyKey: String,
         confirmationFingerprint: String,
-        claimID: String
+        claimID: String,
     ) throws {
         let storedClaimID = try firstText(
             "SELECT claim_id FROM mutation_pending_claims WHERE idempotency_key = ?",
-            bindings: [.text(idempotencyKey)]
+            bindings: [.text(idempotencyKey)],
         )
         guard storedClaimID == claimID,
               let record = try readAuditRecord(idempotencyKey: idempotencyKey),
               record.status == .pending,
-              record.confirmationFingerprint == confirmationFingerprint else {
+              record.confirmationFingerprint == confirmationFingerprint
+        else {
             throw AutomationExecutionError.commitBlocked(.indeterminate)
         }
     }
@@ -367,7 +369,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
     private func pendingClaimedAt(idempotencyKey: String) throws -> Date? {
         guard let value = try firstText(
             "SELECT claimed_at FROM mutation_pending_claims WHERE idempotency_key = ?",
-            bindings: [.text(idempotencyKey)]
+            bindings: [.text(idempotencyKey)],
         ), let timestamp = TimeInterval(value) else {
             return nil
         }
@@ -377,17 +379,18 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
     private func removePendingClaim(idempotencyKey: String) throws {
         try execute(
             "DELETE FROM mutation_pending_claims WHERE idempotency_key = ?",
-            bindings: [.text(idempotencyKey)]
+            bindings: [.text(idempotencyKey)],
         )
     }
 
     private func claimReconciliation(
         idempotencyKey: String,
         now: Date,
-        leaseDuration: TimeInterval
+        leaseDuration: TimeInterval,
     ) throws -> AutomationReconciliationClaim {
         if let existing = try reconciliationClaim(idempotencyKey: idempotencyKey),
-           existing.claimedAt.addingTimeInterval(leaseDuration) > now {
+           existing.claimedAt.addingTimeInterval(leaseDuration) > now
+        {
             throw AutomationExecutionError.commitBlocked(.indeterminate)
         }
         let claimID = UUID().uuidString.lowercased()
@@ -403,13 +406,13 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                 .text(idempotencyKey),
                 .text(claimID),
                 .text(String(now.timeIntervalSince1970)),
-            ]
+            ],
         )
         return .reconcile(claimID: claimID)
     }
 
     private func reconciliationClaim(
-        idempotencyKey: String
+        idempotencyKey: String,
     ) throws -> (claimID: String, claimedAt: Date)? {
         guard let values = try firstTwoTexts(
             """
@@ -417,7 +420,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
             FROM mutation_reconciliation_claims
             WHERE idempotency_key = ?
             """,
-            bindings: [.text(idempotencyKey)]
+            bindings: [.text(idempotencyKey)],
         ), let timestamp = TimeInterval(values.1) else {
             return nil
         }
@@ -433,7 +436,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
     private func removeReconciliationClaim(idempotencyKey: String) throws {
         try execute(
             "DELETE FROM mutation_reconciliation_claims WHERE idempotency_key = ?",
-            bindings: [.text(idempotencyKey)]
+            bindings: [.text(idempotencyKey)],
         )
     }
 
@@ -451,12 +454,13 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
 
     private func execute(
         _ sql: String,
-        bindings: [SQLiteBinding] = []
+        bindings: [SQLiteBinding] = [],
     ) throws {
         let database = try openDatabase()
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
-              let statement else {
+              let statement
+        else {
             throw databaseError(database)
         }
         defer { sqlite3_finalize(statement) }
@@ -472,12 +476,13 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
 
     private func firstText(
         _ sql: String,
-        bindings: [SQLiteBinding] = []
+        bindings: [SQLiteBinding] = [],
     ) throws -> String? {
         let database = try openDatabase()
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
-              let statement else {
+              let statement
+        else {
             throw databaseError(database)
         }
         defer { sqlite3_finalize(statement) }
@@ -495,12 +500,13 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
 
     private func firstTwoTexts(
         _ sql: String,
-        bindings: [SQLiteBinding] = []
+        bindings: [SQLiteBinding] = [],
     ) throws -> (String, String)? {
         let database = try openDatabase()
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
-              let statement else {
+              let statement
+        else {
             throw databaseError(database)
         }
         defer { sqlite3_finalize(statement) }
@@ -508,7 +514,8 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         switch step(statement) {
         case SQLITE_ROW:
             guard let first = sqlite3_column_text(statement, 0),
-                  let second = sqlite3_column_text(statement, 1) else {
+                  let second = sqlite3_column_text(statement, 1)
+            else {
                 return nil
             }
             return (String(cString: first), String(cString: second))
@@ -523,7 +530,8 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         let database = try openDatabase()
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
-              let statement else {
+              let statement
+        else {
             throw databaseError(database)
         }
         defer { sqlite3_finalize(statement) }
@@ -546,13 +554,13 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
     private func bind(
         _ bindings: [SQLiteBinding],
         to statement: OpaquePointer,
-        database: OpaquePointer
+        database: OpaquePointer,
     ) throws {
         let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
         for (offset, binding) in bindings.enumerated() {
             let index = Int32(offset + 1)
             let result = switch binding {
-            case .text(let value):
+            case let .text(value):
                 value.withCString {
                     sqlite3_bind_text(statement, index, $0, -1, transient)
                 }
@@ -566,7 +574,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
     private func step(_ statement: OpaquePointer) -> Int32 {
         var result = sqlite3_step(statement)
         var retryCount = 0
-        while (result == SQLITE_BUSY || result == SQLITE_LOCKED), retryCount < 100 {
+        while result == SQLITE_BUSY || result == SQLITE_LOCKED, retryCount < 100 {
             Thread.sleep(forTimeInterval: 0.005)
             retryCount += 1
             result = sqlite3_step(statement)
@@ -582,7 +590,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         do {
             try FileManager.default.createDirectory(
                 at: databaseURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
+                withIntermediateDirectories: true,
             )
         } catch {
             throw AutomationExecutionError.persistence(error.localizedDescription)
@@ -593,7 +601,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
             databaseURL.path,
             &database,
             SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX,
-            nil
+            nil,
         )
         guard result == SQLITE_OK, let database else {
             if let database {
@@ -604,7 +612,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         connection = SQLiteConnection(pointer: database)
 
         do {
-            sqlite3_busy_timeout(database, 5_000)
+            sqlite3_busy_timeout(database, 5000)
             try execute("PRAGMA journal_mode = WAL")
             try execute("PRAGMA synchronous = FULL")
             try execute(
@@ -614,14 +622,14 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                     record TEXT NOT NULL,
                     expires_at TEXT
                 )
-                """
+                """,
             )
             try transaction {
                 if try firstText("SELECT name FROM pragma_table_info('mutation_previews') WHERE name = 'expires_at'") == nil {
                     try execute("ALTER TABLE mutation_previews ADD COLUMN expires_at TEXT")
                 }
                 try execute(
-                    "UPDATE mutation_previews SET expires_at = json_extract(record, '$.expiresAt') WHERE expires_at IS NULL"
+                    "UPDATE mutation_previews SET expires_at = json_extract(record, '$.expiresAt') WHERE expires_at IS NULL",
                 )
             }
             try execute(
@@ -630,7 +638,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                     idempotency_key TEXT PRIMARY KEY NOT NULL,
                     record TEXT NOT NULL
                 )
-                """
+                """,
             )
             try execute(
                 """
@@ -639,7 +647,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                     claimed_at TEXT NOT NULL,
                     claim_id TEXT
                 )
-                """
+                """,
             )
             // Migrate pending claims created before commit ownership tokens were introduced.
             try transaction {
@@ -654,7 +662,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
                     claim_id TEXT NOT NULL,
                     claimed_at TEXT NOT NULL
                 )
-                """
+                """,
             )
         } catch {
             connection = nil
@@ -668,7 +676,7 @@ public actor AutomationSQLiteAuditStore: AutomationAuditStoring {
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         encoder.dateEncodingStrategy = .millisecondsSince1970
         do {
-            return String(decoding: try encoder.encode(value), as: UTF8.self)
+            return try String(decoding: encoder.encode(value), as: UTF8.self)
         } catch {
             throw AutomationExecutionError.persistence(error.localizedDescription)
         }

@@ -13,7 +13,7 @@ public final class BuildService: BuildServing, @unchecked Sendable {
     public init(
         accountProvider: any APIKeyProviding,
         listBuildsHandler: ListBuildsHandler? = nil,
-        getBuildHandler: GetBuildHandler? = nil
+        getBuildHandler: GetBuildHandler? = nil,
     ) {
         self.accountProvider = accountProvider
         self.listBuildsHandler = listBuildsHandler ?? Self.listBuildsLive
@@ -42,13 +42,13 @@ public final class BuildService: BuildServing, @unchecked Sendable {
     }
 
     static func buildsRequest(
-        appID: String, pagination: PaginationRequest
+        appID: String, pagination: PaginationRequest,
     ) throws -> Request<BuildsResponse, ErrorResponse> {
         let request: Request<BuildsResponse, ErrorResponse> = try .listBuildsV1(
             filters: [.app([appID])],
             includes: [.preReleaseVersion],
             sorts: [.uploadedDateDescending],
-            limits: [.limit(pagination.resolvedLimit())]
+            limits: [.limit(pagination.resolvedLimit())],
         )
         return try request.withPaginationCursor(pagination.validatedCursor())
     }
@@ -64,8 +64,8 @@ public final class BuildService: BuildServing, @unchecked Sendable {
             pagination: paginationMetadata(
                 limit: pagination.resolvedLimit(),
                 total: response.meta?.paging.total,
-                nextCursor: PaginationCursor.extract(from: response.links.next)
-            )
+                nextCursor: PaginationCursor.extract(from: response.links.next),
+            ),
         )
     }
 
@@ -74,14 +74,14 @@ public final class BuildService: BuildServing, @unchecked Sendable {
         let response = try await service.request(.getBuildV1(id: buildID, includes: [.preReleaseVersion]))
         return .init(
             build: response.data,
-            platform: response.getPreReleaseVersion()?.attributes?.platform?.prettyName
+            platform: response.getPreReleaseVersion()?.attributes?.platform?.prettyName,
         )
     }
 
     static func paginationMetadata(
         limit: Int,
         total: Int?,
-        nextCursor: String?
+        nextCursor: String?,
     ) throws -> PaginationMetadata {
         guard let total else {
             throw ServiceError.upstream("App Store Connect did not provide a paging total.")

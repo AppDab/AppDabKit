@@ -3,7 +3,7 @@ import BagbutikCore
 import Testing
 
 struct BuildTestFlightServiceTests {
-    @Test func testerMembershipUsesBoundedServerSideFilters() {
+    @Test func erMembershipUsesBoundedServerSideFilters() {
         let request = BuildTestFlightService.testerMembershipRequest(buildID: "build-1", testerID: "tester-1")
 
         #expect(request.path == "/v1/betaTesters")

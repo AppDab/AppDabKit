@@ -30,7 +30,7 @@ struct StoredAccountProviderTests {
             name: "Preview",
             keyId: "AAAAAAAAAA",
             issuerId: "00000000-0000-0000-0000-000000000000",
-            privateKey: previewPrivateKey
+            privateKey: previewPrivateKey,
         )
         let provider = StoredAccountProvider(loadAPIKeys: { [apiKey] })
 
@@ -69,5 +69,7 @@ struct StoredAccountProviderTests {
 
 private struct VerificationError: LocalizedError, Equatable {
     let message: String
-    var errorDescription: String? { message }
+    var errorDescription: String? {
+        message
+    }
 }

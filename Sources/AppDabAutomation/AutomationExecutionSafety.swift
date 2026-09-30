@@ -3,4 +3,3 @@ public enum AutomationExecutionSafety: String, Codable, Equatable, Hashable, Sen
     case draft
     case write
 }
-

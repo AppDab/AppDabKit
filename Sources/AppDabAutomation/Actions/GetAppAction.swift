@@ -8,22 +8,22 @@ public struct GetAppAction: AutomationAction {
         inputSchema: Schema.object(
             properties: [
                 "accountID": Schema.string(description: "The AppDab account identifier."),
-                "appID": Schema.string(description: "The App Store Connect app identifier.")
+                "appID": Schema.string(description: "The App Store Connect app identifier."),
             ],
-            required: ["accountID", "appID"]
+            required: ["accountID", "appID"],
         ),
         outputSchema: Schema.object(properties: [
-            "app": Schema.appDetailOutput
+            "app": Schema.appDetailOutput,
         ], required: ["app"]),
         outputType: "app",
-        safety: .read
+        safety: .read,
     )
 
     public init() {}
 
     public func perform(
         input: GetAppInput,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AppDetail {
         try await dataProvider.getApp(accountID: input.accountID, appID: input.appID)
     }
@@ -33,6 +33,6 @@ public struct GetAppAction: AutomationAction {
     }
 
     public func data(for output: AppDetail) throws -> JSONValue {
-        .object(["app": try JSONValue.fromEncodable(output)])
+        try .object(["app": JSONValue.fromEncodable(output)])
     }
 }

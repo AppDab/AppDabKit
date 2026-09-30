@@ -13,9 +13,9 @@ public enum ServiceError: Error, Equatable, LocalizedError {
 
     public var diagnostics: ServiceErrorDiagnostics? {
         switch self {
-        case .appNotFound(_, let diagnostics), .invalidArguments(_, let diagnostics),
-             .authentication(_, let diagnostics), .permissionDenied(_, let diagnostics),
-             .network(_, let diagnostics), .upstream(_, let diagnostics):
+        case let .appNotFound(_, diagnostics), let .invalidArguments(_, diagnostics),
+             let .authentication(_, diagnostics), let .permissionDenied(_, diagnostics),
+             let .network(_, diagnostics), let .upstream(_, diagnostics):
             diagnostics
         case .accountNotFound, .invalidLimit:
             nil
@@ -37,22 +37,23 @@ public enum ServiceError: Error, Equatable, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .accountNotFound(let accountID):
+        case let .accountNotFound(accountID):
             "Could not find account \(accountID)."
-        case .appNotFound(let appID, _):
+        case let .appNotFound(appID, _):
             "Could not find app \(appID)."
-        case .invalidArguments(let message, _):
+        case let .invalidArguments(message, _):
             message
-        case .invalidLimit(let limit):
+        case let .invalidLimit(limit):
             "The limit (\(limit)) is invalid."
-        case .authentication(let message, _), .permissionDenied(let message, _), .network(let message, _), .upstream(let message, _):
+        case let .authentication(message, _), let .permissionDenied(message, _), let .network(message, _), let .upstream(message, _):
             message
         }
     }
 
     static func classify(_ error: Error) throws -> Self {
         if error is CancellationError || (error as NSError).domain == NSURLErrorDomain
-            && (error as NSError).code == URLError.cancelled.rawValue {
+            && (error as NSError).code == URLError.cancelled.rawValue
+        {
             throw error
         }
         if let serviceError = error as? Self {
@@ -60,23 +61,23 @@ public enum ServiceError: Error, Equatable, LocalizedError {
         }
         if let sdkError = error as? BagbutikCore.ServiceError {
             switch sdkError {
-            case .badRequest(let response):
+            case let .badRequest(response):
                 return remote(status: 400, response: response)
-            case .unauthorized(let response):
+            case let .unauthorized(response):
                 return remote(status: 401, response: response)
-            case .forbidden(let response):
+            case let .forbidden(response):
                 return remote(status: 403, response: response)
-            case .notFound(let response):
+            case let .notFound(response):
                 return remote(status: 404, response: response)
-            case .conflict(let response):
+            case let .conflict(response):
                 return remote(status: 409, response: response)
-            case .unprocessableEntity(let response):
+            case let .unprocessableEntity(response):
                 return remote(status: 422, response: response)
-            case .unknownHTTPError(let status, let data):
+            case let .unknownHTTPError(status, data):
                 return remote(status: status, response: try? JSONDecoder().decode(ErrorResponse.self, from: data), body: data)
             case .wrongDateFormat:
                 return .upstream(sdkError.description ?? "App Store Connect returned an invalid date.")
-            case .unknown(let data):
+            case let .unknown(data):
                 return .upstream("App Store Connect returned an unknown error.", diagnostics: .init(responseBody: data))
             }
         }

@@ -17,7 +17,7 @@ public struct BuildSummary: Codable, Equatable, Sendable {
         processingState: String?,
         uploadedDate: Date?,
         expirationDate: Date?,
-        expired: Bool?
+        expired: Bool?,
     ) {
         self.buildID = buildID
         self.version = version
@@ -36,7 +36,7 @@ public struct BuildSummary: Codable, Equatable, Sendable {
             processingState: build.attributes?.processingState?.rawValue,
             uploadedDate: build.attributes?.uploadedDate,
             expirationDate: build.attributes?.expirationDate,
-            expired: build.attributes?.expired
+            expired: build.attributes?.expired,
         )
     }
 }

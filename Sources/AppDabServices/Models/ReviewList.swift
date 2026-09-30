@@ -8,14 +8,14 @@ public struct ReviewList: Codable, Equatable, Hashable, Sendable {
     public init(
         appID: String,
         reviews: [CustomerReview],
-        pagination: PaginationMetadata? = nil
+        pagination: PaginationMetadata? = nil,
     ) {
         self.appID = appID
         self.reviews = reviews
         self.pagination = pagination ?? .init(
             limit: PaginationRequest.defaultLimit,
             total: reviews.count,
-            nextCursor: nil
+            nextCursor: nil,
         )
     }
 }

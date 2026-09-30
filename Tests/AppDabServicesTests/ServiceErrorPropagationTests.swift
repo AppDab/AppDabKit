@@ -8,7 +8,7 @@ struct ServiceErrorPropagationTests {
     func servicesPreserveTypedPermissionFailures(operation: String) async throws {
         do {
             try await invoke(operation, failure: BagbutikCore.ServiceError.forbidden(.init(errors: [
-                .init(code: "FORBIDDEN", detail: "Resource not found 404", status: "403", title: "Denied")
+                .init(code: "FORBIDDEN", detail: "Resource not found 404", status: "403", title: "Denied"),
             ])))
             Issue.record("Expected a permission failure.")
         } catch let error as AppDabServices.ServiceError {
@@ -36,7 +36,7 @@ struct ServiceErrorPropagationTests {
             try await invoke("getApp", failure: BagbutikCore.ServiceError.notFound(.init()))
             Issue.record("Expected appNotFound.")
         } catch let error as AppDabServices.ServiceError {
-            guard case .appNotFound(let appID, _) = error else {
+            guard case let .appNotFound(appID, _) = error else {
                 Issue.record("Expected appNotFound.")
                 return
             }
@@ -50,11 +50,11 @@ struct ServiceErrorPropagationTests {
         let provider = StoredAccountProvider(loadAPIKeys: { [key] }, verifyAPIKeyHandler: { _ in throw failure })
         let apps = AppCatalogService(
             accountProvider: provider, fetchAppsHandler: { _, _ in throw failure },
-            fetchAppHandler: { _, _ in throw failure }, createAppVersionHandler: { _, _, _, _ in throw failure }
+            fetchAppHandler: { _, _ in throw failure }, createAppVersionHandler: { _, _, _, _ in throw failure },
         )
         let reviews = CustomerReviewService(
             accountProvider: provider, listReviewsHandler: { _, _, _ in throw failure },
-            getReviewHandler: { _, _ in throw failure }
+            getReviewHandler: { _, _ in throw failure },
         )
         switch operation {
         case "listApps": _ = try await apps.listApps(accountID: key.id)

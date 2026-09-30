@@ -17,7 +17,7 @@ public struct AppVersion: Codable, Equatable, Hashable, Sendable {
         state: String,
         version: String,
         createdDate: Date,
-        isFirstVersion: Bool
+        isFirstVersion: Bool,
     ) {
         self.versionID = versionID
         self.platform = platform
@@ -34,7 +34,7 @@ public struct AppVersion: Codable, Equatable, Hashable, Sendable {
             state: (appStoreVersion.attributes?.appVersionState ?? .prepareForSubmission).prettyName,
             version: appStoreVersion.attributes?.versionString ?? "",
             createdDate: appStoreVersion.attributes?.createdDate ?? .distantPast,
-            isFirstVersion: isFirstVersion
+            isFirstVersion: isFirstVersion,
         )
     }
 
@@ -47,7 +47,7 @@ public struct AppVersion: Codable, Equatable, Hashable, Sendable {
             guard version.attributes?.appVersionState != .replacedWithNewVersion else { return nil }
             return Self(
                 appStoreVersion: version,
-                isFirstVersion: firstVersionCounts[version.attributes?.platform ?? .iOS] == 1
+                isFirstVersion: firstVersionCounts[version.attributes?.platform ?? .iOS] == 1,
             )
         }
         return normalizedVersions

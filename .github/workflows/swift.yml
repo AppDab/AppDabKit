@@ -6,6 +6,12 @@ on:
     branches: [main]
 
 jobs:
+  format:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install swiftformat
+      - run: swiftformat Sources Tests Package.swift --lint --reporter github-actions-log --cache ignore
   test:
     runs-on: macos-latest
     steps:

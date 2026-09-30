@@ -6,7 +6,7 @@ public struct AutomationMutationPreparation: Codable, Equatable, Sendable {
     public init(
         targetIdentifiers: [String],
         redactedSummary: String,
-        remotePreconditions: [String: AutomationValue]
+        remotePreconditions: [String: AutomationValue],
     ) {
         self.targetIdentifiers = targetIdentifiers
         self.redactedSummary = redactedSummary

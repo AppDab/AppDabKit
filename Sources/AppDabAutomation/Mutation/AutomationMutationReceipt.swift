@@ -17,7 +17,7 @@ public struct AutomationMutationReceipt: Codable, Equatable, Sendable {
         canonicalInputHash: String,
         redactedSummary: String,
         redactedReplayData: JSONValue,
-        committedAt: Date
+        committedAt: Date,
     ) {
         self.actionID = actionID
         self.confirmationFingerprint = confirmationFingerprint

@@ -30,7 +30,7 @@ struct CreateAppVersionActionTests {
         await provider.addVersion("1.5")
 
         await #expect(throws: AutomationExecutionError.preconditionFailed(
-            "The iOS versions for AppDab changed after preview."
+            "The iOS versions for AppDab changed after preview.",
         )) {
             try await harness.commit(plan: plan, key: "state-changed")
         }
@@ -57,7 +57,7 @@ struct CreateAppVersionActionTests {
         let harness = try makeHarness(provider: provider)
 
         await #expect(throws: AutomationActionError.invalidArguments(
-            "Version 2.0 already exists for iOS on AppDab."
+            "Version 2.0 already exists for iOS on AppDab.",
         )) {
             _ = try await harness.preview()
         }
@@ -76,16 +76,16 @@ struct CreateAppVersionActionTests {
         #expect(await provider.createAttempts == 0)
         let version = try await firstExecutor.commit(
             CreateAppVersionAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "typed-create"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "typed-create",
         )
         #expect(version == AppVersion(
             versionID: "version-1", platform: "iOS", state: "Prepare for Submission",
-            version: "2.0", createdDate: Date(timeIntervalSince1970: 2), isFirstVersion: false
+            version: "2.0", createdDate: Date(timeIntervalSince1970: 2), isFirstVersion: false,
         ))
         // A new executor must recover native property keys and the ISO 8601 date from disk.
         let replay = try await executor().commit(
             CreateAppVersionAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "typed-create"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "typed-create",
         )
         #expect(replay == version)
         #expect(await provider.createAttempts == 1)
@@ -100,16 +100,16 @@ struct CreateAppVersionActionTests {
         await #expect(throws: AutomationExecutionError.inputChanged) {
             try await executor.commit(
                 CreateAppVersionAction.self, input: changed,
-                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "changed-input"
+                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "changed-input",
             )
         }
         await provider.addVersion("1.5")
         await #expect(throws: AutomationExecutionError.preconditionFailed(
-            "The iOS versions for AppDab changed after preview."
+            "The iOS versions for AppDab changed after preview.",
         )) {
             try await executor.commit(
                 CreateAppVersionAction.self, input: input,
-                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "changed-state"
+                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "changed-state",
             )
         }
         #expect(await provider.createAttempts == 0)
@@ -121,8 +121,8 @@ struct CreateAppVersionActionTests {
             dataProvider: provider,
             registry: registry,
             auditStore: AutomationSQLiteAuditStore(databaseURL: temporaryDatabaseURL()),
-            now: { Date(timeIntervalSince1970: 1_000) },
-            makePlanID: { "create-version-plan" }
+            now: { Date(timeIntervalSince1970: 1000) },
+            makePlanID: { "create-version-plan" },
         )
         return .init(executor: executor)
     }

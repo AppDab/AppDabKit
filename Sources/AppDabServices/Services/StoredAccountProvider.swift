@@ -1,5 +1,5 @@
-import BagbutikCore
 import BagbutikAppStore
+import BagbutikCore
 import ConnectAccounts
 import Foundation
 
@@ -38,14 +38,14 @@ public final class StoredAccountProvider: AccountProviding, APIKeyProviding, @un
             return .init(account: account)
         } catch {
             switch try mapAPIKeyVerificationError(error) {
-            case .agreementIssue(let issue):
+            case let .agreementIssue(issue):
                 return .init(
                     account: account,
-                    issue: .init(message: issue.message, resolutionURL: issue.resolutionURL)
+                    issue: .init(message: issue.message, resolutionURL: issue.resolutionURL),
                 )
             case .invalidCredentials:
-                throw ServiceError.authentication(invalidAPIKeyMessage, diagnostics: try ServiceError.classify(error).diagnostics)
-            case .other(let mapped):
+                throw try ServiceError.authentication(invalidAPIKeyMessage, diagnostics: ServiceError.classify(error).diagnostics)
+            case let .other(mapped):
                 throw mapped
             }
         }

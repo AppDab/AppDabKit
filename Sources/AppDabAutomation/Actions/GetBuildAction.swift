@@ -7,13 +7,13 @@ public struct GetBuildAction: AutomationAction {
         description: "Fetch one authoritative build by identifier.",
         inputSchema: Schema.object(properties: [
             "accountID": Schema.string(description: "The AppDab account identifier."),
-            "buildID": Schema.string(description: "The App Store Connect build identifier.")
+            "buildID": Schema.string(description: "The App Store Connect build identifier."),
         ], required: ["accountID", "buildID"]),
         outputSchema: Schema.object(properties: [
-            "build": Schema.buildSummaryOutput
+            "build": Schema.buildSummaryOutput,
         ], required: ["build"]),
         outputType: "build",
-        safety: .read
+        safety: .read,
     )
 
     public init() {}
@@ -27,6 +27,6 @@ public struct GetBuildAction: AutomationAction {
     }
 
     public func data(for output: BuildSummary) throws -> JSONValue {
-        .object(["build": try JSONValue.fromEncodable(output)])
+        try .object(["build": JSONValue.fromEncodable(output)])
     }
 }

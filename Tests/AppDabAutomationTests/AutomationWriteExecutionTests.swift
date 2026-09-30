@@ -6,15 +6,15 @@ import Testing
 @Suite("Guarded write execution")
 struct AutomationWriteExecutionTests {
     @Test func previewIsRedactedExpiringAndPersisted() async throws {
-        let harness = try makeHarness(now: Date(timeIntervalSince1970: 1_000))
+        let harness = try makeHarness(now: Date(timeIntervalSince1970: 1000))
 
         let response = try await harness.preview(arguments: fixtureArguments(secret: "private review text"))
         let plan = try #require(response.plan)
         let storedPlan = try await harness.store.preview(
             confirmationFingerprint: plan.confirmationFingerprint,
-            now: plan.createdAt
+            now: plan.createdAt,
         )
-        let encodedPlan = String(decoding: try JSONEncoder().encode(plan), as: UTF8.self)
+        let encodedPlan = try String(decoding: JSONEncoder().encode(plan), as: UTF8.self)
 
         #expect(plan.redactedSummary == "Update fixture fixture-1.")
         #expect(plan.targetIdentifiers == ["fixture-1"])
@@ -27,13 +27,13 @@ struct AutomationWriteExecutionTests {
         let store = AutomationSQLiteAuditStore(databaseURL: temporaryDatabaseURL())
         let expired = fixturePlan(
             fingerprint: "expired",
-            createdAt: Date(timeIntervalSince1970: 1_000),
-            expiresAt: Date(timeIntervalSince1970: 1_100)
+            createdAt: Date(timeIntervalSince1970: 1000),
+            expiresAt: Date(timeIntervalSince1970: 1100),
         )
         let current = fixturePlan(
             fingerprint: "current",
-            createdAt: Date(timeIntervalSince1970: 1_101),
-            expiresAt: Date(timeIntervalSince1970: 1_701)
+            createdAt: Date(timeIntervalSince1970: 1101),
+            expiresAt: Date(timeIntervalSince1970: 1701),
         )
 
         try await store.savePreview(expired)
@@ -41,11 +41,11 @@ struct AutomationWriteExecutionTests {
 
         #expect(try await store.preview(
             confirmationFingerprint: expired.confirmationFingerprint,
-            now: current.createdAt
+            now: current.createdAt,
         ) == nil)
         #expect(try await store.preview(
             confirmationFingerprint: current.confirmationFingerprint,
-            now: current.createdAt
+            now: current.createdAt,
         ) == current)
     }
 
@@ -55,7 +55,7 @@ struct AutomationWriteExecutionTests {
         let provider = FixtureMutationDataProvider(failure: .afterApplying)
         let harness = try makeHarness(
             provider: provider,
-            store: AutomationSQLiteAuditStore(databaseURL: databaseURL)
+            store: AutomationSQLiteAuditStore(databaseURL: databaseURL),
         )
         let arguments = fixtureArguments()
         let plan = try #require(try await harness.preview(arguments: arguments).plan)
@@ -64,7 +64,7 @@ struct AutomationWriteExecutionTests {
                 actionID: plan.actionID,
                 confirmationFingerprint: plan.confirmationFingerprint,
                 idempotencyKey: "recover",
-                now: plan.createdAt
+                now: plan.createdAt,
             )
         } else {
             await #expect(throws: AutomationExecutionError.indeterminate) {
@@ -76,7 +76,7 @@ struct AutomationWriteExecutionTests {
         await #expect(throws: AutomationExecutionError.commitBlocked(state == "pending" ? .pending : .indeterminate)) {
             try await AutomationSQLiteAuditStore(databaseURL: databaseURL).beginCommit(
                 actionID: plan.actionID, confirmationFingerprint: plan.confirmationFingerprint,
-                idempotencyKey: "replacement", now: plan.createdAt
+                idempotencyKey: "replacement", now: plan.createdAt,
             )
         }
         if state == "reconciling" {
@@ -84,9 +84,9 @@ struct AutomationWriteExecutionTests {
                 confirmationFingerprint: plan.confirmationFingerprint,
                 idempotencyKey: "recover",
                 now: plan.expiresAt,
-                pendingLeaseDuration: 600
+                pendingLeaseDuration: 600,
             )
-            guard case .reconcile(let claimID) = claim else {
+            guard case let .reconcile(claimID) = claim else {
                 Issue.record("Expected reconciliation ownership.")
                 return
             }
@@ -97,7 +97,7 @@ struct AutomationWriteExecutionTests {
         let later = try makeHarness(
             now: plan.expiresAt.addingTimeInterval(1),
             provider: provider,
-            store: AutomationSQLiteAuditStore(databaseURL: databaseURL)
+            store: AutomationSQLiteAuditStore(databaseURL: databaseURL),
         )
         _ = try await later.preview(arguments: fixtureArguments(value: "unrelated"))
 
@@ -112,7 +112,7 @@ struct AutomationWriteExecutionTests {
             }
             try await harness.store.releaseReconciliation(
                 idempotencyKey: "recover",
-                claimID: reconciliationClaimID
+                claimID: reconciliationClaimID,
             )
         }
         let result = try await later.reconcile(arguments: arguments, plan: plan, key: "recover")
@@ -130,12 +130,12 @@ struct AutomationWriteExecutionTests {
         }
         #expect(try await later.store.preview(
             confirmationFingerprint: plan.confirmationFingerprint,
-            now: plan.expiresAt.addingTimeInterval(1)
+            now: plan.expiresAt.addingTimeInterval(1),
         ) == nil)
     }
 
     @Test func commitRequiresOriginalInputAndFreshConfirmation() async throws {
-        let previewTime = Date(timeIntervalSince1970: 1_000)
+        let previewTime = Date(timeIntervalSince1970: 1000)
         let harness = try makeHarness(now: previewTime)
         let arguments = fixtureArguments(value: "new")
         let plan = try #require(try await harness.preview(arguments: arguments).plan)
@@ -143,21 +143,21 @@ struct AutomationWriteExecutionTests {
         await #expect(throws: AutomationExecutionError.confirmationRequired) {
             try await harness.execute(
                 arguments: arguments,
-                context: .init(mode: .commit)
+                context: .init(mode: .commit),
             )
         }
         await #expect(throws: AutomationExecutionError.inputChanged) {
             try await harness.commit(
                 arguments: fixtureArguments(value: "changed"),
                 plan: plan,
-                key: "input-changed"
+                key: "input-changed",
             )
         }
 
         let expiredHarness = try makeHarness(
             now: previewTime.addingTimeInterval(601),
             provider: harness.provider,
-            store: harness.store
+            store: harness.store,
         )
         await #expect(throws: AutomationExecutionError.previewExpired) {
             try await expiredHarness.commit(arguments: arguments, plan: plan, key: "expired")
@@ -171,7 +171,7 @@ struct AutomationWriteExecutionTests {
         await harness.provider.changeRemoteState(to: "changed elsewhere")
 
         await #expect(throws: AutomationExecutionError.preconditionFailed(
-            "Fixture fixture-1 changed after preview."
+            "Fixture fixture-1 changed after preview.",
         )) {
             try await harness.commit(arguments: arguments, plan: plan, key: "state-changed")
         }
@@ -186,7 +186,7 @@ struct AutomationWriteExecutionTests {
         let first = try await harness.commit(arguments: arguments, plan: plan, key: "stable-key")
         #expect(try await harness.store.preview(
             confirmationFingerprint: plan.confirmationFingerprint,
-            now: plan.createdAt
+            now: plan.createdAt,
         ) == nil)
         let replay = try await harness.commit(arguments: arguments, plan: plan, key: "stable-key")
 
@@ -197,7 +197,7 @@ struct AutomationWriteExecutionTests {
     }
 
     @Test func replayRequiresOriginalArgumentsEvenAfterPreviewExpires() async throws {
-        let previewTime = Date(timeIntervalSince1970: 1_000)
+        let previewTime = Date(timeIntervalSince1970: 1000)
         let harness = try makeHarness(now: previewTime)
         let arguments = fixtureArguments(value: "first")
         let plan = try #require(try await harness.preview(arguments: arguments).plan)
@@ -205,12 +205,12 @@ struct AutomationWriteExecutionTests {
         let later = try makeHarness(
             now: previewTime.addingTimeInterval(601),
             provider: harness.provider,
-            store: harness.store
+            store: harness.store,
         )
         for mode in [AutomationExecutionMode.commit, .reconcile] {
             let context = AutomationExecutionContext(
                 mode: mode, confirmationFingerprint: plan.confirmationFingerprint,
-                idempotencyKey: "replay-input"
+                idempotencyKey: "replay-input",
             )
             await #expect(throws: AutomationExecutionError.inputChanged) {
                 try await later.execute(arguments: fixtureArguments(value: "changed"), context: context)
@@ -234,7 +234,7 @@ struct AutomationWriteExecutionTests {
             try await harness.commit(
                 arguments: secondArguments,
                 plan: secondPlan,
-                key: "collision"
+                key: "collision",
             )
         }
     }
@@ -255,7 +255,7 @@ struct AutomationWriteExecutionTests {
         let reconciled = try await harness.reconcile(
             arguments: arguments,
             plan: plan,
-            key: "uncertain"
+            key: "uncertain",
         )
         let replay = try await harness.commit(arguments: arguments, plan: plan, key: "uncertain")
 
@@ -276,13 +276,13 @@ struct AutomationWriteExecutionTests {
         let reconciliation = try await harness.reconcile(
             arguments: arguments,
             plan: plan,
-            key: "retryable"
+            key: "retryable",
         )
         await provider.setFailure(nil)
         let committed = try await harness.commit(
             arguments: arguments,
             plan: plan,
-            key: "retryable"
+            key: "retryable",
         )
 
         #expect(reconciliation.receipt == nil)
@@ -313,7 +313,9 @@ struct AutomationWriteExecutionTests {
                 }
             }
             var outcomes = [String]()
-            for await outcome in group { outcomes.append(outcome) }
+            for await outcome in group {
+                outcomes.append(outcome)
+            }
             return outcomes
         }
         #expect(outcomes.sorted() == ["commit_blocked", "succeeded"])
@@ -328,13 +330,13 @@ struct AutomationWriteExecutionTests {
         await #expect(throws: AutomationExecutionError.commitBlocked(.succeeded)) {
             try await second.store.beginCommit(
                 actionID: fixtureActionID, confirmationFingerprint: plan.confirmationFingerprint,
-                idempotencyKey: "late-caller", now: plan.createdAt
+                idempotencyKey: "late-caller", now: plan.createdAt,
             )
         }
     }
 
     @Test(arguments: [false, true])
-    func concurrentStoresAtomicallyClaimOnePreview(differentKeys: Bool) async throws {
+    func concurrentStoresAtomicallyClaimOnePreview(differentKeys: Bool) async {
         let databaseURL = temporaryDatabaseURL()
         let firstStore = AutomationSQLiteAuditStore(databaseURL: databaseURL)
         let secondStore = AutomationSQLiteAuditStore(databaseURL: databaseURL)
@@ -347,9 +349,11 @@ struct AutomationWriteExecutionTests {
                             actionID: fixtureActionID,
                             confirmationFingerprint: "fingerprint",
                             idempotencyKey: differentKeys ? "concurrent-\(index)" : "concurrent",
-                            now: Date(timeIntervalSince1970: 1_000)
+                            now: Date(timeIntervalSince1970: 1000),
                         )
-                        if case .execute = claim { return "execute" }
+                        if case .execute = claim {
+                            return "execute"
+                        }
                         return "replay"
                     } catch let error as AutomationExecutionError {
                         return error.code
@@ -370,12 +374,12 @@ struct AutomationWriteExecutionTests {
 
     @Test func pendingCommitCannotReconcileUntilItsLeaseExpires() async throws {
         let store = AutomationSQLiteAuditStore(databaseURL: temporaryDatabaseURL())
-        let claimedAt = Date(timeIntervalSince1970: 1_000)
+        let claimedAt = Date(timeIntervalSince1970: 1000)
         _ = try await store.beginCommit(
             actionID: fixtureActionID,
             confirmationFingerprint: "fingerprint",
             idempotencyKey: "pending",
-            now: claimedAt
+            now: claimedAt,
         )
 
         await #expect(throws: AutomationExecutionError.commitBlocked(.pending)) {
@@ -383,7 +387,7 @@ struct AutomationWriteExecutionTests {
                 confirmationFingerprint: "fingerprint",
                 idempotencyKey: "pending",
                 now: claimedAt.addingTimeInterval(599),
-                pendingLeaseDuration: 600
+                pendingLeaseDuration: 600,
             )
         }
 
@@ -391,7 +395,7 @@ struct AutomationWriteExecutionTests {
             confirmationFingerprint: "fingerprint",
             idempotencyKey: "pending",
             now: claimedAt.addingTimeInterval(600),
-            pendingLeaseDuration: 600
+            pendingLeaseDuration: 600,
         )
         guard case .reconcile = claim else {
             Issue.record("Expected the expired pending lease to permit reconciliation.")
@@ -404,14 +408,14 @@ struct AutomationWriteExecutionTests {
         let databaseURL = temporaryDatabaseURL()
         let firstStore = AutomationSQLiteAuditStore(databaseURL: databaseURL)
         let secondStore = AutomationSQLiteAuditStore(databaseURL: databaseURL)
-        let claimedAt = Date(timeIntervalSince1970: 1_000)
+        let claimedAt = Date(timeIntervalSince1970: 1000)
         let commitClaim = try await firstStore.beginCommit(
             actionID: fixtureActionID,
             confirmationFingerprint: "fingerprint",
             idempotencyKey: "reconciliation-race",
-            now: claimedAt
+            now: claimedAt,
         )
-        guard case .execute(let commitClaimID) = commitClaim else {
+        guard case let .execute(commitClaimID) = commitClaim else {
             Issue.record("Expected commit ownership.")
             return
         }
@@ -419,16 +423,16 @@ struct AutomationWriteExecutionTests {
             actionID: fixtureActionID,
             confirmationFingerprint: "fingerprint",
             idempotencyKey: "reconciliation-race",
-            claimID: commitClaimID
+            claimID: commitClaimID,
         )
 
         let firstClaim = try await firstStore.beginReconciliation(
             confirmationFingerprint: "fingerprint",
             idempotencyKey: "reconciliation-race",
             now: claimedAt,
-            pendingLeaseDuration: 600
+            pendingLeaseDuration: 600,
         )
-        guard case .reconcile(let firstClaimID) = firstClaim else {
+        guard case let .reconcile(firstClaimID) = firstClaim else {
             Issue.record("Expected the first reconciliation claim.")
             return
         }
@@ -438,7 +442,7 @@ struct AutomationWriteExecutionTests {
                 confirmationFingerprint: "fingerprint",
                 idempotencyKey: "reconciliation-race",
                 now: claimedAt.addingTimeInterval(599),
-                pendingLeaseDuration: 600
+                pendingLeaseDuration: 600,
             )
         }
 
@@ -446,9 +450,9 @@ struct AutomationWriteExecutionTests {
             confirmationFingerprint: "fingerprint",
             idempotencyKey: "reconciliation-race",
             now: claimedAt.addingTimeInterval(600),
-            pendingLeaseDuration: 600
+            pendingLeaseDuration: 600,
         )
-        guard case .reconcile(let secondClaimID) = secondClaim else {
+        guard case let .reconcile(secondClaimID) = secondClaim else {
             Issue.record("Expected the expired reconciliation lease to be replaced.")
             return
         }
@@ -460,7 +464,7 @@ struct AutomationWriteExecutionTests {
             canonicalInputHash: "input-hash",
             redactedSummary: "Reconciled fixture.",
             redactedReplayData: .object([:]),
-            committedAt: claimedAt.addingTimeInterval(601)
+            committedAt: claimedAt.addingTimeInterval(601),
         )
         try await secondStore.completeReconciliation(receipt, claimID: secondClaimID)
 
@@ -468,11 +472,11 @@ struct AutomationWriteExecutionTests {
             try await firstStore.resolveNotApplied(
                 confirmationFingerprint: "fingerprint",
                 idempotencyKey: "reconciliation-race",
-                claimID: firstClaimID
+                claimID: firstClaimID,
             )
         }
         let storedRecord = try #require(
-            try await firstStore.auditRecord(idempotencyKey: "reconciliation-race")
+            try await firstStore.auditRecord(idempotencyKey: "reconciliation-race"),
         )
         #expect(storedRecord.status == .succeeded)
         #expect(storedRecord.receipt == receipt)
@@ -480,34 +484,34 @@ struct AutomationWriteExecutionTests {
 
     @Test func lateCommitCannotOverwriteReconciledReceipt() async throws {
         let store = AutomationSQLiteAuditStore(databaseURL: temporaryDatabaseURL())
-        let start = Date(timeIntervalSince1970: 1_000)
+        let start = Date(timeIntervalSince1970: 1000)
         let commit = try await store.beginCommit(
             actionID: fixtureActionID, confirmationFingerprint: "fingerprint",
-            idempotencyKey: "late", now: start
+            idempotencyKey: "late", now: start,
         )
-        guard case .execute(let commitID) = commit else {
+        guard case let .execute(commitID) = commit else {
             Issue.record("Expected commit ownership.")
             return
         }
         let reconciliation = try await store.beginReconciliation(
             confirmationFingerprint: "fingerprint", idempotencyKey: "late",
-            now: start.addingTimeInterval(600), pendingLeaseDuration: 600
+            now: start.addingTimeInterval(600), pendingLeaseDuration: 600,
         )
-        guard case .reconcile(let reconciliationID) = reconciliation else {
+        guard case let .reconcile(reconciliationID) = reconciliation else {
             Issue.record("Expected reconciliation ownership.")
             return
         }
         let receipt = AutomationMutationReceipt(
             actionID: fixtureActionID, confirmationFingerprint: "fingerprint",
             idempotencyKey: "late", canonicalInputHash: "input-hash", redactedSummary: "Reconciled",
-            redactedReplayData: .object([:]), committedAt: start.addingTimeInterval(601)
+            redactedReplayData: .object([:]), committedAt: start.addingTimeInterval(601),
         )
         try await store.completeReconciliation(receipt, claimID: reconciliationID)
 
         await #expect(throws: AutomationExecutionError.commitBlocked(.indeterminate)) {
             try await store.markIndeterminate(
                 actionID: fixtureActionID, confirmationFingerprint: "fingerprint",
-                idempotencyKey: "late", claimID: commitID
+                idempotencyKey: "late", claimID: commitID,
             )
         }
         await #expect(throws: AutomationExecutionError.commitBlocked(.indeterminate)) {
@@ -525,7 +529,7 @@ struct AutomationWriteExecutionTests {
         _ = try await harness.commit(arguments: arguments, plan: plan, key: "redaction")
 
         let records = try await harness.store.auditRecords()
-        let encodedRecords = String(decoding: try JSONEncoder().encode(records), as: UTF8.self)
+        let encodedRecords = try String(decoding: JSONEncoder().encode(records), as: UTF8.self)
 
         #expect(records.count == 1)
         #expect(!encodedRecords.contains("sensitive request body"))
@@ -534,14 +538,14 @@ struct AutomationWriteExecutionTests {
         #expect(try await harness.store.auditRecords().isEmpty)
         #expect(try await harness.store.preview(
             confirmationFingerprint: plan.confirmationFingerprint,
-            now: plan.createdAt
+            now: plan.createdAt,
         ) == nil)
     }
 
     private func makeHarness(
-        now: Date = Date(timeIntervalSince1970: 1_000),
+        now: Date = Date(timeIntervalSince1970: 1000),
         provider: FixtureMutationDataProvider = .init(),
-        store: AutomationSQLiteAuditStore? = nil
+        store: AutomationSQLiteAuditStore? = nil,
     ) throws -> WriteHarness {
         let store = store ?? AutomationSQLiteAuditStore(databaseURL: temporaryDatabaseURL())
         let registry = try AutomationRegistry(actions: [.guarded(FixtureMutationAction.self)])
@@ -550,14 +554,14 @@ struct AutomationWriteExecutionTests {
             registry: registry,
             auditStore: store,
             now: { now },
-            makePlanID: { "fixture-plan" }
+            makePlanID: { "fixture-plan" },
         )
         return WriteHarness(executor: executor, provider: provider, store: store)
     }
 
     private func fixtureArguments(
         value: String = "new",
-        secret: String = "secret"
+        secret: String = "secret",
     ) -> [String: JSONValue] {
         [
             "targetID": .string("fixture-1"),
@@ -569,7 +573,7 @@ struct AutomationWriteExecutionTests {
     private func fixturePlan(
         fingerprint: String,
         createdAt: Date,
-        expiresAt: Date
+        expiresAt: Date,
     ) -> AutomationMutationPlan {
         .init(
             planID: "plan-\(fingerprint)",
@@ -580,7 +584,7 @@ struct AutomationWriteExecutionTests {
             confirmationFingerprint: fingerprint,
             remotePreconditions: [:],
             createdAt: createdAt,
-            expiresAt: expiresAt
+            expiresAt: expiresAt,
         )
     }
 
@@ -603,41 +607,41 @@ private struct WriteHarness {
     func commit(
         arguments: [String: JSONValue],
         plan: AutomationMutationPlan,
-        key: String
+        key: String,
     ) async throws -> AutomationResponse {
         try await execute(
             arguments: arguments,
             context: .init(
                 mode: .commit,
                 confirmationFingerprint: plan.confirmationFingerprint,
-                idempotencyKey: key
-            )
+                idempotencyKey: key,
+            ),
         )
     }
 
     func reconcile(
         arguments: [String: JSONValue],
         plan: AutomationMutationPlan,
-        key: String
+        key: String,
     ) async throws -> AutomationResponse {
         try await execute(
             arguments: arguments,
             context: .init(
                 mode: .reconcile,
                 confirmationFingerprint: plan.confirmationFingerprint,
-                idempotencyKey: key
-            )
+                idempotencyKey: key,
+            ),
         )
     }
 
     func execute(
         arguments: [String: JSONValue],
-        context: AutomationExecutionContext
+        context: AutomationExecutionContext,
     ) async throws -> AutomationResponse {
         try await executor.execute(.init(
             actionID: fixtureActionID,
             arguments: arguments,
-            executionContext: context
+            executionContext: context,
         ))
     }
 }
@@ -652,7 +656,7 @@ private struct FixtureMutationInput: AutomationActionInput {
     init(arguments: [String: JSONValue]) throws(AutomationActionError) {
         let arguments = try Arguments(
             arguments,
-            allowedKeys: ["targetID", "value", "sensitiveText"]
+            allowedKeys: ["targetID", "value", "sensitiveText"],
         )
         targetID = try arguments.requiredString("targetID")
         value = try arguments.requiredString("value")
@@ -676,58 +680,58 @@ private struct FixtureMutationAction: GuardedAutomationAction {
                 "value": Schema.string(description: "Fixture value."),
                 "sensitiveText": Schema.string(description: "Sensitive fixture input."),
             ],
-            required: ["targetID", "value", "sensitiveText"]
+            required: ["targetID", "value", "sensitiveText"],
         ),
         outputSchema: Schema.object(properties: [
             "targetID": Schema.string(description: "Fixture target."),
             "value": Schema.string(description: "Committed value."),
         ], required: ["targetID", "value"]),
         outputType: "fixture",
-        safety: .write
+        safety: .write,
     )
 
     init() {}
 
     func perform(
-        input: FixtureMutationInput,
-        dataProvider: any AutomationDataProviding
+        input _: FixtureMutationInput,
+        dataProvider _: any AutomationDataProviding,
     ) async throws -> FixtureMutationOutput {
         throw AutomationExecutionError.unsupportedExecutionMode(
             action: Self.descriptor.id.rawValue,
-            mode: .execute
+            mode: .execute,
         )
     }
 
     func prepareMutation(
         input: FixtureMutationInput,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AutomationMutationPreparation {
         let provider = try fixtureProvider(dataProvider)
         let snapshot = await provider.fixtureSnapshot()
         return .init(
             targetIdentifiers: [input.targetID],
             redactedSummary: "Update fixture \(input.targetID).",
-            remotePreconditions: ["revision": .integer(snapshot.revision)]
+            remotePreconditions: ["revision": .integer(snapshot.revision)],
         )
     }
 
     func validateMutation(
         input: FixtureMutationInput,
         plan: AutomationMutationPlan,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws {
         let snapshot = try await fixtureProvider(dataProvider).fixtureSnapshot()
         guard plan.remotePreconditions["revision"] == .integer(snapshot.revision) else {
             throw AutomationExecutionError.preconditionFailed(
-                "Fixture \(input.targetID) changed after preview."
+                "Fixture \(input.targetID) changed after preview.",
             )
         }
     }
 
     func commitMutation(
         input: FixtureMutationInput,
-        plan: AutomationMutationPlan,
-        dataProvider: any AutomationDataProviding
+        plan _: AutomationMutationPlan,
+        dataProvider: any AutomationDataProviding,
     ) async throws -> FixtureMutationOutput {
         try await fixtureProvider(dataProvider).apply(value: input.value)
         return .init(targetID: input.targetID, value: input.value)
@@ -736,7 +740,7 @@ private struct FixtureMutationAction: GuardedAutomationAction {
     func reconcileMutation(
         input: FixtureMutationInput,
         plan: AutomationMutationPlan,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AutomationMutationReconciliation<FixtureMutationOutput> {
         let snapshot = try await fixtureProvider(dataProvider).fixtureSnapshot()
         if snapshot.value == input.value {
@@ -761,7 +765,7 @@ private struct FixtureMutationAction: GuardedAutomationAction {
     }
 
     private func fixtureProvider(
-        _ dataProvider: any AutomationDataProviding
+        _ dataProvider: any AutomationDataProviding,
     ) throws -> any FixtureMutationProviding {
         guard let provider = dataProvider as? any FixtureMutationProviding else {
             throw ServiceError.upstream("Fixture provider is unavailable.")
@@ -797,7 +801,9 @@ private actor FixtureMutationDataProvider: FixtureMutationProviding {
         self.failure = failure
     }
 
-    var currentValue: String { value }
+    var currentValue: String {
+        value
+    }
 
     func setFailure(_ failure: FixtureFailure?) {
         self.failure = failure
@@ -838,24 +844,27 @@ private actor FixtureMutationDataProvider: FixtureMutationProviding {
         }
     }
 
-    func listAccounts() async throws -> [AccountSummary] { [] }
-    func listApps(accountID: String, pagination: PaginationRequest) async throws -> AppList {
-        .init(apps: [], pagination: .init(limit: try pagination.resolvedLimit(), total: 0, nextCursor: nil))
+    func listAccounts() async throws -> [AccountSummary] {
+        []
     }
 
-    func getApp(accountID: String, appID: String) async throws -> AppDetail {
+    func listApps(accountID _: String, pagination: PaginationRequest) async throws -> AppList {
+        try .init(apps: [], pagination: .init(limit: pagination.resolvedLimit(), total: 0, nextCursor: nil))
+    }
+
+    func getApp(accountID _: String, appID: String) async throws -> AppDetail {
         throw ServiceError.appNotFound(appID)
     }
 
-    func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
+    func getCustomerReview(accountID _: String, reviewID _: String) async throws -> CustomerReview {
         throw ServiceError.upstream("Customer review lookup is unavailable in this fixture.")
     }
 
-    func listCustomerReviews(accountID: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
-        .init(
+    func listCustomerReviews(accountID _: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
+        try .init(
             appID: appID,
             reviews: [],
-            pagination: .init(limit: try pagination.resolvedLimit(), total: 0, nextCursor: nil)
+            pagination: .init(limit: pagination.resolvedLimit(), total: 0, nextCursor: nil),
         )
     }
 }

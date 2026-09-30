@@ -12,9 +12,9 @@ public struct ListAppsInput: AutomationActionInput {
     public init(arguments: [String: JSONValue]) throws(AutomationActionError) {
         let arguments = try Arguments(arguments, allowedKeys: ["accountID", "cursor", "limit"])
         accountID = try arguments.requiredString("accountID")
-        pagination = .init(
-            cursor: try arguments.optionalString("cursor"),
-            limit: try arguments.optionalInteger("limit")
+        pagination = try .init(
+            cursor: arguments.optionalString("cursor"),
+            limit: arguments.optionalInteger("limit"),
         )
     }
 
@@ -24,9 +24,9 @@ public struct ListAppsInput: AutomationActionInput {
         }
         do {
             try pagination.validate()
-        } catch let error {
+        } catch {
             switch error {
-            case .invalidLimit(let limit):
+            case let .invalidLimit(limit):
                 throw .invalidLimit(limit)
             default:
                 throw .invalidArguments(error.localizedDescription)

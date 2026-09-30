@@ -8,7 +8,7 @@ public struct AutomationRequest: Equatable, Sendable {
     public init(
         actionID: AutomationActionID,
         arguments: [String: JSONValue],
-        executionContext: AutomationExecutionContext = .init()
+        executionContext: AutomationExecutionContext = .init(),
     ) {
         self.actionID = actionID
         self.arguments = arguments

@@ -1,6 +1,6 @@
 @testable import AppDabAutomation
-import AppDabServices
 import AppDabKitTestSupport
+import AppDabServices
 import Foundation
 import Testing
 
@@ -63,11 +63,11 @@ struct BuildTestFlightActionTests {
 
         let build = try await executor.commit(
             AddIndividualTesterToBuildAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-tester"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-tester",
         )
         let replay = try await executor.commit(
             AddIndividualTesterToBuildAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-tester"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-tester",
         )
 
         #expect(build.buildID == "build-1")
@@ -84,11 +84,11 @@ struct BuildTestFlightActionTests {
         await provider.addGroup("group-1")
 
         await #expect(throws: AutomationExecutionError.preconditionFailed(
-            "Build relationships changed after preview."
+            "Build relationships changed after preview.",
         )) {
             try await executor.commit(
                 AddBetaGroupToBuildAction.self, input: input,
-                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "stale-group"
+                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "stale-group",
             )
         }
         #expect(await provider.mutationCount == 0)
@@ -103,7 +103,7 @@ struct BuildTestFlightActionTests {
 
         _ = try await executor.commit(
             AddBetaGroupToBuildAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "independent-group"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "independent-group",
         )
         #expect(await provider.mutationCount == 1)
     }
@@ -117,12 +117,12 @@ struct BuildTestFlightActionTests {
         await #expect(throws: AutomationExecutionError.indeterminate) {
             try await executor.commit(
                 RemoveIndividualTesterFromBuildAction.self, input: input,
-                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-tester"
+                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-tester",
             )
         }
         let recovered = try await executor.reconcileResult(
             RemoveIndividualTesterFromBuildAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-tester"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-tester",
         )
 
         #expect(recovered.output?.buildID == "build-1")
@@ -134,10 +134,10 @@ struct BuildTestFlightActionTests {
         let provider = BuildMutationFixture(externalBetaState: "PROCESSING", failAfterMutation: true)
         let executor = makeExecutor(provider)
         let input = SubmitBuildForBetaReviewInput(
-            accountID: "account-1", buildID: "build-1", autoNotifyEnabled: false
+            accountID: "account-1", buildID: "build-1", autoNotifyEnabled: false,
         )
         await #expect(throws: AutomationActionError.invalidArguments(
-            "Build is not ready for beta review submission."
+            "Build is not ready for beta review submission.",
         )) {
             try await executor.preview(SubmitBuildForBetaReviewAction.self, input: input)
         }
@@ -147,12 +147,12 @@ struct BuildTestFlightActionTests {
         await #expect(throws: AutomationExecutionError.indeterminate) {
             try await executor.commit(
                 SubmitBuildForBetaReviewAction.self, input: input,
-                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "submit-beta"
+                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "submit-beta",
             )
         }
         let recovered = try await executor.reconcileResult(
             SubmitBuildForBetaReviewAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "submit-beta"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "submit-beta",
         )
 
         #expect(recovered.output?.buildID == "build-1")
@@ -168,7 +168,7 @@ struct BuildTestFlightActionTests {
         let plan = try await executor.preview(ExpireBuildAction.self, input: input)
         let build = try await executor.commit(
             ExpireBuildAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "expire-build"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "expire-build",
         )
 
         #expect(build.expired == true)
@@ -186,11 +186,11 @@ struct BuildTestFlightActionTests {
 
         let added = try await executor.commit(
             AddTesterToBetaGroupAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-group-tester"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-group-tester",
         )
         let replay = try await executor.commit(
             AddTesterToBetaGroupAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-group-tester"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "add-group-tester",
         )
 
         #expect(added.isMember)
@@ -208,12 +208,12 @@ struct BuildTestFlightActionTests {
         await #expect(throws: AutomationExecutionError.indeterminate) {
             try await executor.commit(
                 RemoveTesterFromBetaGroupAction.self, input: input,
-                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-group-tester"
+                confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-group-tester",
             )
         }
         let recovered = try await executor.reconcileResult(
             RemoveTesterFromBetaGroupAction.self, input: input,
-            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-group-tester"
+            confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "remove-group-tester",
         )
 
         #expect(recovered.output?.isMember == false)
@@ -227,7 +227,7 @@ struct BuildTestFlightActionTests {
             .appendingPathComponent("audit.sqlite")
         return Executor(
             dataProvider: provider,
-            auditStore: AutomationSQLiteAuditStore(databaseURL: databaseURL)
+            auditStore: AutomationSQLiteAuditStore(databaseURL: databaseURL),
         )
     }
 }
@@ -250,58 +250,89 @@ private actor BuildMutationFixture: AutomationDataProviding {
         self.failAfterMutation = failAfterMutation
     }
 
-    var testerIDs: [String] { testers }
-    var groupTesterIDs: [String] { groupTesters }
-    var submissionID: String? { reviewSubmissionID }
-    var autoNotifyEnabled: Bool? { notificationSetting }
-
-    func addGroup(_ id: String) { groups.append(id) }
-    func addTester(_ id: String) { testers.append(id) }
-    func setExternalBetaState(_ state: String) { reviewState = state }
-    func setGroupName(_ name: String) { betaGroups[0] = .init(betaGroupID: "group-1", name: name) }
-
-    func listBetaGroups(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BetaGroupList {
-        .init(appID: appID, betaGroups: betaGroups, pagination: .init(limit: try pagination.resolvedLimit(), total: betaGroups.count, nextCursor: nil))
+    var testerIDs: [String] {
+        testers
     }
 
-    func getBetaGroup(accountID: String, betaGroupID: String) async throws -> BetaGroupSummary {
+    var groupTesterIDs: [String] {
+        groupTesters
+    }
+
+    var submissionID: String? {
+        reviewSubmissionID
+    }
+
+    var autoNotifyEnabled: Bool? {
+        notificationSetting
+    }
+
+    func addGroup(_ id: String) {
+        groups.append(id)
+    }
+
+    func addTester(_ id: String) {
+        testers.append(id)
+    }
+
+    func setExternalBetaState(_ state: String) {
+        reviewState = state
+    }
+
+    func setGroupName(_ name: String) {
+        betaGroups[0] = .init(betaGroupID: "group-1", name: name)
+    }
+
+    func listBetaGroups(accountID _: String, appID: String, pagination: PaginationRequest) async throws -> BetaGroupList {
+        try .init(appID: appID, betaGroups: betaGroups, pagination: .init(limit: pagination.resolvedLimit(), total: betaGroups.count, nextCursor: nil))
+    }
+
+    func getBetaGroup(accountID _: String, betaGroupID: String) async throws -> BetaGroupSummary {
         guard let group = betaGroups.first(where: { $0.betaGroupID == betaGroupID }) else { throw ServiceError.upstream("Beta group not found.") }
         return group
     }
 
-    func createBetaGroup(accountID: String, appID: String, name: String, isInternalGroup: Bool, hasAccessToAllBuilds: Bool?) async throws -> BetaGroupSummary {
+    func createBetaGroup(accountID _: String, appID _: String, name: String, isInternalGroup: Bool, hasAccessToAllBuilds: Bool?) async throws -> BetaGroupSummary {
         mutationCount += 1
         let group = BetaGroupSummary(betaGroupID: "group-2", name: name, isInternalGroup: isInternalGroup, hasAccessToAllBuilds: hasAccessToAllBuilds)
         betaGroups.append(group)
         return group
     }
 
-    nonisolated func accountStore() throws -> any AutomationAccountStoring { try MockAutomationDataProvider().accountStore() }
-    func listAccounts() async throws -> [AccountSummary] { try await base.listAccounts() }
+    nonisolated func accountStore() throws -> any AutomationAccountStoring {
+        try MockAutomationDataProvider().accountStore()
+    }
+
+    func listAccounts() async throws -> [AccountSummary] {
+        try await base.listAccounts()
+    }
+
     func listApps(accountID: String, pagination: PaginationRequest) async throws -> AppList {
         try await base.listApps(accountID: accountID, pagination: pagination)
     }
+
     func getApp(accountID: String, appID: String) async throws -> AppDetail {
         try await base.getApp(accountID: accountID, appID: appID)
     }
+
     func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
         try await base.getCustomerReview(accountID: accountID, reviewID: reviewID)
     }
+
     func listCustomerReviews(accountID: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
         try await base.listCustomerReviews(accountID: accountID, appID: appID, pagination: pagination)
     }
 
-    func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot {
+    func buildSnapshot(accountID _: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot {
         let testerIDs: [String]
         let groupIDs: [String]
         switch scope {
         case .build:
             testerIDs = []
             groupIDs = []
-        case .individualTester(let id):
+        case let .individualTester(id):
             testerIDs = testers.contains(id) ? [id] : []
             groupIDs = []
-        case .betaGroup(let id):
+        case let .betaGroup(id):
             testerIDs = []
             groupIDs = groups.contains(id) ? [id] : []
         }
@@ -311,28 +342,30 @@ private actor BuildMutationFixture: AutomationDataProviding {
             betaGroupIDs: groupIDs,
             betaReviewSubmissionID: reviewSubmissionID,
             externalBetaState: reviewState,
-            autoNotifyEnabled: notificationSetting
+            autoNotifyEnabled: notificationSetting,
         )
     }
 
-    func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary {
+    func mutateBuild(accountID _: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary {
         mutationCount += 1
         switch mutation {
-        case .addIndividualTesters(let ids): testers.append(contentsOf: ids)
-        case .removeIndividualTesters(let ids): testers.removeAll { ids.contains($0) }
-        case .addBetaGroups(let ids): groups.append(contentsOf: ids)
-        case .removeBetaGroups(let ids): groups.removeAll { ids.contains($0) }
-        case .submitForBetaReview(let enabled):
+        case let .addIndividualTesters(ids): testers.append(contentsOf: ids)
+        case let .removeIndividualTesters(ids): testers.removeAll { ids.contains($0) }
+        case let .addBetaGroups(ids): groups.append(contentsOf: ids)
+        case let .removeBetaGroups(ids): groups.removeAll { ids.contains($0) }
+        case let .submitForBetaReview(enabled):
             reviewSubmissionID = "submission-1"
             reviewState = "WAITING_FOR_BETA_REVIEW"
             notificationSetting = enabled
         case .expire: expired = true
         }
-        if failAfterMutation { throw ServiceError.upstream("Response lost after applying mutation.") }
+        if failAfterMutation {
+            throw ServiceError.upstream("Response lost after applying mutation.")
+        }
         return summary(buildID)
     }
 
-    func betaGroupTesterMembership(accountID: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership {
+    func betaGroupTesterMembership(accountID _: String, betaGroupID: String, testerID: String) async throws -> BetaGroupTesterMembership {
         .init(betaGroupID: betaGroupID, betaGroupName: "Early Access", testerID: testerID, isMember: groupTesters.contains(testerID))
     }
 
@@ -340,32 +373,40 @@ private actor BuildMutationFixture: AutomationDataProviding {
         mutationCount += 1
         let testerID: String
         switch mutation {
-        case .add(let id):
+        case let .add(id):
             testerID = id
             groupTesters.append(id)
-        case .remove(let id):
+        case let .remove(id):
             testerID = id
             groupTesters.removeAll { $0 == id }
         }
-        if failAfterMutation { throw ServiceError.upstream("Response lost after applying mutation.") }
+        if failAfterMutation {
+            throw ServiceError.upstream("Response lost after applying mutation.")
+        }
         return try await betaGroupTesterMembership(accountID: accountID, betaGroupID: betaGroupID, testerID: testerID)
     }
 
-    func betaGroupBuildMembership(accountID: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership {
+    func betaGroupBuildMembership(accountID _: String, betaGroupID: String, buildID: String) async throws -> BetaGroupBuildMembership {
         .init(betaGroup: .init(betaGroupID: betaGroupID, name: "Early Access"), buildID: buildID, isMember: groups.contains(betaGroupID))
     }
 
     func mutateBetaGroupBuild(accountID: String, betaGroupID: String, buildID: String, add: Bool) async throws -> BetaGroupBuildMembership {
         mutationCount += 1
-        if add { groups.append(betaGroupID) } else { groups.removeAll { $0 == betaGroupID } }
-        if failAfterMutation { throw ServiceError.upstream("Response lost after applying mutation.") }
+        if add {
+            groups.append(betaGroupID)
+        } else {
+            groups.removeAll { $0 == betaGroupID }
+        }
+        if failAfterMutation {
+            throw ServiceError.upstream("Response lost after applying mutation.")
+        }
         return try await betaGroupBuildMembership(accountID: accountID, betaGroupID: betaGroupID, buildID: buildID)
     }
 
     private func summary(_ buildID: String) -> BuildSummary {
         .init(
             buildID: buildID, version: "42", platform: "iOS", processingState: "VALID",
-            uploadedDate: Date(timeIntervalSince1970: 100), expirationDate: nil, expired: expired
+            uploadedDate: Date(timeIntervalSince1970: 100), expirationDate: nil, expired: expired,
         )
     }
 }

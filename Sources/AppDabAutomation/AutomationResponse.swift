@@ -12,7 +12,7 @@ public struct AutomationResponse: Equatable, Sendable {
         summary: String,
         data: JSONValue,
         plan: AutomationMutationPlan? = nil,
-        receipt: AutomationMutationReceipt? = nil
+        receipt: AutomationMutationReceipt? = nil,
     ) {
         self.actionID = actionID
         self.summary = summary
@@ -25,7 +25,7 @@ public struct AutomationResponse: Equatable, Sendable {
         var values: [String: JSONValue] = [
             "action": .string(actionID.rawValue),
             "summary": .string(summary),
-            "data": data
+            "data": data,
         ]
         if let plan, let value = try? JSONValue.fromEncodable(plan) {
             values["plan"] = value

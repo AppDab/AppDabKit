@@ -1,6 +1,6 @@
 import AppDabServices
-import BagbutikCore
 import BagbutikAppStoreModels
+import BagbutikCore
 
 public struct ListAppVersionsInput: AutomationActionInput {
     public let accountID: String
@@ -18,25 +18,25 @@ public struct ListAppVersionsInput: AutomationActionInput {
     public init(arguments: [String: JSONValue]) throws(AutomationActionError) {
         let arguments = try Arguments(
             arguments,
-            allowedKeys: ["account_id", "app_id", "cursor", "limit", "platforms", "states", "versions", "version_ids"]
+            allowedKeys: ["account_id", "app_id", "cursor", "limit", "platforms", "states", "versions", "version_ids"],
         )
         accountID = try arguments.requiredString("account_id")
         appID = try arguments.requiredString("app_id")
-        filter = .init(
-            platforms: try arguments.optionalStrings("platforms").map { value throws(AutomationActionError) -> Platform in
+        filter = try .init(
+            platforms: arguments.optionalStrings("platforms").map { value throws(AutomationActionError) -> Platform in
                 guard let platform = Platform(rawValue: value) else { throw .invalidArguments("Invalid platform \(value).") }
                 return platform
             },
-            states: try arguments.optionalStrings("states").map { value throws(AutomationActionError) -> AppVersionState in
+            states: arguments.optionalStrings("states").map { value throws(AutomationActionError) -> AppVersionState in
                 guard let state = AppVersionState(rawValue: value) else { throw .invalidArguments("Invalid state \(value).") }
                 return state
             },
-            versions: try arguments.optionalStrings("versions"),
-            versionIDs: try arguments.optionalStrings("version_ids")
+            versions: arguments.optionalStrings("versions"),
+            versionIDs: arguments.optionalStrings("version_ids"),
         )
-        pagination = .init(
-            cursor: try arguments.optionalString("cursor"),
-            limit: try arguments.optionalInteger("limit")
+        pagination = try .init(
+            cursor: arguments.optionalString("cursor"),
+            limit: arguments.optionalInteger("limit"),
         )
     }
 
@@ -49,9 +49,9 @@ public struct ListAppVersionsInput: AutomationActionInput {
         }
         do {
             try pagination.validate()
-        } catch let error {
+        } catch {
             switch error {
-            case .invalidLimit(let limit):
+            case let .invalidLimit(limit):
                 throw .invalidLimit(limit)
             default:
                 throw .invalidArguments(error.localizedDescription)

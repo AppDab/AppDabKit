@@ -15,7 +15,7 @@ public struct ListBuildsInput: AutomationActionInput {
         let arguments = try Arguments(arguments, allowedKeys: ["accountID", "appID", "cursor", "limit"])
         accountID = try arguments.requiredString("accountID")
         appID = try arguments.requiredString("appID")
-        pagination = .init(cursor: try arguments.optionalString("cursor"), limit: try arguments.optionalInteger("limit"))
+        pagination = try .init(cursor: arguments.optionalString("cursor"), limit: arguments.optionalInteger("limit"))
     }
 
     public func validate() throws(AutomationActionError) {
@@ -27,9 +27,9 @@ public struct ListBuildsInput: AutomationActionInput {
         }
         do {
             try pagination.validate()
-        } catch let error {
+        } catch {
             switch error {
-            case .invalidLimit(let limit): throw .invalidLimit(limit)
+            case let .invalidLimit(limit): throw .invalidLimit(limit)
             default: throw .invalidArguments(error.localizedDescription)
             }
         }

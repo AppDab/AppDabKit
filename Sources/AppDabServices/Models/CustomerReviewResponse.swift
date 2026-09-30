@@ -20,7 +20,7 @@ public struct CustomerReviewResponse: Codable, Equatable, Hashable, Sendable {
             responseID: response.id,
             lastModifiedDate: response.attributes?.lastModifiedDate ?? .distantPast,
             responseBody: response.attributes?.responseBody ?? "",
-            state: (response.attributes?.state ?? .pendingPublish).prettyName
+            state: (response.attributes?.state ?? .pendingPublish).prettyName,
         )
     }
 }

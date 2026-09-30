@@ -6,21 +6,21 @@ public struct VerifyAccountAction: AutomationAction {
         title: "Verify Account",
         description: "Verify a configured App Store Connect API key.",
         inputSchema: Schema.object(properties: [
-            "accountID": Schema.string(description: "The AppDab account identifier.")
+            "accountID": Schema.string(description: "The AppDab account identifier."),
         ], required: ["accountID"]),
         outputSchema: Schema.object(properties: [
             "account": Schema.accountSummaryOutput,
             "issue": Schema.accountIssueOutput,
         ], required: ["account"]),
         outputType: "account_verification",
-        safety: .read
+        safety: .read,
     )
 
     public init() {}
 
     public func perform(
         input: VerifyAccountInput,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> AccountVerification {
         try await dataProvider.verifyAccount(accountID: input.accountID)
     }
@@ -34,8 +34,8 @@ public struct VerifyAccountAction: AutomationAction {
     }
 
     public func data(for output: AccountVerification) throws -> JSONValue {
-        var data: [String: JSONValue] = [
-            "account": try JSONValue.fromEncodable(output.account)
+        var data: [String: JSONValue] = try [
+            "account": JSONValue.fromEncodable(output.account),
         ]
         if let issue = output.issue {
             data["issue"] = try JSONValue.fromEncodable(issue)

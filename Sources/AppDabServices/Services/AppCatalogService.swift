@@ -31,7 +31,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         fetchAppHandler: FetchAppHandler? = nil,
         createAppVersionHandler: CreateAppVersionHandler? = nil,
         listAppVersionsHandler: ListAppVersionsHandler? = nil,
-        getAppVersionHandler: GetAppVersionHandler? = nil
+        getAppVersionHandler: GetAppVersionHandler? = nil,
     ) {
         self.listAppVersionsHandler = listAppVersionsHandler ?? Self.listAppVersionsLive
         self.getAppVersionHandler = getAppVersionHandler ?? Self.getAppVersionLive
@@ -43,14 +43,14 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
 
     public func listApps(
         accountID: String,
-        pagination: PaginationRequest = .init()
+        pagination: PaginationRequest = .init(),
     ) async throws -> AppList {
         try pagination.validate()
         let limit = try pagination.resolvedLimit()
         let page = try await fetchApps(accountID: accountID, pagination: pagination)
         return .init(
             apps: page.items.map(AppSummary.init(detail:)),
-            pagination: .init(limit: limit, total: page.total, nextCursor: page.nextCursor)
+            pagination: .init(limit: limit, total: page.total, nextCursor: page.nextCursor),
         )
     }
 
@@ -59,7 +59,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
     }
 
     public func listAppVersions(
-        accountID: String, appID: String, filter: AppVersionFilter = .init(), pagination: PaginationRequest = .init()
+        accountID: String, appID: String, filter: AppVersionFilter = .init(), pagination: PaginationRequest = .init(),
     ) async throws -> AppVersionList {
         try pagination.validate()
         let key = try await accountProvider.apiKey(forAccountID: accountID)
@@ -80,7 +80,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
     }
 
     static func versionsRequest(
-        appID: String, filter: AppVersionFilter, pagination: PaginationRequest
+        appID: String, filter: AppVersionFilter, pagination: PaginationRequest,
     ) throws -> Request<AppStoreVersionsResponse, ErrorResponse> {
         var filters: [ListAppStoreVersionsForAppV1.Filter] = []
         if !filter.platforms.isEmpty {
@@ -96,13 +96,13 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
             filters.append(.id(filter.versionIDs))
         }
         let request: Request<AppStoreVersionsResponse, ErrorResponse> = try .listAppStoreVersionsForAppV1(
-            id: appID, filters: filters, limits: [.limit(pagination.resolvedLimit())]
+            id: appID, filters: filters, limits: [.limit(pagination.resolvedLimit())],
         )
         return try request.withPaginationCursor(pagination.validatedCursor())
     }
 
     private static func listAppVersionsLive(
-        key: APIKey, appID: String, filter: AppVersionFilter, pagination: PaginationRequest
+        key: APIKey, appID: String, filter: AppVersionFilter, pagination: PaginationRequest,
     ) async throws -> AppVersionList {
         let service = BagbutikService(jwt: key.jwt)
         let response = try await service.request(versionsRequest(appID: appID, filter: filter, pagination: pagination))
@@ -115,17 +115,17 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
 
     static func versionPage(
         response: AppStoreVersionsResponse, appID: String, pagination: PaginationRequest,
-        firstVersionByPlatform: [Platform: Bool]
+        firstVersionByPlatform: [Platform: Bool],
     ) throws -> AppVersionList {
-        return try .init(
+        try .init(
             appID: appID,
             versions: response.data.map {
                 .init(appStoreVersion: $0, isFirstVersion: firstVersionByPlatform[$0.attributes?.platform ?? .iOS] ?? false)
             },
             pagination: paginationMetadata(
                 limit: pagination.resolvedLimit(), total: response.meta?.paging.total,
-                nextCursor: PaginationCursor.extract(from: response.links.next)
-            )
+                nextCursor: PaginationCursor.extract(from: response.links.next),
+            ),
         )
     }
 
@@ -141,7 +141,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
 
     private static func isOnlyVersion(service: BagbutikService, appID: String, platform: Platform) async throws -> Bool {
         let response = try await service.request(.listAppStoreVersionsForAppV1(
-            id: appID, filters: [.platform([platform])], limits: [.limit(0)]
+            id: appID, filters: [.platform([platform])], limits: [.limit(0)],
         ))
         guard let total = response.meta?.paging.total else {
             throw ServiceError.upstream("App Store Connect did not provide a version total.")
@@ -153,11 +153,11 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         accountID: String,
         appID: String,
         platform: String,
-        version: String
+        version: String,
     ) async throws -> AppVersion {
         guard Platform(rawValue: platform) != nil else {
             throw ServiceError.invalidArguments(
-                "Argument platform must be one of \(Platform.allCases.map(\.rawValue).joined(separator: ", "))."
+                "Argument platform must be one of \(Platform.allCases.map(\.rawValue).joined(separator: ", ")).",
             )
         }
         guard !version.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -195,7 +195,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
 
     private static func fetchAppsLive(
         apiKey: APIKey,
-        pagination: PaginationRequest
+        pagination: PaginationRequest,
     ) async throws -> CursorPage<AppDetail> {
         let limit = try pagination.resolvedLimit()
         let service = BagbutikService(jwt: apiKey.jwt)
@@ -211,16 +211,16 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
             total: paginationMetadata(
                 limit: limit,
                 total: response.meta?.paging.total,
-                nextCursor: nextCursor
+                nextCursor: nextCursor,
             ).total,
-            nextCursor: nextCursor
+            nextCursor: nextCursor,
         )
     }
 
     static func paginationMetadata(
         limit: Int,
         total: Int?,
-        nextCursor: String?
+        nextCursor: String?,
     ) throws -> PaginationMetadata {
         guard let total else {
             throw ServiceError.upstream("App Store Connect did not provide a paging total.")
@@ -233,7 +233,7 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
             filters: [.appStoreVersions_appStoreState(Self.interestingStates)],
             includes: [.appStoreIcon, .appStoreVersions],
             sorts: [.nameAscending],
-            limits: [.limit(limit), .appStoreVersions(50)]
+            limits: [.limit(limit), .appStoreVersions(50)],
         )
         return request.withPaginationCursor(cursor)
     }
@@ -244,8 +244,8 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
             .getAppV1(
                 id: appID,
                 includes: [.appStoreIcon, .appStoreVersions],
-                limits: [.appStoreVersions(50)]
-            )
+                limits: [.appStoreVersions(50)],
+            ),
         )
         let iconAsset = appResponse.getAppStoreIcon()?.attributes?.iconAsset
         let versions = appResponse.getAppStoreVersions()
@@ -256,11 +256,11 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
         apiKey: APIKey,
         appID: String,
         platform: String,
-        version: String
+        version: String,
     ) async throws -> AppVersion {
         guard let platform = Platform(rawValue: platform) else {
             throw ServiceError.invalidArguments(
-                "Argument platform must be one of \(Platform.allCases.map(\.rawValue).joined(separator: ", "))."
+                "Argument platform must be one of \(Platform.allCases.map(\.rawValue).joined(separator: ", ")).",
             )
         }
         let service = BagbutikService(jwt: apiKey.jwt)
@@ -268,20 +268,20 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
             .listAppStoreVersionsForAppV1(
                 id: appID,
                 filters: [.platform([platform])],
-                limits: [.limit(0)]
-            )
+                limits: [.limit(0)],
+            ),
         )
         let response = try await service.request(
             .createAppStoreVersionV1(
                 requestBody: .init(data: .init(
                     attributes: .init(platform: platform, versionString: version),
-                    relationships: .init(app: .init(data: .init(id: appID)))
-                ))
-            )
+                    relationships: .init(app: .init(data: .init(id: appID))),
+                )),
+            ),
         )
         return .init(
             appStoreVersion: response.data,
-            isFirstVersion: versions.meta?.paging.total == 0
+            isFirstVersion: versions.meta?.paging.total == 0,
         )
     }
 
@@ -291,17 +291,18 @@ public final class AppCatalogService: AppCatalogServing, @unchecked Sendable {
 
     private static func mapCreateVersionError(_ error: Error) throws -> ServiceError {
         guard let error = error as? BagbutikCore.ServiceError,
-              case .conflict(let errorResponse) = error,
+              case let .conflict(errorResponse) = error,
               errorResponse.errors?.contains(where: { ascError in
                   guard ascError.code == "ENTITY_ERROR.RELATIONSHIP.INVALID",
-                        case .jsonPointer(let pointer) = ascError.source else { return false }
+                        case let .jsonPointer(pointer) = ascError.source else { return false }
                   return pointer.pointer == "/data/relationships/app"
-              }) == true else {
+              }) == true
+        else {
             return try mapUpstream(error)
         }
         return .invalidArguments(
             "Apple does not allow creating a new version for this platform until the current version is ready for distribution.",
-            diagnostics: .init(httpStatusCode: 409, response: errorResponse)
+            diagnostics: .init(httpStatusCode: 409, response: errorResponse),
         )
     }
 }

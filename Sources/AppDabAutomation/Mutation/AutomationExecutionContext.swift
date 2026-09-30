@@ -6,7 +6,7 @@ public struct AutomationExecutionContext: Codable, Equatable, Sendable {
     public init(
         mode: AutomationExecutionMode = .execute,
         confirmationFingerprint: String? = nil,
-        idempotencyKey: String? = nil
+        idempotencyKey: String? = nil,
     ) {
         self.mode = mode
         self.confirmationFingerprint = confirmationFingerprint

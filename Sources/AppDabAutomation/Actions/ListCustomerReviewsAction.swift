@@ -14,33 +14,33 @@ public struct ListCustomerReviewsAction: AutomationAction {
                     description: "Maximum reviews to return, from 1 through 200.",
                     minimum: 1,
                     maximum: PaginationRequest.maximumLimit,
-                    default: PaginationRequest.defaultLimit
-                )
+                    default: PaginationRequest.defaultLimit,
+                ),
             ],
-            required: ["accountID", "appID"]
+            required: ["accountID", "appID"],
         ),
         outputSchema: Schema.object(
             properties: [
                 "appID": Schema.string(description: "The App Store Connect app identifier."),
                 "reviews": Schema.array(items: Schema.customerReviewOutput),
-                "pagination": Schema.paginationOutput
+                "pagination": Schema.paginationOutput,
             ],
-            required: ["appID", "reviews", "pagination"]
+            required: ["appID", "reviews", "pagination"],
         ),
         outputType: "customer_reviews",
-        safety: .read
+        safety: .read,
     )
 
     public init() {}
 
     public func perform(
         input: ListCustomerReviewsInput,
-        dataProvider: any AutomationDataProviding
+        dataProvider: any AutomationDataProviding,
     ) async throws -> ReviewList {
         try await dataProvider.listCustomerReviews(
             accountID: input.accountID,
             appID: input.appID,
-            pagination: input.pagination
+            pagination: input.pagination,
         )
     }
 

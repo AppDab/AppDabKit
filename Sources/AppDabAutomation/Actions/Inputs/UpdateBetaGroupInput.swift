@@ -19,7 +19,7 @@ public struct UpdateBetaGroupInput: AutomationActionInput {
         betaGroupID = try args.requiredString("betaGroupID")
         func bool(_ key: String) throws(AutomationActionError) -> Bool? {
             guard let value = args.value(key) else { return nil }
-            guard case .bool(let result) = value else { throw .invalidArguments("Argument \(key) must be a boolean.") }
+            guard case let .bool(result) = value else { throw .invalidArguments("Argument \(key) must be a boolean.") }
             return result
         }
         func optionalString(_ key: String) throws(AutomationActionError) -> String? {
@@ -36,7 +36,7 @@ public struct UpdateBetaGroupInput: AutomationActionInput {
             iosBuildsAvailableForAppleSiliconMac: bool("iosBuildsAvailableForAppleSiliconMac"),
             iosBuildsAvailableForAppleVision: bool("iosBuildsAvailableForAppleVision"),
             publicLinkEnabled: bool("publicLinkEnabled"), publicLinkLimit: optionalInteger("publicLinkLimit"),
-            publicLinkLimitEnabled: bool("publicLinkLimitEnabled")
+            publicLinkLimitEnabled: bool("publicLinkLimitEnabled"),
         )
     }
 

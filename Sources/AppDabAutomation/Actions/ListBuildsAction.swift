@@ -13,16 +13,16 @@ public struct ListBuildsAction: AutomationAction {
                 description: "Maximum builds to return, from 1 through 200.",
                 minimum: 1,
                 maximum: PaginationRequest.maximumLimit,
-                default: PaginationRequest.defaultLimit
-            )
+                default: PaginationRequest.defaultLimit,
+            ),
         ], required: ["accountID", "appID"]),
         outputSchema: Schema.object(properties: [
             "appID": Schema.outputString,
             "builds": Schema.array(items: Schema.buildSummaryOutput),
-            "pagination": Schema.paginationOutput
+            "pagination": Schema.paginationOutput,
         ], required: ["appID", "builds", "pagination"]),
         outputType: "builds",
-        safety: .read
+        safety: .read,
     )
 
     public init() {}
