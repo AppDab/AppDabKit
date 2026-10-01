@@ -1,5 +1,9 @@
 import Foundation
 
+/// The cursor and page size for a paginated service request.
+///
+/// The default page size is 50 and the maximum is 200. When continuing from a
+/// cursor, provide the page size used by the preceding request.
 public struct PaginationRequest: Codable, Equatable, Hashable, Sendable {
     public static let defaultLimit = 50
     public static let maximumLimit = 200
@@ -56,6 +60,7 @@ enum PaginationCursor {
     }
 }
 
+/// The page size, result count, and continuation cursor returned by a list request.
 public struct PaginationMetadata: Codable, Equatable, Hashable, Sendable {
     public let limit: Int
     public let total: Int

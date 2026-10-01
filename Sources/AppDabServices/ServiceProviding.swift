@@ -1,3 +1,7 @@
+/// A collection of App Store Connect services and their account provider.
+///
+/// Implement this protocol to provide alternate service implementations to
+/// consumers such as ``AppDabAutomation``.
 public protocol ServiceProviding: Sendable {
     var accountProvider: any AccountProviding { get }
     var appCatalogService: any AppCatalogServing { get }
