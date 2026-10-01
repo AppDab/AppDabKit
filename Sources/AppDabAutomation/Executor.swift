@@ -102,8 +102,7 @@ public final class Executor: Sendable {
         }
     }
 
-    /// Prepares a guarded mutation using native input while retaining the shared audit flow.
-    /// Prepares a guarded change and records its redacted preview for confirmation.
+    /// Prepares a guarded mutation with native input, records its redacted preview for confirmation, and retains the shared audit flow.
     public func preview<Action: GuardedAutomationAction>(
         _ actionType: Action.Type,
         input: Action.Input,
@@ -121,8 +120,7 @@ public final class Executor: Sendable {
         }
     }
 
-    /// Returns native output on a fresh commit and restores output from the redacted receipt on replay.
-    /// Commits a guarded change when its confirmation and remote preconditions remain valid.
+    /// Commits a guarded mutation after checking its confirmation and remote preconditions, returning native output or restoring it from a redacted receipt on replay.
     public func commit<Action: ReplayableGuardedAutomationAction>(
         _ actionType: Action.Type,
         input: Action.Input,
