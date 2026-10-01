@@ -48,3 +48,24 @@ if ! grep -Fq "var baseUrl = \"$expected_base_url\"" "$output_path/index.html"; 
     echo "DocC archive does not use the expected hosting base path $expected_base_url" >&2
     exit 1
 fi
+
+landing_page_path="${expected_base_url}documentation/"
+if [[ ! -f "$output_path/documentation/index.html" ]]; then
+    echo "DocC did not produce the package landing page at $landing_page_path" >&2
+    exit 1
+fi
+
+cat > "$output_path/index.html" <<EOF
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="0; url=$landing_page_path">
+    <link rel="canonical" href="$landing_page_path">
+    <title>AppDabKit Documentation</title>
+</head>
+<body>
+    <p><a href="$landing_page_path">Open AppDabKit documentation</a></p>
+</body>
+</html>
+EOF
