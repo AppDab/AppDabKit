@@ -49,23 +49,11 @@ if ! grep -Fq "var baseUrl = \"$expected_base_url\"" "$output_path/index.html"; 
     exit 1
 fi
 
-landing_page_path="${expected_base_url}documentation/"
-if [[ ! -f "$output_path/documentation/index.html" ]]; then
-    echo "DocC did not produce the package landing page at $landing_page_path" >&2
-    exit 1
-fi
+for module in appdablocales appdabautomation appdabservices appdabbagbutikextensions; do
+    if [[ ! -f "$output_path/documentation/$module/index.html" ]]; then
+        echo "DocC did not produce a landing page for $module" >&2
+        exit 1
+    fi
+done
 
-cat > "$output_path/index.html" <<EOF
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="refresh" content="0; url=$landing_page_path">
-    <link rel="canonical" href="$landing_page_path">
-    <title>AppDabKit Documentation</title>
-</head>
-<body>
-    <p><a href="$landing_page_path">Open AppDabKit documentation</a></p>
-</body>
-</html>
-EOF
+cp Documentation/index.html "$output_path/index.html"
