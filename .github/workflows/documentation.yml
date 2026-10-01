@@ -1,0 +1,12 @@
+name: Documentation
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate documentation
+        run: Scripts/generateDocumentation.sh
