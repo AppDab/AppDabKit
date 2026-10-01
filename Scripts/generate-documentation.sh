@@ -3,15 +3,17 @@ set -euo pipefail
 
 output_path="${1:-.build/documentation/AppDabKit.doccarchive}"
 output_parent="$(dirname "$output_path")"
-swift_package_options=()
-
-if [[ "${SWIFT_PACKAGE_DISABLE_SANDBOX:-false}" == "true" ]]; then
-    swift_package_options+=(--disable-sandbox)
-fi
-
 mkdir -p "$output_parent"
 
-swift package "${swift_package_options[@]}" --allow-writing-to-directory "$output_parent" \
+generate_documentation() {
+    if [[ "${SWIFT_PACKAGE_DISABLE_SANDBOX:-false}" == "true" ]]; then
+        swift package --disable-sandbox "$@"
+    else
+        swift package "$@"
+    fi
+}
+
+generate_documentation --allow-writing-to-directory "$output_parent" \
     generate-documentation \
     --target AppDabLocales \
     --target AppDabAutomation \
