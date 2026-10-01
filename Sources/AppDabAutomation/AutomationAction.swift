@@ -1,5 +1,9 @@
 import AppDabServices
 
+/// A typed operation that validates input and produces a serializable result.
+///
+/// Actions provide a descriptor for discovery and schema generation, an
+/// execution safety level, and a human readable summary for their output.
 public protocol AutomationAction: Sendable {
     associatedtype Input: AutomationActionInput
     associatedtype Output: Codable, Equatable, Sendable

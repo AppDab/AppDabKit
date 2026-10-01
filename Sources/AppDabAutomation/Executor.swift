@@ -2,6 +2,10 @@ import AppDabServices
 import CryptoKit
 import Foundation
 
+/// Executes registered automation actions using a data provider.
+///
+/// Read actions execute directly. Guarded writes use a preview and commit flow,
+/// with audit records stored by the configured audit store.
 public final class Executor: Sendable {
     private let dataProvider: any AutomationDataProviding
     private let registry: AutomationRegistry
@@ -11,6 +15,7 @@ public final class Executor: Sendable {
     private let previewLifetime: TimeInterval
     private let pendingLeaseDuration: TimeInterval
 
+    /// Creates an executor with an action registry and mutation audit store.
     public init(
         dataProvider: any AutomationDataProviding,
         registry: AutomationRegistry = .standard,
@@ -29,6 +34,7 @@ public final class Executor: Sendable {
         self.makePlanID = makePlanID
     }
 
+    /// Executes an action request using its identifier, arguments, and execution mode.
     public func execute(_ request: AutomationRequest) async throws -> AutomationResponse {
         do {
             let action = try registry.action(for: request.actionID)
@@ -71,6 +77,7 @@ public final class Executor: Sendable {
         }
     }
 
+    /// Executes a typed read or directly executable action.
     public func execute<Action: AutomationAction>(
         _ actionType: Action.Type,
         input: Action.Input,
@@ -96,6 +103,7 @@ public final class Executor: Sendable {
     }
 
     /// Prepares a guarded mutation using native input while retaining the shared audit flow.
+    /// Prepares a guarded change and records its redacted preview for confirmation.
     public func preview<Action: GuardedAutomationAction>(
         _ actionType: Action.Type,
         input: Action.Input,
@@ -114,6 +122,7 @@ public final class Executor: Sendable {
     }
 
     /// Returns native output on a fresh commit and restores output from the redacted receipt on replay.
+    /// Commits a guarded change when its confirmation and remote preconditions remain valid.
     public func commit<Action: ReplayableGuardedAutomationAction>(
         _ actionType: Action.Type,
         input: Action.Input,

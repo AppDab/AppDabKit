@@ -1,5 +1,6 @@
 import AppDabServices
 
+/// Adapts AppDabServices and an account store to the automation data interface.
 public struct ServiceAutomationDataProvider: AutomationDataProviding {
     private let services: any ServiceProviding
     private let storedAccounts: any AutomationAccountStoring

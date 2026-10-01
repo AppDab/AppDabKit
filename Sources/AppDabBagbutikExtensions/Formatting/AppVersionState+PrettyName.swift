@@ -1,6 +1,7 @@
 import BagbutikAppStoreModels
 
 public extension AppVersionState {
+    /// A human readable English name for the App Store version state.
     var prettyName: String {
         switch self {
         case .accepted: "Accepted"
