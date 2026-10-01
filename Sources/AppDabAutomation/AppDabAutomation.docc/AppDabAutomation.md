@@ -1,9 +1,5 @@
 # AppDabAutomation
 
-@Metadata {
-    @TechnologyRoot
-}
-
 Use AppDabAutomation to discover and execute typed actions over App Store Connect services.
 
 ## Overview

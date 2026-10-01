@@ -1,9 +1,5 @@
 # AppDabLocales
 
-@Metadata {
-    @TechnologyRoot
-}
-
 Use AppDabLocales to work with the locale identifiers supported by localized App Store Connect fields.
 
 ## Overview
