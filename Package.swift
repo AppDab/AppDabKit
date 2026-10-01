@@ -15,6 +15,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/MortenGregersen/AppStoreConnectKit", from: "4.1.0"),
         .package(url: "https://github.com/MortenGregersen/Bagbutik", from: "24.0.3"),
+        .package(url: "https://github.com/swiftlang/swift-docc-plugin", exact: "1.5.0"),
     ],
     targets: [
         // Targets

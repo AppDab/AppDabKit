@@ -1,9 +1,5 @@
 # AppDabServices
 
-@Metadata {
-    @TechnologyRoot
-}
-
 Use AppDabServices to access App Store Connect through shared service protocols and models.
 
 ## Overview
