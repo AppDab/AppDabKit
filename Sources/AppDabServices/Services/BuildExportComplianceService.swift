@@ -1,6 +1,7 @@
 import BagbutikAppStore
 import BagbutikAppStoreModels
 import BagbutikCore
+import BagbutikModelsShared
 import ConnectAccounts
 import CryptoKit
 import Foundation

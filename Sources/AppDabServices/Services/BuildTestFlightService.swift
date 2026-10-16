@@ -1,4 +1,5 @@
 import BagbutikAppStore
+import BagbutikAppStoreModels
 import BagbutikCore
 import BagbutikTestFlight
 import BagbutikTestFlightModels
