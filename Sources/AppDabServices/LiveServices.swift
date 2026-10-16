@@ -1,3 +1,7 @@
+/// The live App Store Connect service implementations used by AppDabKit.
+///
+/// Create an instance with an account provider to use the Bagbutik backed
+/// services, or inject service implementations with the full initializer.
 public struct LiveServices: ServiceProviding {
     public let accountProvider: any AccountProviding
     public let appCatalogService: any AppCatalogServing
@@ -9,6 +13,7 @@ public struct LiveServices: ServiceProviding {
     public let betaAppTestingService: any BetaAppTestingServing
     public let customerReviewService: any CustomerReviewServing
 
+    /// Creates the live services using an account provider that also supplies API keys.
     public init(accountProvider: some AccountProviding & APIKeyProviding) {
         self.accountProvider = accountProvider
         appCatalogService = AppCatalogService(accountProvider: accountProvider)
@@ -21,6 +26,9 @@ public struct LiveServices: ServiceProviding {
         customerReviewService = CustomerReviewService(accountProvider: accountProvider)
     }
 
+    /// Creates the service collection from explicit service implementations.
+    ///
+    /// Use this initializer to inject test doubles or alternate implementations.
     public init(
         accountProvider: any AccountProviding,
         appCatalogService: any AppCatalogServing,

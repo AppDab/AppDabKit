@@ -1,7 +1,9 @@
 import AppDabServices
 import Foundation
 
+/// Validates and stores the actions available to an executor or adapter.
 public struct AutomationRegistry: Sendable {
+    /// The registry containing the AppDabKit actions.
     public static let standard: AutomationRegistry = {
         do {
             return try AutomationRegistry(actions: [

@@ -3,6 +3,10 @@ import BagbutikCore
 import ConnectAccounts
 import Foundation
 
+/// Loads stored API keys and exposes them through the shared account interfaces.
+///
+/// The application owns persistence and supplies a closure that reads the keys.
+/// This provider does not store credentials itself.
 public final class StoredAccountProvider: AccountProviding, APIKeyProviding, @unchecked Sendable {
     public typealias VerifyAPIKeyHandler = @Sendable (APIKey) async throws -> Void
     private let loadAPIKeys: @Sendable () async throws -> [APIKey]
@@ -13,6 +17,7 @@ public final class StoredAccountProvider: AccountProviding, APIKeyProviding, @un
         self.verifyAPIKeyHandler = verifyAPIKeyHandler
     }
 
+    /// Creates a provider that verifies API keys with App Store Connect.
     public convenience init(loadAPIKeys: @escaping @Sendable () async throws -> [APIKey]) {
         self.init(loadAPIKeys: loadAPIKeys, verifyAPIKeyHandler: Self.verifyAPIKeyLive)
     }
