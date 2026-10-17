@@ -1,13 +1,13 @@
 {
-  "originHash" : "047c849fd7d8dc691d66694b42cb41523030e54b71cb12ec69bac14bee1e9ada",
+  "originHash" : "412b457c7487302726f20a2aa1cfaf14898eb6164813cd4e0ca15b739a5cd10d",
   "pins" : [
     {
       "identity" : "appstoreconnectkit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/MortenGregersen/AppStoreConnectKit",
       "state" : {
-        "revision" : "9d247652ad533e4797367c0e8a03b394d42de619",
-        "version" : "4.1.0"
+        "revision" : "5ce69f56097d0936591e11b203ae1acab9bf9368",
+        "version" : "4.2.2"
       }
     },
     {
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/MortenGregersen/Bagbutik",
       "state" : {
-        "revision" : "156b1e2d309f71857e4693f058d6fd1b672b4c45",
-        "version" : "24.0.3"
+        "revision" : "a72c7f35bd39d492f0258b2ffc89ed008e76778c",
+        "version" : "24.2.2"
       }
     },
     {
