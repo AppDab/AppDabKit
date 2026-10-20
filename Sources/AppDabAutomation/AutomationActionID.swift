@@ -41,6 +41,16 @@ public struct AutomationActionID: RawRepresentable, Codable, Equatable, Hashable
     public static let getAppVersion = AutomationActionID(rawValue: "get_app_version")
     public static let getCustomerReview = AutomationActionID(rawValue: "get_customer_review")
 
+    public static let listXcodeCloudWorkflows = AutomationActionID(rawValue: "list_xcode_cloud_workflows")
+
+    public static let listXcodeCloudGitReferences = AutomationActionID(rawValue: "list_xcode_cloud_git_references")
+
+    public static let getXcodeCloudWorkflow = AutomationActionID(rawValue: "get_xcode_cloud_workflow")
+
+    public static let getXcodeCloudBuild = AutomationActionID(rawValue: "get_xcode_cloud_build")
+
+    public static let startXcodeCloudBuild = AutomationActionID(rawValue: "start_xcode_cloud_build")
+
     public let rawValue: String
 
     public init(rawValue: String) {

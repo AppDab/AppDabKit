@@ -175,4 +175,28 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
     public func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview {
         try await services.customerReviewService.getCustomerReview(accountID: accountID, reviewID: reviewID)
     }
+
+    public func listXcodeCloudWorkflows(accountID: String, appID: String, pagination: PaginationRequest) async throws -> XcodeCloudWorkflowList {
+        try await services.xcodeCloudService.listWorkflows(accountID: accountID, appID: appID, pagination: pagination)
+    }
+
+    public func getXcodeCloudWorkflow(accountID: String, workflowID: String) async throws -> XcodeCloudWorkflow {
+        try await services.xcodeCloudService.getWorkflow(accountID: accountID, workflowID: workflowID)
+    }
+
+    public func listXcodeCloudGitReferences(accountID: String, repositoryID: String, pagination: PaginationRequest) async throws -> XcodeCloudGitReferenceList {
+        try await services.xcodeCloudService.listGitReferences(accountID: accountID, repositoryID: repositoryID, pagination: pagination)
+    }
+
+    public func getXcodeCloudGitReference(accountID: String, gitReferenceID: String) async throws -> XcodeCloudGitReference {
+        try await services.xcodeCloudService.getGitReference(accountID: accountID, gitReferenceID: gitReferenceID)
+    }
+
+    public func startXcodeCloudBuild(accountID: String, request: XcodeCloudBuildRequest) async throws -> XcodeCloudBuildRun {
+        try await services.xcodeCloudService.startBuild(accountID: accountID, request: request)
+    }
+
+    public func getXcodeCloudBuild(accountID: String, buildRunID: String) async throws -> XcodeCloudBuildRun {
+        try await services.xcodeCloudService.getBuildRun(accountID: accountID, buildRunID: buildRunID)
+    }
 }

@@ -1,6 +1,13 @@
 import AppDabServices
 
 public protocol AutomationDataProviding: Sendable {
+    func listXcodeCloudWorkflows(accountID: String, appID: String, pagination: PaginationRequest) async throws -> XcodeCloudWorkflowList
+    func getXcodeCloudWorkflow(accountID: String, workflowID: String) async throws -> XcodeCloudWorkflow
+    func listXcodeCloudGitReferences(accountID: String, repositoryID: String, pagination: PaginationRequest) async throws -> XcodeCloudGitReferenceList
+    func getXcodeCloudGitReference(accountID: String, gitReferenceID: String) async throws -> XcodeCloudGitReference
+    func startXcodeCloudBuild(accountID: String, request: XcodeCloudBuildRequest) async throws -> XcodeCloudBuildRun
+    func getXcodeCloudBuild(accountID: String, buildRunID: String) async throws -> XcodeCloudBuildRun
+
     func accountStore() throws -> any AutomationAccountStoring
     func listAccounts() async throws -> [AccountSummary]
     func verifyAccount(accountID: String) async throws -> AccountVerification
@@ -48,6 +55,30 @@ public protocol AutomationDataProviding: Sendable {
 }
 
 public extension AutomationDataProviding {
+    func listXcodeCloudWorkflows(accountID _: String, appID _: String, pagination _: PaginationRequest) async throws -> XcodeCloudWorkflowList {
+        throw ServiceError.upstream("Xcode Cloud is unavailable for this data provider.")
+    }
+
+    func getXcodeCloudWorkflow(accountID _: String, workflowID _: String) async throws -> XcodeCloudWorkflow {
+        throw ServiceError.upstream("Xcode Cloud is unavailable for this data provider.")
+    }
+
+    func listXcodeCloudGitReferences(accountID _: String, repositoryID _: String, pagination _: PaginationRequest) async throws -> XcodeCloudGitReferenceList {
+        throw ServiceError.upstream("Xcode Cloud is unavailable for this data provider.")
+    }
+
+    func getXcodeCloudGitReference(accountID _: String, gitReferenceID _: String) async throws -> XcodeCloudGitReference {
+        throw ServiceError.upstream("Xcode Cloud is unavailable for this data provider.")
+    }
+
+    func startXcodeCloudBuild(accountID _: String, request _: XcodeCloudBuildRequest) async throws -> XcodeCloudBuildRun {
+        throw ServiceError.upstream("Xcode Cloud is unavailable for this data provider.")
+    }
+
+    func getXcodeCloudBuild(accountID _: String, buildRunID _: String) async throws -> XcodeCloudBuildRun {
+        throw ServiceError.upstream("Xcode Cloud is unavailable for this data provider.")
+    }
+
     func setBuildExportCompliance(accountID _: String, request _: BuildExportComplianceRequest) async throws -> BuildExportComplianceResult {
         throw ServiceError.upstream("Build export compliance is unavailable for this data provider.")
     }
