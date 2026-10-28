@@ -7,6 +7,18 @@ public struct AutomationRegistry: Sendable {
     public static let standard: AutomationRegistry = {
         do {
             return try AutomationRegistry(actions: [
+                AnyAutomationAction(ListScreenshotsAction.self),
+                AnyAutomationAction(GetScreenshotAction.self),
+                AnyAutomationAction.guarded(UploadScreenshotAction.self),
+                AnyAutomationAction.guarded(DownloadScreenshotAction.self),
+                AnyAutomationAction.guarded(RemoveScreenshotAction.self),
+                AnyAutomationAction.guarded(ReorderScreenshotsAction.self),
+                AnyAutomationAction(ListAppPreviewsAction.self),
+                AnyAutomationAction(GetAppPreviewAction.self),
+                AnyAutomationAction.guarded(UploadAppPreviewAction.self),
+                AnyAutomationAction.guarded(DownloadAppPreviewAction.self),
+                AnyAutomationAction.guarded(RemoveAppPreviewAction.self),
+                AnyAutomationAction.guarded(ReorderAppPreviewsAction.self),
                 AnyAutomationAction(ListAccountsAction.self),
                 AnyAutomationAction(AddAccountAction.self),
                 AnyAutomationAction(RemoveAccountAction.self),

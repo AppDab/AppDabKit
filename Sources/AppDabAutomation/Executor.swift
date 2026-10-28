@@ -521,6 +521,7 @@ public final class Executor: Sendable {
         guard try receipt.canonicalInputHash == hash(.object(request.arguments)) else {
             throw AutomationExecutionError.inputChanged
         }
+        try registry.action(for: request.actionID).validateReplayData(receipt.redactedReplayData)
         return .init(
             actionID: receipt.actionID,
             summary: receipt.redactedSummary,

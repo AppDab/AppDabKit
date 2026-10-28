@@ -14,11 +14,14 @@ public protocol AutomationAction: Sendable {
     init()
 
     func perform(input: Input, dataProvider: any AutomationDataProviding) async throws -> Output
+    func validateReplayData(_ data: JSONValue) throws
     func summary(for output: Output) -> String
     func data(for output: Output) throws -> JSONValue
 }
 
 public extension AutomationAction {
+    func validateReplayData(_: JSONValue) throws {}
+
     static var supportsDirectWriteExecution: Bool {
         false
     }
