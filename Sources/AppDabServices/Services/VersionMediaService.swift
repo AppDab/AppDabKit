@@ -16,12 +16,18 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
         journal = MediaUploadJournal(directory: journalDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("AppDab/MediaUploads"))
     }
 
-    private func service(_ scope: VersionMediaScope) async throws -> BagbutikService {
+    private func service(_ scope: VersionMediaScope, deadline: ContinuousClock.Instant? = nil) async throws -> BagbutikService {
         guard !scope.accountID.isEmpty, !scope.versionID.isEmpty, !scope.locale.isEmpty else {
             throw ServiceError.invalidArguments("Account, version, and locale are required.")
         }
         let key = try await accountProvider.apiKey(forAccountID: scope.accountID)
-        return BagbutikService(jwt: key.jwt, fetchData: fetchData)
+        let fetch = fetchData
+        return BagbutikService(jwt: key.jwt, fetchData: { request, delegate in
+            if let deadline {
+                return try await MediaRequestDeadline.fetch(request, delegate: delegate, deadline: deadline, using: fetch)
+            }
+            return try await fetch(request, delegate)
+        })
     }
 
     private struct Context {
@@ -63,8 +69,12 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
     }
 
     public func get(scope: VersionMediaScope, placementID: String) async throws -> VersionMediaPlacement {
+        try await get(scope: scope, placementID: placementID, deadline: nil)
+    }
+
+    private func get(scope: VersionMediaScope, placementID: String, deadline: ContinuousClock.Instant?) async throws -> VersionMediaPlacement {
         do {
-            let service = try await service(scope)
+            let service = try await service(scope, deadline: deadline)
             let context = try await context(scope, service: service)
             let placement = try await service.request(.getAppAssetLibraryPlacementV1(id: placementID, includes: [.appStoreVersionLocalization, scope.kind == .screenshot ? .image : .video])).data
             guard matches(placement, context: context, kind: scope.kind, group: nil),
@@ -316,9 +326,12 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
                 try await journal.save(progress, operationID: operationID)
             }
             guard let placementID = progress.placementID else { throw ServiceError.upstream("Missing placement after upload.") }
-            let deadline = Date().addingTimeInterval(TimeInterval(request.timeout))
+            let deadline = ContinuousClock.now.advanced(by: .seconds(request.timeout))
             while true {
-                let placement = try await get(scope: scope, placementID: placementID)
+                if request.wait {
+                    try MediaRequestDeadline.check(deadline)
+                }
+                let placement = try await get(scope: scope, placementID: placementID, deadline: request.wait ? deadline : nil)
                 if !request.wait {
                     return .init(placements: [placement], assetID: assetID, uploadComplete: true)
                 }
@@ -328,8 +341,8 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
                 if ["COMPLETE", "ACCEPTED", "APPROVED", "READY_FOR_REVIEW", "PREPARE_FOR_SUBMISSION", "IN_REVIEW", "WAITING_FOR_REVIEW"].contains(placement.assetState), !["ASSET_PROCESSING", "UNKNOWN"].contains(placement.placementState) {
                     return .init(placements: [placement], assetID: assetID, uploadComplete: true)
                 }
-                guard Date() < deadline else { throw ServiceError.upstream("Timed out waiting for Apple to process placement \(placementID). The upload and placement are saved; inspect or reconcile this operation.") }
-                try await Task.sleep(for: .seconds(min(2, max(0, deadline.timeIntervalSinceNow))))
+                try MediaRequestDeadline.check(deadline)
+                try await ContinuousClock().sleep(until: min(deadline, .now.advanced(by: .seconds(2))))
             }
         } catch { throw try ServiceError.classify(error) }
     }

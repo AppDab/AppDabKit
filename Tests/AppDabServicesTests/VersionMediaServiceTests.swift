@@ -73,6 +73,11 @@ private actor MediaAPI {
     var invalidNext = false
     var order = ["p2", "p1"]
     var waiting = false
+    var delayProcessingPoll = false
+    var cancelledPolls = 0
+    func stallProcessingPoll() {
+        delayProcessingPoll = true
+    }
 
     func setCreationFailure() {
         failCreation = true
@@ -90,11 +95,15 @@ private actor MediaAPI {
         waiting = true
     }
 
-    func fetch(_ request: URLRequest) throws -> (Data, URLResponse) {
+    func fetch(_ request: URLRequest) async throws -> (Data, URLResponse) {
         let url = request.url!
         let path = url.path.replacingOccurrences(of: "appAssetLibraryVideos", with: "appAssetLibraryImages").replacingOccurrences(of: "/videos", with: "/images")
         let method = request.httpMethod ?? "GET"
         requests.append((path, method))
+        if delayProcessingPoll, attached, path == "/v1/appStoreVersions/version" {
+            do { try await Task.sleep(for: .seconds(10)) }
+            catch { cancelledPolls += 1; throw error }
+        }
         let body: [String: Any]
         let second = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.contains(where: { $0.name == "cursor" }) == true
         func page(_ values: [[String: Any]], next: String? = nil) -> [String: Any] {
@@ -340,6 +349,7 @@ struct VersionMediaServiceTests {
         let request = try VersionMediaUpload(filePath: file.path, placementGroup: "IPHONE", previewFrameTimeCode: "00:00:01.000", wait: true, timeout: 1, fingerprint: .read(path: file.path))
         await #expect(throws: ServiceError.self) { try await service.upload(scope: scope, request: request, operationID: "video") }
         #expect(await transport.operations.count == 2)
+        #expect(await api.requests.filter { $0 == ("/v1/appAssetLibraryPlacements/newp", "GET") }.count == 1)
         let noWait = VersionMediaUpload(filePath: file.path, placementGroup: "IPHONE", fingerprint: request.fingerprint)
         let recovered = try await service.recoverUpload(scope: scope, request: noWait, operationID: "video")
         #expect(recovered?.uploadComplete == true)
@@ -394,6 +404,23 @@ struct VersionMediaServiceTests {
         try await journal.save(.init(scope: scope, fingerprint: fingerprint, placementGroup: "IPHONE"), operationID: "not-sent")
         let result = try await service(MediaAPI(), directory: journalDirectory).recoverUpload(scope: scope, request: .init(filePath: file.path, placementGroup: "IPHONE", fingerprint: fingerprint), operationID: "not-sent")
         #expect(result?.uploadComplete == true)
+    }
+
+    @Test func processingDeadlineCancelsAStalledPoll() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("screen.png")
+        try Data("abcdef".utf8).write(to: file)
+        let api = MediaAPI()
+        await api.stallProcessingPoll()
+        let service = service(api, directory: directory.appendingPathComponent("journal"))
+        let request = try VersionMediaUpload(filePath: file.path, placementGroup: "IPHONE", wait: true, timeout: 1, fingerprint: .read(path: file.path))
+        let started = ContinuousClock.now
+        await #expect(throws: ServiceError.self) { try await service.upload(scope: scope, request: request, operationID: "deadline") }
+        #expect(started.duration(to: .now) < .seconds(4))
+        #expect(await api.cancelledPolls == 1)
+        #expect(await api.requests.filter { $0 == ("/v1/appStoreVersions/version", "GET") }.count == 3)
     }
 
     @Test func rejectsIncompleteAndOutOfRangeUploadOperations() throws {
