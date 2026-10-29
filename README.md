@@ -9,4 +9,4 @@ See [Adding an Automation Action](Documentation/AddingAutomationAction.md) for t
 
 Upload, download, removal, and ordering use the existing preview and confirmation flow. An upload preview binds the operation to the file's SHA256 fingerprint. Upload transfers all requested file ranges, marks the asset uploaded, and creates a version placement. Processing is asynchronous unless the caller requests a bounded wait. Removal deletes only the placement; reusable assets are retained.
 
-The service follows all asset and placement relationship pages and verifies display order against the localization's placements. Results expose processing state, diagnostics, valid placement groups, and Apple's media specifications without exposing signed transfer URLs.
+The service follows every page of the ordered localization placements and fetches each referenced media asset once, without scanning unrelated library assets. Results expose processing state, diagnostics, valid placement groups, and Apple's media specifications without exposing signed transfer URLs.

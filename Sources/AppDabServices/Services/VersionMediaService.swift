@@ -80,38 +80,32 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
         do {
             let service = try await service(scope)
             let context = try await context(scope, service: service)
-            var placements: [String: VersionMediaPlacement] = [:]
-            if scope.kind == .screenshot {
-                let assets = try await pages(service, .listImagesForAppAssetLibraryV1(id: context.libraryID, filters: [.category([.appScreenshotsAndPreviews])]))
-                for asset in assets {
-                    let related = try await pages(service, .listPlacementsForAppAssetLibraryImageV1(id: asset.id))
-                    for placement in related where matches(placement, context: context, kind: scope.kind, group: placementGroup) {
-                        placements[placement.id] = try normalized(placement, asset: asset)
-                    }
-                }
-            } else {
-                let assets = try await pages(service, .listVideosForAppAssetLibraryV1(id: context.libraryID, filters: [.category([.appScreenshotsAndPreviews])]))
-                for asset in assets {
-                    let related = try await pages(service, .listPlacementsForAppAssetLibraryVideoV1(id: asset.id))
-                    for placement in related where matches(placement, context: context, kind: scope.kind, group: placementGroup) {
-                        placements[placement.id] = try normalized(placement, asset: asset)
-                    }
-                }
-            }
-            // The localization endpoint supplies display order, which is absent from asset relationships.
             var filters: [ListPlacementsForAppStoreVersionLocalizationV1.Filter] = [.placementType([placementType(scope.kind)])]
             if let placementGroup {
                 filters.append(.placementGroup([placementGroup]))
             }
             let ordered = try await pages(service, .listPlacementsForAppStoreVersionLocalizationV1(id: context.localizationID, filters: filters, sorts: [.placementGroupPositionAscending]))
-            guard Set(ordered.map(\.id)) == Set(placements.keys) else {
-                throw ServiceError.upstream("Version placements changed during discovery. Retry the command.")
+            var assets: [String: JSONValue] = [:]
+            var placements: [VersionMediaPlacement] = []
+            for placement in ordered {
+                guard matches(placement, context: context, kind: scope.kind, group: placementGroup),
+                      let assetID = scope.kind == .screenshot ? placement.relationships?.image?.data?.id : placement.relationships?.video?.data?.id
+                else {
+                    throw ServiceError.upstream("Apple returned a placement outside the requested localization or media type.")
+                }
+                if assets[assetID] == nil {
+                    assets[assetID] = try await asset(scope: scope, id: assetID, service: service)
+                }
+                guard let asset = assets[assetID], asset["attributes"]["category"].stringValue == "APP_SCREENSHOTS_AND_PREVIEWS" else {
+                    throw ServiceError.upstream("The placement references an asset outside the screenshot and preview category.")
+                }
+                try placements.append(normalized(placement, asset: asset))
             }
             let requirements = try await requirements(scope: scope, context: context, service: service)
             if let placementGroup {
                 try Self.validateGroup(placementGroup, requirements: requirements)
             }
-            return .init(appID: context.appID, localizationID: context.localizationID, placements: ordered.compactMap { placements[$0.id] }, requirements: requirements)
+            return .init(appID: context.appID, localizationID: context.localizationID, placements: placements, requirements: requirements)
         } catch { throw try ServiceError.classify(error) }
     }
 

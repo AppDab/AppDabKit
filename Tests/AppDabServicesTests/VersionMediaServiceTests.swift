@@ -121,7 +121,8 @@ private actor MediaAPI {
         case ("/v1/appAssetLibraryImages/new/placements", "GET"):
             body = page(attached ? [placement("newp", asset: "new")] : [])
         case ("/v1/appStoreVersionLocalizations/loc/placements", "GET"):
-            body = page(order.filter { !removed.contains($0) }.map { placement($0) } + (attached ? [placement("newp", asset: "new")] : []))
+            let placements = order.filter { !removed.contains($0) }.map { placement($0) } + (attached ? [placement("newp", asset: "new")] : [])
+            body = second ? page(Array(placements.dropFirst())) : page(Array(placements.prefix(1)), next: invalidNext ? "https://untrusted.example/v1/appStoreVersionLocalizations/loc/placements?cursor=2" : "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/loc/placements?cursor=2")
         case ("/v1/appAssetLibraryRefData", "GET"):
             body = page([["id": "ref", "type": "appAssetLibraryRefData", "attributes": ["placementProfileGroups": [["placementProfileGroupId": "IPHONE", "platform": "IPHONE_APP_STORE"]], "placementTypes": [["placementTypeId": "APP_SCREENSHOT", "specMappings": [["placementGroupId": "IPHONE", "specs": ["spec"]]]]], "imageSpecs": [["specId": "spec", "fileExtensions": ["png"], "maxFileSize": 100]], "features": [["featureId": "APP_STORE_VERSIONS", "placementPolicies": [["placementType": "APP_SCREENSHOT", "groupLimits": [["groupIds": ["IPHONE"], "maxCount": 10]]]]]]]]])
         case ("/v1/appAssetLibraryImages", "POST"):
@@ -209,7 +210,10 @@ struct VersionMediaServiceTests {
         #expect(list.requirements.first?.maximumCount == 10)
         #expect(list.requirements.first?.specs.count == 1)
         let requests = await api.requests
-        #expect(requests.filter { $0.0 == "/v1/appAssetLibraryImages/a2/placements" }.count == 2)
+        #expect(requests.filter { $0.0 == "/v1/appStoreVersionLocalizations/loc/placements" }.count == 2)
+        #expect(requests.filter { $0.0 == "/v1/appAssetLibraryImages/a2" }.count == 1)
+        #expect(!requests.contains { $0.0 == "/v1/appAssetLibraries/library/images" })
+        #expect(!requests.contains { $0.0.hasPrefix("/v1/appAssetLibraryImages/a1") || $0.0.hasSuffix("/a2/placements") })
     }
 
     @Test func rejectsForeignPlacementsMissingLocalesAndUntrustedPagination() async throws {
