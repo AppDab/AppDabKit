@@ -231,6 +231,8 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
             else {
                 throw ServiceError.invalidArguments("The upload file changed or the upload options are invalid.")
             }
+            let snapshot = try MediaUploadSnapshot(source: URL(fileURLWithPath: request.filePath), fingerprint: request.fingerprint)
+            defer { snapshot.remove() }
             let lease = try await journal.claim(operationID)
             defer { withExtendedLifetime(lease) {} }
             let service = try await service(scope)
@@ -262,9 +264,9 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
                 if remote["attributes"]["state"].stringValue == "AWAITING_UPLOAD" {
                     let operations = try Self.uploadOperations(remote["attributes"]["uploadOperations"], fileSize: request.fingerprint.size)
                     for operation in operations {
-                        try Task.checkCancellation(); try await transport.upload(file: URL(fileURLWithPath: request.filePath), operation: operation)
+                        try Task.checkCancellation(); try await transport.upload(file: snapshot.file, operation: operation)
                     }
-                    guard try MediaFileFingerprint.read(path: request.filePath) == request.fingerprint else { throw ServiceError.invalidArguments("The file changed during transfer. Upload was not completed.") }
+                    guard try MediaFileFingerprint.read(path: snapshot.file.path) == request.fingerprint else { throw ServiceError.invalidArguments("The upload snapshot changed during transfer.") }
                     try Task.checkCancellation()
                     if scope.kind == .screenshot {
                         _ = try await service.request(.updateAppAssetLibraryImageV1(id: assetID, requestBody: .init(data: .init(id: assetID, attributes: .init(uploaded: true)))))

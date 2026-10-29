@@ -12,13 +12,24 @@ private struct MediaAccounts: APIKeyProviding {
 private actor MediaTransferSpy: MediaTransferTransport {
     var operations: [MediaUploadOperation] = []
     var downloadURLs: [URL] = []
+    var mutableSource: URL?
+    var stagedBytes = Data()
+    func editSourceBetweenRanges(_ source: URL) {
+        mutableSource = source
+    }
+
     var fail = false
     func setFailure(_ value: Bool) {
         fail = value
     }
 
-    func upload(file _: URL, operation: MediaUploadOperation) async throws {
+    func upload(file: URL, operation: MediaUploadOperation) async throws {
         operations.append(operation)
+        if let mutableSource {
+            let bytes = try Data(contentsOf: file)
+            stagedBytes.append(bytes.subdata(in: operation.offset ..< (operation.offset + operation.length)))
+            try Data((operations.count == 1 ? "abcXYZ" : "abcdef").utf8).write(to: mutableSource)
+        }
         if fail {
             throw URLError(.networkConnectionLost)
         }
@@ -174,6 +185,20 @@ struct VersionMediaServiceTests {
 
     private func service(_ api: MediaAPI, transport: MediaTransferSpy = .init(), directory: URL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)) -> VersionMediaService {
         VersionMediaService(accountProvider: MediaAccounts(), transport: transport, journalDirectory: directory, fetchData: { request, _ in try await api.fetch(request) })
+    }
+
+    @Test func uploadTransfersConfirmedBytesWhenOriginalIsEditedAndRestored() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("screen.png")
+        try Data("abcdef".utf8).write(to: source)
+        let transport = MediaTransferSpy()
+        await transport.editSourceBetweenRanges(source)
+        let request = try VersionMediaUpload(filePath: source.path, placementGroup: "IPHONE", fingerprint: .read(path: source.path))
+        let result = try await service(MediaAPI(), transport: transport, directory: directory.appendingPathComponent("journal")).upload(scope: scope, request: request, operationID: "snapshot")
+        #expect(result.uploadComplete == true)
+        #expect(await transport.stagedBytes == Data("abcdef".utf8))
     }
 
     @Test func discoversAllPagesFiltersLocalizationAndPreservesDisplayOrder() async throws {
