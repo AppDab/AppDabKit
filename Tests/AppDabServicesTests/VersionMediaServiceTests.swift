@@ -58,6 +58,16 @@ private actor MediaAPI {
         failCompletion = true
     }
 
+    var rejectCreationOnce = false
+    var rejectPlacementOnce = false
+    func rejectNextCreation(placement: Bool) {
+        if placement {
+            rejectPlacementOnce = true
+        } else {
+            rejectCreationOnce = true
+        }
+    }
+
     var failCreation = false
     var failPlacement = false
     var invalidNext = false
@@ -126,6 +136,10 @@ private actor MediaAPI {
         case ("/v1/appAssetLibraryRefData", "GET"):
             body = page([["id": "ref", "type": "appAssetLibraryRefData", "attributes": ["placementProfileGroups": [["placementProfileGroupId": "IPHONE", "platform": "IPHONE_APP_STORE"]], "placementTypes": [["placementTypeId": "APP_SCREENSHOT", "specMappings": [["placementGroupId": "IPHONE", "specs": ["spec"]]]]], "imageSpecs": [["specId": "spec", "fileExtensions": ["png"], "maxFileSize": 100]], "features": [["featureId": "APP_STORE_VERSIONS", "placementPolicies": [["placementType": "APP_SCREENSHOT", "groupLimits": [["groupIds": ["IPHONE"], "maxCount": 10]]]]]]]]])
         case ("/v1/appAssetLibraryImages", "POST"):
+            if rejectCreationOnce {
+                rejectCreationOnce = false
+                return (Data(#"{"errors":[{"status":"400","code":"INVALID","title":"Rejected","detail":"Not applied"}]}"#.utf8), HTTPURLResponse(url: url, statusCode: 400, httpVersion: nil, headerFields: nil)!)
+            }
             created = true
             if failCreation {
                 throw URLError(.networkConnectionLost)
@@ -150,6 +164,10 @@ private actor MediaAPI {
             }
             body = ["data": asset("new")]
         case ("/v1/appAssetLibraryPlacements", "POST"):
+            if rejectPlacementOnce {
+                rejectPlacementOnce = false
+                return (Data(#"{"errors":[{"status":"400","code":"INVALID","title":"Rejected","detail":"Not applied"}]}"#.utf8), HTTPURLResponse(url: url, statusCode: 400, httpVersion: nil, headerFields: nil)!)
+            }
             attached = true
             if failPlacement {
                 throw URLError(.networkConnectionLost)
@@ -344,6 +362,38 @@ struct VersionMediaServiceTests {
         let recovered = try await service.recoverUpload(scope: scope, request: request, operationID: "completion")
         #expect(recovered?.uploadComplete == true)
         #expect(await transport.operations.count == 2)
+    }
+
+    @Test(arguments: [false, true])
+    func definitiveRejectionCanBeReconciledWithoutDuplicatingSuccessfulSteps(placement: Bool) async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("screen.png")
+        try Data("abcdef".utf8).write(to: file)
+        let api = MediaAPI()
+        await api.rejectNextCreation(placement: placement)
+        let service = service(api, directory: directory.appendingPathComponent("journal"))
+        let request = try VersionMediaUpload(filePath: file.path, placementGroup: "IPHONE", fingerprint: .read(path: file.path))
+        await #expect(throws: ServiceError.self) { try await service.upload(scope: scope, request: request, operationID: "rejected") }
+        let result = try await service.recoverUpload(scope: scope, request: request, operationID: "rejected")
+        #expect(result?.placements.first?.id == "newp")
+        #expect(await api.requests.filter { $0 == ("/v1/appAssetLibraryImages", "POST") }.count == (placement ? 1 : 2))
+        #expect(await api.requests.filter { $0 == ("/v1/appAssetLibraryPlacements", "POST") }.count == (placement ? 2 : 1))
+    }
+
+    @Test func checkpointKnownToPrecedeSendingCanResumeAssetCreation() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("screen.png")
+        try Data("abcdef".utf8).write(to: file)
+        let fingerprint = try MediaFileFingerprint.read(path: file.path)
+        let journalDirectory = directory.appendingPathComponent("journal")
+        let journal = MediaUploadJournal(directory: journalDirectory)
+        try await journal.save(.init(scope: scope, fingerprint: fingerprint, placementGroup: "IPHONE"), operationID: "not-sent")
+        let result = try await service(MediaAPI(), directory: journalDirectory).recoverUpload(scope: scope, request: .init(filePath: file.path, placementGroup: "IPHONE", fingerprint: fingerprint), operationID: "not-sent")
+        #expect(result?.uploadComplete == true)
     }
 
     @Test func rejectsIncompleteAndOutOfRangeUploadOperations() throws {

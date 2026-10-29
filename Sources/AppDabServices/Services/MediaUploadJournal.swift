@@ -8,6 +8,7 @@ actor MediaUploadJournal {
         let scope: VersionMediaScope
         let fingerprint: MediaFileFingerprint
         let placementGroup: String
+        var assetCreationRetryable: Bool? = true
         var assetID: String?
         var uploadComplete = false
         var placementStarted = false

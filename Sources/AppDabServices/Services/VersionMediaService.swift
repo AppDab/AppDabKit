@@ -213,7 +213,7 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
     }
 
     public func recoverUpload(scope: VersionMediaScope, request: VersionMediaUpload, operationID: String) async throws -> VersionMediaResult? {
-        guard let entry = try await journal.load(operationID), entry.assetID != nil else { return nil }
+        guard let entry = try await journal.load(operationID), entry.assetID != nil || entry.assetCreationRetryable == true else { return nil }
         return try await upload(scope: scope, request: request, operationID: operationID)
     }
 
@@ -237,19 +237,32 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
             let existing = try await journal.load(operationID)
             var progress = existing ?? .init(scope: scope, fingerprint: request.fingerprint, placementGroup: request.placementGroup)
             guard progress.scope == scope, progress.fingerprint == request.fingerprint, progress.placementGroup == request.placementGroup else { throw ServiceError.invalidArguments("Upload recovery does not match the original file and destination.") }
-            if existing == nil {
+            if progress.assetID == nil {
+                guard existing == nil || progress.assetCreationRetryable == true else { throw ServiceError.upstream("The asset creation outcome is unknown. Reconcile manually before uploading again.") }
                 if let maximum = current.requirements.first(where: { $0.placementGroup == request.placementGroup })?.maximumCount, current.placements.count >= maximum {
                     throw ServiceError.invalidArguments("The placement group has reached Apple's limit of \(maximum).")
                 }
                 // Persist intent first. A crash before the returned ID is saved requires manual reconciliation.
                 try await journal.save(progress, operationID: operationID)
-                try Task.checkCancellation()
-                let created: JSONValue = if scope.kind == .screenshot {
-                    try await JSONValue.fromEncodable(service.request(.createAppAssetLibraryImageV1(requestBody: .init(data: .init(attributes: .init(category: .appScreenshotsAndPreviews, fileName: URL(fileURLWithPath: request.filePath).lastPathComponent, fileSize: request.fingerprint.size), relationships: .init(assetLibrary: .init(data: .init(id: context.libraryID))))))).data)
-                } else {
-                    try await JSONValue.fromEncodable(service.request(.createAppAssetLibraryVideoV1(requestBody: .init(data: .init(attributes: .init(category: .appScreenshotsAndPreviews, fileName: URL(fileURLWithPath: request.filePath).lastPathComponent, fileSize: request.fingerprint.size, previewFrameTimeCode: request.previewFrameTimeCode), relationships: .init(assetLibrary: .init(data: .init(id: context.libraryID))))))).data)
+                progress.assetCreationRetryable = false
+                try await journal.save(progress, operationID: operationID)
+                var sent = false
+                do {
+                    try Task.checkCancellation()
+                    sent = true
+                    let created: JSONValue = if scope.kind == .screenshot {
+                        try await JSONValue.fromEncodable(service.request(.createAppAssetLibraryImageV1(requestBody: .init(data: .init(attributes: .init(category: .appScreenshotsAndPreviews, fileName: URL(fileURLWithPath: request.filePath).lastPathComponent, fileSize: request.fingerprint.size), relationships: .init(assetLibrary: .init(data: .init(id: context.libraryID))))))).data)
+                    } else {
+                        try await JSONValue.fromEncodable(service.request(.createAppAssetLibraryVideoV1(requestBody: .init(data: .init(attributes: .init(category: .appScreenshotsAndPreviews, fileName: URL(fileURLWithPath: request.filePath).lastPathComponent, fileSize: request.fingerprint.size, previewFrameTimeCode: request.previewFrameTimeCode), relationships: .init(assetLibrary: .init(data: .init(id: context.libraryID))))))).data)
+                    }
+                    progress.assetID = created["id"].stringValue
+                } catch {
+                    if !sent || Self.definitivelyRejected(error) {
+                        progress.assetCreationRetryable = true
+                        try await journal.save(progress, operationID: operationID)
+                    }
+                    throw error
                 }
-                progress.assetID = created["id"].stringValue
                 try await journal.save(progress, operationID: operationID)
             }
             guard let assetID = progress.assetID else { throw ServiceError.upstream("The asset creation outcome is unknown. Reconcile manually before uploading again.") }
@@ -286,9 +299,19 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
                     } else {
                         .init(appStoreVersionLocalization: .init(data: .init(id: context.localizationID)), video: .init(data: .init(id: assetID)))
                     }
-                    try Task.checkCancellation()
-                    let created = try await service.request(.createAppAssetLibraryPlacementV1(requestBody: .init(data: .init(attributes: .init(placementGroup: request.placementGroup, placementType: placementType(scope.kind)), relationships: relationships))))
-                    progress.placementID = created.data.id
+                    var sent = false
+                    do {
+                        try Task.checkCancellation()
+                        sent = true
+                        let created = try await service.request(.createAppAssetLibraryPlacementV1(requestBody: .init(data: .init(attributes: .init(placementGroup: request.placementGroup, placementType: placementType(scope.kind)), relationships: relationships))))
+                        progress.placementID = created.data.id
+                    } catch {
+                        if !sent || Self.definitivelyRejected(error) {
+                            progress.placementStarted = false
+                            try await journal.save(progress, operationID: operationID)
+                        }
+                        throw error
+                    }
                 }
                 try await journal.save(progress, operationID: operationID)
             }
@@ -309,6 +332,14 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
                 try await Task.sleep(for: .seconds(min(2, max(0, deadline.timeIntervalSinceNow))))
             }
         } catch { throw try ServiceError.classify(error) }
+    }
+
+    private static func definitivelyRejected(_ error: Error) -> Bool {
+        guard let error = error as? BagbutikCore.ServiceError else { return false }
+        switch error {
+        case .badRequest, .unauthorized, .forbidden, .notFound, .conflict, .unprocessableEntity: return true
+        default: return false
+        }
     }
 
     static func uploadOperations(_ value: JSONValue, fileSize: Int) throws -> [MediaUploadOperation] {
