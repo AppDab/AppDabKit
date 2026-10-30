@@ -41,6 +41,19 @@ public struct AutomationActionID: RawRepresentable, Codable, Equatable, Hashable
     public static let getAppVersion = AutomationActionID(rawValue: "get_app_version")
     public static let getCustomerReview = AutomationActionID(rawValue: "get_customer_review")
 
+    public static let listScreenshots = AutomationActionID(rawValue: "list_screenshots")
+    public static let getScreenshot = AutomationActionID(rawValue: "get_screenshot")
+    public static let uploadScreenshot = AutomationActionID(rawValue: "upload_screenshot")
+    public static let downloadScreenshot = AutomationActionID(rawValue: "download_screenshot")
+    public static let removeScreenshot = AutomationActionID(rawValue: "remove_screenshot")
+    public static let reorderScreenshots = AutomationActionID(rawValue: "reorder_screenshots")
+    public static let listAppPreviews = AutomationActionID(rawValue: "list_app_previews")
+    public static let getAppPreview = AutomationActionID(rawValue: "get_app_preview")
+    public static let uploadAppPreview = AutomationActionID(rawValue: "upload_app_preview")
+    public static let downloadAppPreview = AutomationActionID(rawValue: "download_app_preview")
+    public static let removeAppPreview = AutomationActionID(rawValue: "remove_app_preview")
+    public static let reorderAppPreviews = AutomationActionID(rawValue: "reorder_app_previews")
+
     public let rawValue: String
 
     public init(rawValue: String) {

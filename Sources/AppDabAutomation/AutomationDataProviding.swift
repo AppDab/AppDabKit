@@ -1,6 +1,7 @@
 import AppDabServices
 
 public protocol AutomationDataProviding: Sendable {
+    func versionMedia() throws -> any VersionMediaServing
     func accountStore() throws -> any AutomationAccountStoring
     func listAccounts() async throws -> [AccountSummary]
     func verifyAccount(accountID: String) async throws -> AccountVerification
@@ -48,6 +49,10 @@ public protocol AutomationDataProviding: Sendable {
 }
 
 public extension AutomationDataProviding {
+    func versionMedia() throws -> any VersionMediaServing {
+        UnavailableVersionMediaService()
+    }
+
     func setBuildExportCompliance(accountID _: String, request _: BuildExportComplianceRequest) async throws -> BuildExportComplianceResult {
         throw ServiceError.upstream("Build export compliance is unavailable for this data provider.")
     }

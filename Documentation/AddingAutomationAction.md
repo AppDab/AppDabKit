@@ -21,3 +21,9 @@ Add focused action tests for input validation, service behavior, output shape, a
 ```sh
 swift test
 ```
+
+## File transfers and replay
+
+Screenshot and app preview actions use `VersionMediaServing`. Upload previews read a file fingerprint and Apple's placement requirements without writing remote data. Commit revalidates the file and placement snapshot. Durable upload checkpoints retain only the scope, fingerprint, asset ID, upload completion, and placement ID. They complement the final mutation receipt and let reconciliation resume a known upload without creating another asset. An unknown creation outcome requires manual investigation.
+
+Actions that produce local files implement `validateReplayData` so both typed and JSON execution verify the file before replaying a successful receipt. Replay data must never contain signed media URLs or upload headers.
