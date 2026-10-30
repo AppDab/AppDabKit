@@ -48,6 +48,11 @@ private actor MediaAPI {
         videoMode = true
     }
 
+    var requiresExplicitPlacementIncludes = false
+    func requirePlacementIncludes() {
+        requiresExplicitPlacementIncludes = true
+    }
+
     var requests: [(String, String)] = []
     var removed = Set<String>()
     var uploaded = false
@@ -140,8 +145,19 @@ private actor MediaAPI {
         case ("/v1/appAssetLibraryImages/new/placements", "GET"):
             body = page(attached ? [placement("newp", asset: "new")] : [])
         case ("/v1/appStoreVersionLocalizations/loc/placements", "GET"):
-            let placements = order.filter { !removed.contains($0) }.map { placement($0) } + (attached ? [placement("newp", asset: "new")] : [])
-            body = second ? page(Array(placements.dropFirst())) : page(Array(placements.prefix(1)), next: invalidNext ? "https://untrusted.example/v1/appStoreVersionLocalizations/loc/placements?cursor=2" : "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/loc/placements?cursor=2")
+            var placements = order.filter { !removed.contains($0) }.map { placement($0) } + (attached ? [placement("newp", asset: "new")] : [])
+            let include = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "include" }?.value ?? ""
+            if requiresExplicitPlacementIncludes {
+                let requested = Set(include.split(separator: ",").map(String.init))
+                placements = placements.map { original in
+                    var value = original
+                    let relationships = original["relationships"] as! [String: Any]
+                    value["relationships"] = relationships.filter { requested.contains($0.key == "image" && videoMode ? "video" : $0.key) }
+                    return value
+                }
+            }
+            let next = "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/loc/placements?cursor=2&include=\(include)"
+            body = second ? page(Array(placements.dropFirst())) : page(Array(placements.prefix(1)), next: invalidNext ? "https://untrusted.example/v1/appStoreVersionLocalizations/loc/placements?cursor=2" : next)
         case ("/v1/appAssetLibraryRefData", "GET"):
             body = page([["id": "ref", "type": "appAssetLibraryRefData", "attributes": ["placementProfileGroups": [["placementProfileGroupId": "IPHONE", "platform": "IPHONE_APP_STORE"]], "placementTypes": [["placementTypeId": "APP_SCREENSHOT", "specMappings": [["placementGroupId": "IPHONE", "specs": ["spec"]]]]], "imageSpecs": [["specId": "spec", "fileExtensions": ["png"], "maxFileSize": 100]], "features": [["featureId": "APP_STORE_VERSIONS", "placementPolicies": [["placementType": "APP_SCREENSHOT", "groupLimits": [["groupIds": ["IPHONE"], "maxCount": 10]]]]]]]]])
         case ("/v1/appAssetLibraryImages", "POST"):
@@ -241,6 +257,19 @@ struct VersionMediaServiceTests {
         #expect(requests.filter { $0.0 == "/v1/appAssetLibraryImages/a2" }.count == 1)
         #expect(!requests.contains { $0.0 == "/v1/appAssetLibraries/library/images" })
         #expect(!requests.contains { $0.0.hasPrefix("/v1/appAssetLibraryImages/a1") || $0.0.hasSuffix("/a2/placements") })
+    }
+
+    @Test(arguments: [VersionMediaKind.screenshot, .appPreview])
+    func listsSparsePlacementsByRequestingOwnershipAndAssetRelationships(kind: VersionMediaKind) async throws {
+        let api = MediaAPI()
+        await api.requirePlacementIncludes()
+        if kind == .appPreview {
+            await api.useVideo()
+        }
+        let scope = VersionMediaScope(accountID: "account", versionID: "version", locale: "en-US", kind: kind)
+        let list = try await service(api).list(scope: scope, placementGroup: nil)
+        #expect(list.placements.map(\.id) == ["p2", "p1"])
+        #expect(list.placements.allSatisfy { $0.assetID == "a2" })
     }
 
     @Test func rejectsForeignPlacementsMissingLocalesAndUntrustedPagination() async throws {

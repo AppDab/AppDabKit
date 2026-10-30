@@ -94,7 +94,7 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
             if let placementGroup {
                 filters.append(.placementGroup([placementGroup]))
             }
-            let ordered = try await pages(service, .listPlacementsForAppStoreVersionLocalizationV1(id: context.localizationID, filters: filters, sorts: [.placementGroupPositionAscending]))
+            let ordered = try await pages(service, .listPlacementsForAppStoreVersionLocalizationV1(id: context.localizationID, filters: filters, includes: [.appStoreVersionLocalization, scope.kind == .screenshot ? .image : .video], sorts: [.placementGroupPositionAscending]))
             var assets: [String: JSONValue] = [:]
             var placements: [VersionMediaPlacement] = []
             for placement in ordered {
