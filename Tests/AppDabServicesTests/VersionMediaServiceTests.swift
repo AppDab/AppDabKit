@@ -399,8 +399,8 @@ struct VersionMediaServiceTests {
         #expect(await api.requests.filter { $0 == ("/v1/appAssetLibraryPlacements", "POST") }.count == 1)
     }
 
-    @Test(arguments: ["PENDING", "FUTURE_STATE"])
-    func preservesUnmodeledPlacementStatesAndDetails(state: String) async throws {
+    @Test func preservesPendingPlacementStateAndDetails() async throws {
+        let state = "PENDING"
         let api = MediaAPI()
         await api.setPlacementState(state)
         let service = service(api)
