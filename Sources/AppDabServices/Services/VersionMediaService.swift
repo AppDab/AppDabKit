@@ -76,7 +76,7 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
         do {
             let service = try await service(scope, deadline: deadline)
             let context = try await context(scope, service: service)
-            let placement = try await service.request(.getAppAssetLibraryPlacementV1(id: placementID, includes: [.appStoreVersionLocalization, scope.kind == .screenshot ? .image : .video])).data
+            let placement = try await service.request(.getAppAssetLibraryPlacementV1(id: placementID, includes: [.appStoreVersionLocalization, scope.kind == .screenshot ? .image : .video]).decodingMediaResponse(MediaPlacementResponse.self)).data
             guard matches(placement, context: context, kind: scope.kind, group: nil),
                   let assetID = scope.kind == .screenshot ? placement.relationships?.image?.data?.id : placement.relationships?.video?.data?.id
             else {
@@ -94,7 +94,7 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
             if let placementGroup {
                 filters.append(.placementGroup([placementGroup]))
             }
-            let ordered = try await pages(service, .listPlacementsForAppStoreVersionLocalizationV1(id: context.localizationID, filters: filters, includes: [.appStoreVersionLocalization, scope.kind == .screenshot ? .image : .video], sorts: [.placementGroupPositionAscending]))
+            let ordered = try await pages(service, .listPlacementsForAppStoreVersionLocalizationV1(id: context.localizationID, filters: filters, includes: [.appStoreVersionLocalization, scope.kind == .screenshot ? .image : .video], sorts: [.placementGroupPositionAscending]).decodingMediaResponse(MediaPlacementsResponse.self))
             var assets: [String: JSONValue] = [:]
             var placements: [VersionMediaPlacement] = []
             for placement in ordered {
@@ -119,16 +119,16 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
         } catch { throw try ServiceError.classify(error) }
     }
 
-    private func matches(_ placement: AppAssetLibraryPlacement, context: Context, kind: VersionMediaKind, group: String?) -> Bool {
+    private func matches(_ placement: MediaPlacementResource, context: Context, kind: VersionMediaKind, group: String?) -> Bool {
         placement.relationships?.appStoreVersionLocalization?.data?.id == context.localizationID
             && placement.attributes?.placementType == placementType(kind)
             && (group == nil || placement.attributes?.placementGroup == group)
     }
 
-    private func normalized(_ placement: AppAssetLibraryPlacement, asset: some Encodable) throws -> VersionMediaPlacement {
+    private func normalized(_ placement: MediaPlacementResource, asset: some Encodable) throws -> VersionMediaPlacement {
         let value = try JSONValue.fromEncodable(asset)
         let attributes = value["attributes"]
-        return try .init(id: placement.id, assetID: value["id"].stringValue ?? "", placementGroup: placement.attributes?.placementGroup ?? "", fileName: attributes["fileName"].stringValue ?? "", fileSize: attributes["fileSize"].intValue, assetState: attributes["state"].stringValue ?? "UNKNOWN", placementState: placement.attributes?.state?.rawValue ?? "UNKNOWN", stateDetails: attributes["stateDetails"].elements + (JSONValue.fromEncodable(placement)["attributes"]["stateDetails"].elements))
+        return try .init(id: placement.id, assetID: value["id"].stringValue ?? "", placementGroup: placement.attributes?.placementGroup ?? "", fileName: attributes["fileName"].stringValue ?? "", fileSize: attributes["fileSize"].intValue, assetState: attributes["state"].stringValue ?? "UNKNOWN", placementState: placement.attributes?.state ?? "UNKNOWN", stateDetails: attributes["stateDetails"].elements + (placement.attributes?.stateDetails ?? []))
     }
 
     private func requirements(scope: VersionMediaScope, context: Context, service: BagbutikService) async throws -> [VersionMediaRequirement] {
@@ -313,7 +313,7 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
                     do {
                         try Task.checkCancellation()
                         sent = true
-                        let created = try await service.request(.createAppAssetLibraryPlacementV1(requestBody: .init(data: .init(attributes: .init(placementGroup: request.placementGroup, placementType: placementType(scope.kind)), relationships: relationships))))
+                        let created = try await service.request(.createAppAssetLibraryPlacementV1(requestBody: .init(data: .init(attributes: .init(placementGroup: request.placementGroup, placementType: placementType(scope.kind)), relationships: relationships))).decodingMediaResponse(MediaPlacementResponse.self))
                         progress.placementID = created.data.id
                     } catch {
                         if !sent || Self.definitivelyRejected(error) {
@@ -338,7 +338,7 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
                 if ["FAILED", "REJECTED", "ARCHIVED"].contains(placement.assetState) || ["FAILED", "REJECTED"].contains(placement.placementState) {
                     throw ServiceError.upstream("Apple could not process the media: \(placement.assetState), \(placement.placementState). Inspect the placement for details.")
                 }
-                if ["COMPLETE", "ACCEPTED", "APPROVED", "READY_FOR_REVIEW", "PREPARE_FOR_SUBMISSION", "IN_REVIEW", "WAITING_FOR_REVIEW"].contains(placement.assetState), !["ASSET_PROCESSING", "UNKNOWN"].contains(placement.placementState) {
+                if ["COMPLETE", "ACCEPTED", "APPROVED", "READY_FOR_REVIEW", "PREPARE_FOR_SUBMISSION", "IN_REVIEW", "WAITING_FOR_REVIEW"].contains(placement.assetState), ["ACTIVE", "INACTIVE", "PARENT_PREPARE_FOR_SUBMISSION", "PARENT_READY_FOR_REVIEW", "PARENT_WAITING_FOR_REVIEW", "PARENT_IN_REVIEW", "PARENT_APPROVED"].contains(placement.placementState) {
                     return .init(placements: [placement], assetID: assetID, uploadComplete: true)
                 }
                 try MediaRequestDeadline.check(deadline)

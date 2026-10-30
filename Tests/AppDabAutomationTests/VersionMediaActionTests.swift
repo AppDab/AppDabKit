@@ -6,6 +6,11 @@ import Testing
 
 private actor MediaActionFixture: VersionMediaServing {
     var mutations = 0
+    var uploadFailure: ServiceError?
+    func failUpload() {
+        uploadFailure = .network("The upload response was lost.")
+    }
+
     var placements = [VersionMediaPlacement(id: "placement", assetID: "asset", placementGroup: "IPHONE", fileName: "screen.png", assetState: "COMPLETE", placementState: "ACTIVE")]
     func changePlacement() {
         placements = []
@@ -17,6 +22,9 @@ private actor MediaActionFixture: VersionMediaServing {
 
     func upload(scope _: VersionMediaScope, request _: VersionMediaUpload, operationID _: String) async throws -> VersionMediaResult {
         mutations += 1
+        if let uploadFailure {
+            throw uploadFailure
+        }
         return .init(placements: placements, assetID: "asset", uploadComplete: true)
     }
 
@@ -60,6 +68,28 @@ struct VersionMediaActionTests {
             try await executor.commit(UploadScreenshotAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "changed")
         }
         #expect(await fixture.mutations == 0)
+    }
+
+    @Test func uncertainUploadRetainsItsCauseAndBlocksDuplicateAttempts() async throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data("original".utf8).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let fixture = MediaActionFixture()
+        let executor = executor(fixture)
+        let input = UploadScreenshotInput(accountID: "account", versionID: "version", locale: "en-US", filePath: file.path, placementGroup: "IPHONE")
+        let plan = try await executor.preview(UploadScreenshotAction.self, input: input)
+        await fixture.failUpload()
+        let failure = AutomationExecutionError.indeterminate(cause: .network("The upload response was lost."))
+        await #expect(throws: failure) {
+            try await executor.commit(UploadScreenshotAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "uncertain-upload")
+        }
+        #expect(failure.code == "indeterminate_outcome")
+        #expect(failure.localizedDescription.contains("The upload response was lost."))
+        #expect(failure.localizedDescription.contains("Reconcile remote state before retrying."))
+        await #expect(throws: AutomationExecutionError.commitBlocked(.indeterminate)) {
+            try await executor.commit(UploadScreenshotAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "uncertain-upload")
+        }
+        #expect(await fixture.mutations == 1)
     }
 
     @Test func removalReplaysWithoutASecondMutationAndRejectsStalePreviews() async throws {

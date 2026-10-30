@@ -373,7 +373,13 @@ public final class Executor: Sendable {
                 idempotencyKey: confirmation.key,
                 claimID: claimID,
             )
-            throw AutomationExecutionError.indeterminate
+            let cause: AutomationActionError? = switch request.actionID {
+            case .uploadScreenshot, .uploadAppPreview:
+                normalizedError(error) as? AutomationActionError
+            default:
+                nil
+            }
+            throw AutomationExecutionError.indeterminate(cause: cause)
         }
     }
 

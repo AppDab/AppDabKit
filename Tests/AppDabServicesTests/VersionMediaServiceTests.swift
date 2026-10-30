@@ -53,6 +53,16 @@ private actor MediaAPI {
         requiresExplicitPlacementIncludes = true
     }
 
+    var placementState = "ACTIVE"
+    var pendingPlacementReads = 0
+    func setPlacementState(_ value: String) {
+        placementState = value
+    }
+
+    func startWithPendingPlacement() {
+        pendingPlacementReads = 1
+    }
+
     var requests: [(String, String)] = []
     var removed = Set<String>()
     var uploaded = false
@@ -126,8 +136,8 @@ private actor MediaAPI {
             }
             return ["id": id, "type": "appAssetLibraryImages", "attributes": attributes]
         }
-        func placement(_ id: String, asset: String = "a2", locale: String = "loc") -> [String: Any] {
-            ["id": id, "type": "appAssetLibraryPlacements", "attributes": ["placementType": "APP_SCREENSHOT", "placementGroup": "IPHONE", "mediaType": "IMAGE", "state": "ACTIVE"], "relationships": ["appStoreVersionLocalization": ["data": ["id": locale, "type": "appStoreVersionLocalizations"]], "image": ["data": ["id": asset, "type": "appAssetLibraryImages"]]]]
+        func placement(_ id: String, asset: String = "a2", locale: String = "loc", state: String? = nil) -> [String: Any] {
+            ["id": id, "type": "appAssetLibraryPlacements", "attributes": ["placementType": "APP_SCREENSHOT", "placementGroup": "IPHONE", "mediaType": "IMAGE", "state": state ?? placementState, "stateDetails": [["code": "PROCESSING", "description": "Asset processing information"]]], "relationships": ["appStoreVersionLocalization": ["data": ["id": locale, "type": "appStoreVersionLocalizations"]], "image": ["data": ["id": asset, "type": "appAssetLibraryImages"]]]]
         }
         switch (path, method) {
         case ("/v1/appStoreVersions/version", "GET"):
@@ -179,7 +189,9 @@ private actor MediaAPI {
         case ("/v1/appAssetLibraryPlacements/old", "GET"):
             body = ["data": placement("old", asset: "a1", locale: "other")]
         case ("/v1/appAssetLibraryPlacements/newp", "GET"):
-            body = ["data": placement("newp", asset: "new")]
+            let state = pendingPlacementReads > 0 ? "PENDING" : placementState
+            pendingPlacementReads = max(0, pendingPlacementReads - 1)
+            body = ["data": placement("newp", asset: "new", state: state)]
         case ("/v1/appAssetLibraryImages/a2", "GET"):
             body = ["data": asset("a2")]
         case ("/v1/appAssetLibraryImages/new", "PATCH"):
@@ -197,7 +209,7 @@ private actor MediaAPI {
             if failPlacement {
                 throw URLError(.networkConnectionLost)
             }
-            body = ["data": placement("newp", asset: "new")]
+            body = ["data": placement("newp", asset: "new", state: "PENDING")]
         case ("/v1/appAssetLibraryPlacementOrderingRequests", "POST"):
             let input = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
             let data = input["data"] as! [String: Any]
@@ -346,6 +358,39 @@ struct VersionMediaServiceTests {
             #expect(await api.requests.filter { $0 == ("/v1/appAssetLibraryImages", "POST") }.count == 1)
             #expect(await api.requests.filter { $0.1 == "DELETE" }.isEmpty)
         }
+    }
+
+    @Test(arguments: [VersionMediaKind.screenshot, .appPreview])
+    func uploadsPendingPlacementsWithoutReconciliation(kind: VersionMediaKind) async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent(kind == .screenshot ? "screen.png" : "preview.mov")
+        try Data("abcdef".utf8).write(to: file)
+        let api = MediaAPI()
+        if kind == .appPreview {
+            await api.useVideo()
+        }
+        await api.startWithPendingPlacement()
+        let request = try VersionMediaUpload(filePath: file.path, placementGroup: "IPHONE", wait: true, timeout: 10, fingerprint: .read(path: file.path))
+        let scope = VersionMediaScope(accountID: "account", versionID: "version", locale: "en-US", kind: kind)
+        let result = try await service(api, directory: directory.appendingPathComponent("journal")).upload(scope: scope, request: request, operationID: "pending")
+        #expect(result.placements.first?.placementState == "ACTIVE")
+        #expect(result.uploadComplete == true)
+        #expect(await api.requests.filter { $0 == ("/v1/appAssetLibraryPlacements", "POST") }.count == 1)
+    }
+
+    @Test(arguments: ["PENDING", "FUTURE_STATE"])
+    func preservesUnmodeledPlacementStatesAndDetails(state: String) async throws {
+        let api = MediaAPI()
+        await api.setPlacementState(state)
+        let service = service(api)
+        let placement = try await service.get(scope: scope, placementID: "p1")
+        let list = try await service.list(scope: scope, placementGroup: nil)
+        #expect(placement.placementState == state)
+        #expect(placement.stateDetails.first?["code"].stringValue == "PROCESSING")
+        #expect(list.placements.count == 2)
+        #expect(list.placements.allSatisfy { $0.placementState == state })
     }
 
     @Test func downloadProtectsExistingFileAndReplayChecksContent() async throws {
