@@ -6,7 +6,6 @@ import Foundation
 /// Loads stored API keys and exposes them through the shared account interfaces.
 ///
 /// The application owns persistence and supplies a closure that reads the keys.
-/// This provider does not store credentials itself.
 public final class StoredAccountProvider: AccountProviding, APIKeyProviding, @unchecked Sendable {
     public typealias VerifyAPIKeyHandler = @Sendable (APIKey) async throws -> Void
     private let loadAPIKeys: @Sendable () async throws -> [APIKey]

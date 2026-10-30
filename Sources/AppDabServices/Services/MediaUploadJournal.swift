@@ -2,7 +2,7 @@ import CryptoKit
 import Darwin
 import Foundation
 
-/// Durable checkpoints complement the final automation receipt. No signed URLs are stored.
+/// Durable checkpoints complement the final automation receipt.
 actor MediaUploadJournal {
     struct Entry: Codable {
         let scope: VersionMediaScope

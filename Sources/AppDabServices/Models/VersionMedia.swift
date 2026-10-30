@@ -19,7 +19,6 @@ public struct VersionMediaScope: Codable, Equatable, Sendable {
     }
 }
 
-/// Contains no signed transfer URLs or upload credentials.
 public struct VersionMediaPlacement: Codable, Equatable, Sendable {
     public let id: String
     public let assetID: String
@@ -121,7 +120,6 @@ public struct VersionMediaUpload: Codable, Equatable, Sendable {
     }
 }
 
-/// Safe to persist in mutation receipts. Transfer credentials are deliberately absent.
 public struct VersionMediaResult: Codable, Equatable, Sendable {
     public let placements: [VersionMediaPlacement]
     public let assetID: String?
