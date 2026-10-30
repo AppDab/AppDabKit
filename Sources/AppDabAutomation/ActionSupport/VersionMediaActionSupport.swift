@@ -91,10 +91,6 @@ public extension VersionMediaWriteAction {
             try VersionMediaUpload.validateFile(path: a.filePath!, fingerprint: fingerprint, requirement: requirement)
             preconditions["file"] = try .fromEncodable(fingerprint)
         }
-        if a.operation == .download {
-            guard !FileManager.default.fileExists(atPath: a.destinationPath!) else { throw AutomationActionError.invalidArguments("The destination already exists.") }
-            try await service.validateDownload(scope: a.scope, placementID: a.placementID!, destinationPath: a.destinationPath!)
-        }
         if a.operation == .reorder, Set(a.placementIDs) != Set(list.placements.map(\.id)) {
             throw AutomationActionError.invalidArguments("Supply every placement in this group exactly once.")
         }
@@ -115,13 +111,11 @@ public extension VersionMediaWriteAction {
             guard let file = plan.remotePreconditions["file"] else { throw AutomationExecutionError.preconditionFailed("Missing upload fingerprint.") }
             let fingerprint = try JSONDecoder().decode(MediaFileFingerprint.self, from: JSONEncoder().encode(file))
             result = try await service.upload(scope: a.scope, request: .init(filePath: a.filePath!, placementGroup: a.placementGroup!, previewFrameTimeCode: a.previewFrameTimeCode, wait: a.wait, timeout: a.timeout, fingerprint: fingerprint), operationID: plan.planID)
-        case .download:
-            result = try await service.download(scope: a.scope, placementID: a.placementID!, destinationPath: a.destinationPath!)
         case .remove:
             result = try await service.remove(scope: a.scope, placementID: a.placementID!)
         case .reorder:
             result = try await service.reorder(scope: a.scope, placementGroup: a.placementGroup!, placementIDs: a.placementIDs)
-        case .list, .get:
+        case .list, .get, .download:
             throw AutomationExecutionError.unsupportedExecutionMode(action: Self.descriptor.id.rawValue, mode: .commit)
         }
         return .init(result: result)
