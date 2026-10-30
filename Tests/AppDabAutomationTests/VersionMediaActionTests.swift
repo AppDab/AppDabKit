@@ -123,37 +123,47 @@ struct VersionMediaActionTests {
         #expect(await another.mutations == 0)
     }
 
-    @Test func untypedDownloadReplayVerifiesTheActualFile() async throws {
+    @Test(arguments: [AutomationActionID.downloadScreenshot, .downloadAppPreview])
+    func downloadsExecuteDirectlyAndNeverOverwrite(actionID: AutomationActionID) async throws {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: file) }
         let fixture = MediaActionFixture()
         let executor = executor(fixture)
         let arguments: [String: JSONValue] = ["accountID": .string("account"), "versionID": .string("version"), "locale": .string("en-US"), "placementID": .string("placement"), "destinationPath": .string(file.path)]
-        let preview = try await executor.execute(.init(actionID: .downloadScreenshot, arguments: arguments, executionContext: .init(mode: .preview)))
-        let plan = try #require(preview.plan)
-        let request = AutomationRequest(actionID: .downloadScreenshot, arguments: arguments, executionContext: .init(mode: .commit, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "download"))
-        _ = try await executor.execute(request)
-        _ = try await executor.execute(request)
-        try Data("changed".utf8).write(to: file)
-        await #expect(throws: Error.self) { try await executor.execute(request) }
+        for mode in [AutomationExecutionMode.preview, .commit, .reconcile] {
+            await #expect(throws: AutomationExecutionError.unsupportedExecutionMode(action: actionID.rawValue, mode: mode)) {
+                try await executor.execute(.init(actionID: actionID, arguments: arguments, executionContext: .init(mode: mode)))
+            }
+        }
+        #expect(!FileManager.default.fileExists(atPath: file.path))
+        #expect(await fixture.mutations == 0)
+        let request = AutomationRequest(actionID: actionID, arguments: arguments)
+        let response = try await executor.execute(request)
+        #expect(response.plan == nil)
+        #expect(response.receipt == nil)
+        #expect(try Data(contentsOf: file) == Data("download".utf8))
+        await #expect(throws: AutomationActionError.invalidArguments("The destination already exists.")) {
+            try await executor.execute(request)
+        }
+        #expect(try Data(contentsOf: file) == Data("download".utf8))
         #expect(await fixture.mutations == 1)
     }
 
-    @Test func unavailableDownloadDoesNotClaimTheOperationOrRequireReconciliation() async throws {
+    @Test func unavailableDownloadCanBeRetriedDirectlyWhenReady() async throws {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: file) }
         let fixture = MediaActionFixture()
         let executor = executor(fixture)
         let input = DownloadAppPreviewInput(accountID: "account", versionID: "version", locale: "en-US", placementID: "placement", destinationPath: file.path)
-        let plan = try await executor.preview(DownloadAppPreviewAction.self, input: input)
         await fixture.setDownloadReady(false)
         await #expect(throws: AutomationActionError.invalidArguments("This preview isn't ready for download yet. Try again later.")) {
-            try await executor.commit(DownloadAppPreviewAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "pending-download")
+            try await executor.execute(DownloadAppPreviewAction.self, input: input)
         }
         #expect(await fixture.mutations == 0)
         #expect(!FileManager.default.fileExists(atPath: file.path))
         await fixture.setDownloadReady(true)
-        _ = try await executor.commit(DownloadAppPreviewAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "pending-download")
+        let output = try await executor.execute(DownloadAppPreviewAction.self, input: input)
+        #expect(output.result?.destinationPath == file.path)
         #expect(await fixture.mutations == 1)
         #expect(FileManager.default.fileExists(atPath: file.path))
     }
