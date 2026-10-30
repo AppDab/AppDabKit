@@ -91,8 +91,9 @@ public extension VersionMediaWriteAction {
             try VersionMediaUpload.validateFile(path: a.filePath!, fingerprint: fingerprint, requirement: requirement)
             preconditions["file"] = try .fromEncodable(fingerprint)
         }
-        if a.operation == .download, FileManager.default.fileExists(atPath: a.destinationPath!) {
-            throw AutomationActionError.invalidArguments("The destination already exists.")
+        if a.operation == .download {
+            guard !FileManager.default.fileExists(atPath: a.destinationPath!) else { throw AutomationActionError.invalidArguments("The destination already exists.") }
+            try await service.validateDownload(scope: a.scope, placementID: a.placementID!, destinationPath: a.destinationPath!)
         }
         if a.operation == .reorder, Set(a.placementIDs) != Set(list.placements.map(\.id)) {
             throw AutomationActionError.invalidArguments("Supply every placement in this group exactly once.")
@@ -181,6 +182,9 @@ enum VersionMediaActionSupport {
             return "Uploaded media and attached placement \(output.result?.placements.first?.id ?? "")."
         }
         if let path = output.result?.destinationPath {
+            if actionID == .downloadAppPreview, URL(fileURLWithPath: path).pathExtension.lowercased() == "m3u8" {
+                return "Downloaded the preview's HLS playlist to \(path). Playback requires an Internet connection."
+            }
             return "Downloaded media to \(path)."
         }
         return "Found \((output.list?.placements ?? output.result?.placements ?? []).count) media placements."
@@ -201,7 +205,7 @@ enum VersionMediaActionSupport {
         }
         if operation == .upload {
             properties["filePath"] = Schema.string(description: "Local file to upload.")
-            properties["wait"] = .object(["type": .string("boolean")])
+            properties["wait"] = .object(["type": .string("boolean"), "description": .string(kind == .appPreview ? "Wait for processing and availability of the preview download." : "Wait for Apple to process the uploaded media.")])
             properties["timeout"] = Schema.integer(description: "Processing timeout in seconds.", minimum: 1, maximum: 3600, default: 300)
             required.append("filePath")
             if kind == .appPreview {
@@ -209,14 +213,17 @@ enum VersionMediaActionSupport {
             }
         }
         if operation == .download {
-            properties["destinationPath"] = Schema.string(description: "New local destination file.")
+            properties["destinationPath"] = Schema.string(description: kind == .appPreview ? "New local destination file. HLS playlists must use .m3u8 and require an Internet connection for playback." : "New local destination file.")
             required.append("destinationPath")
         }
         if operation == .reorder {
             properties["placementIDs"] = .object(["type": .string("array"), "items": .object(["type": .string("string")])])
             required.append("placementIDs")
         }
-        return .init(id: id, title: "\(operation.rawValue.capitalized) \(kind == .screenshot ? "Screenshots" : "App Previews")", description: "\(operation.rawValue.capitalized) \(kind == .screenshot ? "screenshots" : "app previews") for an existing App Store version localization.", inputSchema: Schema.object(properties: properties, required: required), outputSchema: outputSchema, outputType: "versionMedia", safety: [.list, .get].contains(operation) ? .read : .write)
+        let description = operation == .download && kind == .appPreview
+            ? "Download processed app preview media. Apple may provide an HLS playlist (.m3u8), which requires an Internet connection for playback."
+            : "\(operation.rawValue.capitalized) \(kind == .screenshot ? "screenshots" : "app previews") for an existing App Store version localization."
+        return .init(id: id, title: "\(operation.rawValue.capitalized) \(kind == .screenshot ? "Screenshots" : "App Previews")", description: description, inputSchema: Schema.object(properties: properties, required: required), outputSchema: outputSchema, outputType: "versionMedia", safety: [.list, .get].contains(operation) ? .read : .write)
     }
 
     private static let string = Schema.string(description: "Media value.")

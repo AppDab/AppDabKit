@@ -3,12 +3,17 @@ public protocol VersionMediaServing: Sendable {
     func list(scope: VersionMediaScope, placementGroup: String?) async throws -> VersionMediaList
     func upload(scope: VersionMediaScope, request: VersionMediaUpload, operationID: String) async throws -> VersionMediaResult
     func recoverUpload(scope: VersionMediaScope, request: VersionMediaUpload, operationID: String) async throws -> VersionMediaResult?
+    func validateDownload(scope: VersionMediaScope, placementID: String, destinationPath: String) async throws
     func download(scope: VersionMediaScope, placementID: String, destinationPath: String) async throws -> VersionMediaResult
     func remove(scope: VersionMediaScope, placementID: String) async throws -> VersionMediaResult
     func reorder(scope: VersionMediaScope, placementGroup: String, placementIDs: [String]) async throws -> VersionMediaResult
 }
 
 public extension VersionMediaServing {
+    func validateDownload(scope: VersionMediaScope, placementID: String, destinationPath _: String) async throws {
+        _ = try await get(scope: scope, placementID: placementID)
+    }
+
     func recoverUpload(scope _: VersionMediaScope, request _: VersionMediaUpload, operationID _: String) async throws -> VersionMediaResult? {
         nil
     }

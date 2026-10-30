@@ -43,6 +43,17 @@ private actor MediaTransferSpy: MediaTransferTransport {
 }
 
 private actor MediaAPI {
+    var delayedVideoURLReads = 0
+    var missingVideoURLReads = 0
+    var videoDownloadURL = "https://cdn.example/preview.mp4"
+    func delayVideoURL() {
+        delayedVideoURLReads = 2
+    }
+
+    func useHLSVideoURL() {
+        videoDownloadURL = "https://cdn.example/preview.m3u8"
+    }
+
     var videoMode = false
     func useVideo() {
         videoMode = true
@@ -131,6 +142,14 @@ private actor MediaAPI {
         func asset(_ id: String) -> [String: Any] {
             let state = id == "new" && !uploaded ? "AWAITING_UPLOAD" : waiting && id == "new" ? "UPLOAD_COMPLETE" : "COMPLETE"
             var attributes: [String: Any] = ["state": state, "category": "APP_SCREENSHOTS_AND_PREVIEWS", "fileName": "screen.png", "fileSize": 6, "imageAsset": ["templateUrl": "https://cdn.example/{w}x{h}{c}.{f}", "width": 100, "height": 200]]
+            if videoMode, state == "COMPLETE" {
+                if id == "new", attached, delayedVideoURLReads > 0 {
+                    delayedVideoURLReads -= 1
+                    missingVideoURLReads += 1
+                } else {
+                    attributes["videoAsset"] = videoDownloadURL
+                }
+            }
             if state == "AWAITING_UPLOAD" {
                 attributes["uploadOperations"] = [["url": "https://uploads.example/file", "method": "PUT", "offset": 0, "length": 3, "requestHeaders": [["name": "X-Signature", "value": "secret"]]], ["url": "https://uploads.example/file2", "method": "PUT", "offset": 3, "length": 3]]
             }
@@ -429,6 +448,54 @@ struct VersionMediaServiceTests {
         #expect(recovered?.uploadComplete == true)
         #expect(await transport.operations.count == 2)
         await #expect(throws: ServiceError.self) { try await service.download(scope: scope, placementID: "newp", destinationPath: directory.appendingPathComponent("missing.mov").path) }
+    }
+
+    @Test func waitingForPreviewUploadAlsoWaitsForItsDownloadURL() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("preview.mov")
+        try Data("abcdef".utf8).write(to: file)
+        let api = MediaAPI()
+        await api.useVideo()
+        await api.delayVideoURL()
+        let transport = MediaTransferSpy()
+        let service = service(api, transport: transport, directory: directory.appendingPathComponent("journal"))
+        let scope = VersionMediaScope(accountID: "account", versionID: "version", locale: "en-US", kind: .appPreview)
+        let request = try VersionMediaUpload(filePath: file.path, placementGroup: "IPHONE", wait: true, timeout: 10, fingerprint: .read(path: file.path))
+        let result = try await service.upload(scope: scope, request: request, operationID: "late-video-url")
+        #expect(result.uploadComplete == true)
+        #expect(await api.missingVideoURLReads == 2)
+        let destination = directory.appendingPathComponent("download.mp4")
+        _ = try await service.download(scope: scope, placementID: "newp", destinationPath: destination.path)
+        #expect(FileManager.default.fileExists(atPath: destination.path))
+        #expect(await transport.operations.count == 2)
+    }
+
+    @Test func streamingPreviewRequiresAnHonestFileExtension() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let api = MediaAPI()
+        await api.useVideo()
+        await api.useHLSVideoURL()
+        let transport = MediaTransferSpy()
+        let service = service(api, transport: transport)
+        let scope = VersionMediaScope(accountID: "account", versionID: "version", locale: "en-US", kind: .appPreview)
+        let movie = directory.appendingPathComponent("preview.mp4")
+        await #expect(throws: ServiceError.self) {
+            try await service.validateDownload(scope: scope, placementID: "p1", destinationPath: movie.path)
+        }
+        await #expect(throws: ServiceError.self) {
+            try await service.download(scope: scope, placementID: "p1", destinationPath: movie.path)
+        }
+        #expect(await transport.downloadURLs.isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: movie.path))
+        let playlist = directory.appendingPathComponent("preview.m3u8")
+        try await service.validateDownload(scope: scope, placementID: "p1", destinationPath: playlist.path)
+        _ = try await service.download(scope: scope, placementID: "p1", destinationPath: playlist.path)
+        #expect(FileManager.default.fileExists(atPath: playlist.path))
+        #expect(await transport.downloadURLs.first?.pathExtension == "m3u8")
     }
 
     @Test func lostCompletionResponseDoesNotRetransferTheFile() async throws {

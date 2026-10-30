@@ -191,24 +191,54 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
         }
     }
 
+    public func validateDownload(scope: VersionMediaScope, placementID: String, destinationPath: String) async throws {
+        do {
+            let placement = try await get(scope: scope, placementID: placementID)
+            let service = try await service(scope)
+            let asset = try await asset(scope: scope, id: placement.assetID, service: service)
+            let url = try downloadURL(scope: scope, attributes: asset["attributes"])
+            try validateDownloadDestination(url: url, destinationPath: destinationPath)
+        } catch { throw try ServiceError.classify(error) }
+    }
+
+    private func downloadURL(scope: VersionMediaScope, attributes: JSONValue) throws -> URL {
+        let url: URL?
+        if scope.kind == .screenshot {
+            let image = attributes["imageAsset"]
+            if let template = image["templateUrl"].stringValue, let width = image["width"].intValue, let height = image["height"].intValue {
+                url = URL(string: template.replacingOccurrences(of: "{w}", with: String(width)).replacingOccurrences(of: "{h}", with: String(height)).replacingOccurrences(of: "{c}", with: "bb").replacingOccurrences(of: "{f}", with: "png"))
+            } else {
+                url = nil
+            }
+        } else {
+            url = attributes["videoAsset"].stringValue.flatMap(URL.init(string:))
+        }
+        guard let url, !url.absoluteString.lowercased().contains("%7b"), !url.absoluteString.contains("{") else {
+            if scope.kind == .appPreview {
+                if ["FAILED", "REJECTED", "ARCHIVED"].contains(attributes["state"].stringValue ?? "") {
+                    throw ServiceError.invalidArguments("This preview isn't available for download.")
+                }
+                throw ServiceError.invalidArguments("This preview isn't ready for download yet. Apple may still be processing it. Try again later.")
+            }
+            throw ServiceError.invalidArguments("This screenshot isn't ready for download yet. Try again later.")
+        }
+        guard url.scheme == "https", url.host != nil else { throw ServiceError.upstream("Apple returned an invalid download URL.") }
+        return url
+    }
+
+    private func validateDownloadDestination(url: URL, destinationPath: String) throws {
+        if url.pathExtension.lowercased() == "m3u8", URL(fileURLWithPath: destinationPath).pathExtension.lowercased() != "m3u8" {
+            throw ServiceError.invalidArguments("Apple provides this preview as an HLS playlist. Choose a destination ending in .m3u8. The playlist streams the video from Apple; it isn't a standalone video file.")
+        }
+    }
+
     public func download(scope: VersionMediaScope, placementID: String, destinationPath: String) async throws -> VersionMediaResult {
         do {
             let placement = try await get(scope: scope, placementID: placementID)
             let service = try await service(scope)
             let asset = try await asset(scope: scope, id: placement.assetID, service: service)
-            let attributes = asset["attributes"]
-            let url: URL?
-            if scope.kind == .screenshot {
-                let image = attributes["imageAsset"]
-                if let template = image["templateUrl"].stringValue, let width = image["width"].intValue, let height = image["height"].intValue {
-                    url = URL(string: template.replacingOccurrences(of: "{w}", with: String(width)).replacingOccurrences(of: "{h}", with: String(height)).replacingOccurrences(of: "{c}", with: "bb").replacingOccurrences(of: "{f}", with: "png"))
-                } else {
-                    url = nil
-                }
-            } else {
-                url = attributes["videoAsset"].stringValue.flatMap(URL.init(string:))
-            }
-            guard let url, !url.absoluteString.lowercased().contains("%7b"), !url.absoluteString.contains("{") else { throw ServiceError.invalidArguments("Apple has not supplied downloadable media for this placement.") }
+            let url = try downloadURL(scope: scope, attributes: asset["attributes"])
+            try validateDownloadDestination(url: url, destinationPath: destinationPath)
             let destination = URL(fileURLWithPath: destinationPath).standardizedFileURL
             try await transport.download(url: url, destination: destination)
             return try .init(placements: [placement], destinationPath: destination.path, fingerprint: MediaFileFingerprint.read(path: destination.path))
@@ -339,7 +369,14 @@ public final class VersionMediaService: VersionMediaServing, Sendable {
                     throw ServiceError.upstream("Apple could not process the media: \(placement.assetState), \(placement.placementState). Inspect the placement for details.")
                 }
                 if ["COMPLETE", "ACCEPTED", "APPROVED", "READY_FOR_REVIEW", "PREPARE_FOR_SUBMISSION", "IN_REVIEW", "WAITING_FOR_REVIEW"].contains(placement.assetState), ["ACTIVE", "INACTIVE", "PARENT_PREPARE_FOR_SUBMISSION", "PARENT_READY_FOR_REVIEW", "PARENT_WAITING_FOR_REVIEW", "PARENT_IN_REVIEW", "PARENT_APPROVED"].contains(placement.placementState) {
-                    return .init(placements: [placement], assetID: assetID, uploadComplete: true)
+                    if scope.kind == .screenshot {
+                        return .init(placements: [placement], assetID: assetID, uploadComplete: true)
+                    }
+                    let pollingService = try await self.service(scope, deadline: deadline)
+                    let remote = try await asset(scope: scope, id: assetID, service: pollingService)
+                    if (try? downloadURL(scope: scope, attributes: remote["attributes"])) != nil {
+                        return .init(placements: [placement], assetID: assetID, uploadComplete: true)
+                    }
                 }
                 try MediaRequestDeadline.check(deadline)
                 try await ContinuousClock().sleep(until: min(deadline, .now.advanced(by: .seconds(2))))

@@ -6,6 +6,17 @@ import Testing
 
 private actor MediaActionFixture: VersionMediaServing {
     var mutations = 0
+    var downloadReady = true
+    func setDownloadReady(_ value: Bool) {
+        downloadReady = value
+    }
+
+    func validateDownload(scope _: VersionMediaScope, placementID _: String, destinationPath _: String) async throws {
+        if !downloadReady {
+            throw ServiceError.invalidArguments("This preview isn't ready for download yet. Try again later.")
+        }
+    }
+
     var uploadFailure: ServiceError?
     func failUpload() {
         uploadFailure = .network("The upload response was lost.")
@@ -126,6 +137,25 @@ struct VersionMediaActionTests {
         try Data("changed".utf8).write(to: file)
         await #expect(throws: Error.self) { try await executor.execute(request) }
         #expect(await fixture.mutations == 1)
+    }
+
+    @Test func unavailableDownloadDoesNotClaimTheOperationOrRequireReconciliation() async throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let fixture = MediaActionFixture()
+        let executor = executor(fixture)
+        let input = DownloadAppPreviewInput(accountID: "account", versionID: "version", locale: "en-US", placementID: "placement", destinationPath: file.path)
+        let plan = try await executor.preview(DownloadAppPreviewAction.self, input: input)
+        await fixture.setDownloadReady(false)
+        await #expect(throws: AutomationActionError.invalidArguments("This preview isn't ready for download yet. Try again later.")) {
+            try await executor.commit(DownloadAppPreviewAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "pending-download")
+        }
+        #expect(await fixture.mutations == 0)
+        #expect(!FileManager.default.fileExists(atPath: file.path))
+        await fixture.setDownloadReady(true)
+        _ = try await executor.commit(DownloadAppPreviewAction.self, input: input, confirmationFingerprint: plan.confirmationFingerprint, idempotencyKey: "pending-download")
+        #expect(await fixture.mutations == 1)
+        #expect(FileManager.default.fileExists(atPath: file.path))
     }
 
     @Test func rejectsUnknownArgumentsWrongTypesAndDuplicateOrdering() throws {
