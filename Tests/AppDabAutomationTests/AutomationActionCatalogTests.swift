@@ -4,6 +4,16 @@ import Foundation
 import Testing
 
 struct AutomationActionCatalogTests {
+    @Test func registryExposesExecutionCapabilitiesForAdapters() {
+        let registry = AutomationRegistry.standard
+        #expect(registry.supportsDirectWriteExecution(for: .downloadScreenshot))
+        #expect(registry.supportsDirectWriteExecution(for: .downloadAppPreview))
+        #expect(!registry.supportsDirectWriteExecution(for: .uploadScreenshot))
+        #expect(!registry.supportsDirectWriteExecution(for: .removeAppPreview))
+        #expect(!registry.supportsDirectWriteExecution(for: .listScreenshots))
+        #expect(!registry.supportsDirectWriteExecution(for: .init(rawValue: "unknown")))
+    }
+
     @Test func updateBetaGroupRejectsExplicitNullFields() {
         for field in ["name", "publicLinkLimit"] {
             let arguments: [String: JSONValue] = [
