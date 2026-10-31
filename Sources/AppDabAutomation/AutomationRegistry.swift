@@ -136,6 +136,13 @@ public struct AutomationRegistry: Sendable {
         actionsByID[id]?.descriptor
     }
 
+    /// Indicates whether a registered write executes directly instead of using a mutation plan.
+    /// Adapters use this capability when publishing their execution options and result schemas.
+    /// Returns false for unknown actions.
+    public func supportsDirectWriteExecution(for id: AutomationActionID) -> Bool {
+        actionsByID[id]?.supportsDirectWriteExecution ?? false
+    }
+
     public func descriptor(named name: String) -> AutomationActionDescriptor? {
         let id = AutomationActionID(rawValue: name)
         return actionsByID[id]?.descriptor
