@@ -16,4 +16,4 @@ The source reference is an SCM resource ID, not a branch name. An omitted source
 
 A successful commit persists a replayable receipt, including the returned run ID. If the response is lost, reconciliation remains unresolved: Apple provides no client request ID to distinguish this start from another caller's start. Never infer success from a similar recent build or automatically repeat an uncertain start.
 
-Adapters should call the typed actions through `Executor`. CLI commands live in AppDabCLI; native App Intents and the descriptor driven MCP server live in AppDabApp. All three must resolve the version of AppDabKit containing these actions. Merge the kit changes first, then update the CLI dependency resolution, then update both AppDabKit and AppDabCLI pins in AppDabApp's SwiftPM and Xcode resolution files.
+Call the typed actions through `Executor` to use input validation, guarded execution, and persisted mutation receipts.
