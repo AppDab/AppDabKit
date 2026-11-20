@@ -12,7 +12,7 @@ Every AppDab automation action starts here. This guide defines the typed AppDabK
 
 ## Choose write behavior
 
-Reads conform to `AutomationAction`. A direct write sets `supportsDirectWriteExecution` only when repeating the operation is safe. A guarded write conforms to `GuardedAutomationAction` and implements preview, remote precondition validation, commit, redacted replay data, and reconciliation before it is registered.
+Reads conform to `AutomationAction`. A direct write sets `supportsDirectWriteExecution` when the operation should execute without confirmation, including commands that trigger work such as starting a build. This capability does not imply idempotency; document whether repeated calls perform additional work. A guarded write conforms to `GuardedAutomationAction` and implements preview, remote precondition validation, commit, redacted replay data, and reconciliation before it is registered.
 
 ## Update the contract and verify
 
