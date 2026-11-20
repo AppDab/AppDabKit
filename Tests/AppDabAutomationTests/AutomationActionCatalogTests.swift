@@ -4,6 +4,16 @@ import Foundation
 import Testing
 
 struct AutomationActionCatalogTests {
+    @Test func registryExposesExecutionCapabilitiesForAdapters() {
+        let registry = AutomationRegistry.standard
+        #expect(registry.supportsDirectWriteExecution(for: .downloadScreenshot))
+        #expect(registry.supportsDirectWriteExecution(for: .downloadAppPreview))
+        #expect(!registry.supportsDirectWriteExecution(for: .uploadScreenshot))
+        #expect(!registry.supportsDirectWriteExecution(for: .removeAppPreview))
+        #expect(!registry.supportsDirectWriteExecution(for: .listScreenshots))
+        #expect(!registry.supportsDirectWriteExecution(for: .init(rawValue: "unknown")))
+    }
+
     @Test func updateBetaGroupRejectsExplicitNullFields() {
         for field in ["name", "publicLinkLimit"] {
             let arguments: [String: JSONValue] = [
@@ -29,8 +39,11 @@ struct AutomationActionCatalogTests {
             .submitBuildForBetaReview, .expireBuild, .setBuildExportCompliance, .updateBetaBuildLocalization,
         ]
         let betaTestingWrites: [AutomationActionID] = [.createBetaAppLocalization, .updateBetaAppLocalization, .deleteBetaAppLocalization, .updateBetaAppReviewDetail, .updateBetaLicenseAgreement]
-        let writes = Set(buildWrites + betaTestingWrites + [.startXcodeCloudBuild, .addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup, .inviteBetaTester, .sendBetaTesterInvitation])
+        let mediaWrites: [AutomationActionID] = [.uploadScreenshot, .downloadScreenshot, .removeScreenshot, .reorderScreenshots, .uploadAppPreview, .downloadAppPreview, .removeAppPreview, .reorderAppPreviews]
+        let writes = Set(mediaWrites + buildWrites + betaTestingWrites + [.startXcodeCloudBuild, .addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup, .inviteBetaTester, .sendBetaTesterInvitation])
         #expect(descriptors.map(\.id) == [
+            .listScreenshots, .getScreenshot, .uploadScreenshot, .downloadScreenshot, .removeScreenshot, .reorderScreenshots,
+            .listAppPreviews, .getAppPreview, .uploadAppPreview, .downloadAppPreview, .removeAppPreview, .reorderAppPreviews,
             .listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp,
             .listAppVersions, .getAppVersion, .listBuilds, .getBuild,
             .startXcodeCloudBuild, .getXcodeCloudBuild, .getXcodeCloudWorkflow, .listXcodeCloudGitReferences, .listXcodeCloudWorkflows,

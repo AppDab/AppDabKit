@@ -373,7 +373,13 @@ public final class Executor: Sendable {
                 idempotencyKey: confirmation.key,
                 claimID: claimID,
             )
-            throw AutomationExecutionError.indeterminate
+            let cause: AutomationActionError? = switch request.actionID {
+            case .uploadScreenshot, .uploadAppPreview:
+                normalizedError(error) as? AutomationActionError
+            default:
+                nil
+            }
+            throw AutomationExecutionError.indeterminate(cause: cause)
         }
     }
 
@@ -521,6 +527,7 @@ public final class Executor: Sendable {
         guard try receipt.canonicalInputHash == hash(.object(request.arguments)) else {
             throw AutomationExecutionError.inputChanged
         }
+        try registry.action(for: request.actionID).validateReplayData(receipt.redactedReplayData)
         return .init(
             actionID: receipt.actionID,
             summary: receipt.redactedSummary,

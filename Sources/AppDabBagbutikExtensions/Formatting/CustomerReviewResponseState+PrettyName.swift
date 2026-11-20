@@ -5,9 +5,9 @@ public extension CustomerReviewResponseV1.Attributes.State {
     var prettyName: String {
         switch self {
         case .pendingPublish:
-            return "Pending"
+            "Pending"
         case .published:
-            return "Published"
+            "Published"
         @unknown default: fatalError()
         }
     }

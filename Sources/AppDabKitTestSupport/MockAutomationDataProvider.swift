@@ -5,17 +5,24 @@ import ConnectAccounts
 import Foundation
 
 public struct MockAutomationDataProvider: AutomationDataProviding {
+    public let mediaService: any VersionMediaServing
+    public func versionMedia() throws -> any VersionMediaServing {
+        mediaService
+    }
+
     public let appError: ServiceError?
     public let returnsEmptyCollections: Bool
     public let includesReviewResponse: Bool
     public let reviewRating: Int
 
     public init(
+        mediaService: any VersionMediaServing = UnavailableVersionMediaService(),
         appError: ServiceError? = nil,
         returnsEmptyCollections: Bool = false,
         includesReviewResponse: Bool = true,
         reviewRating: Int = 5,
     ) {
+        self.mediaService = mediaService
         self.appError = appError
         self.returnsEmptyCollections = returnsEmptyCollections
         self.includesReviewResponse = includesReviewResponse

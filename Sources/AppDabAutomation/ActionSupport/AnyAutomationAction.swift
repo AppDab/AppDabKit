@@ -1,6 +1,7 @@
 import AppDabServices
 
 public struct AnyAutomationAction: Sendable {
+    let validateReplayData: @Sendable (JSONValue) throws -> Void
     public let descriptor: AutomationActionDescriptor
     public let supportsDirectWriteExecution: Bool
     private let actionTypeID: ObjectIdentifier
@@ -69,6 +70,7 @@ public struct AnyAutomationAction: Sendable {
         commitAction: (@Sendable ([String: JSONValue], AutomationMutationPlan, any AutomationDataProviding) async throws -> CommittedResponse)?,
         reconcileAction: (@Sendable ([String: JSONValue], AutomationMutationPlan, any AutomationDataProviding) async throws -> MutationReconciliation)?,
     ) {
+        validateReplayData = { try actionType.init().validateReplayData($0) }
         descriptor = actionType.descriptor
         supportsDirectWriteExecution = actionType.supportsDirectWriteExecution
         actionTypeID = ObjectIdentifier(actionType)

@@ -4,6 +4,7 @@
 /// automation consumers.
 public protocol ServiceProviding: Sendable {
     var xcodeCloudService: any XcodeCloudServing { get }
+    var versionMediaService: any VersionMediaServing { get }
     var accountProvider: any AccountProviding { get }
     var appCatalogService: any AppCatalogServing { get }
     var buildService: any BuildServing { get }
@@ -13,4 +14,10 @@ public protocol ServiceProviding: Sendable {
     var betaGroupService: any BetaGroupServing { get }
     var betaAppTestingService: any BetaAppTestingServing { get }
     var customerReviewService: any CustomerReviewServing { get }
+}
+
+public extension ServiceProviding {
+    var versionMediaService: any VersionMediaServing {
+        UnavailableVersionMediaService()
+    }
 }

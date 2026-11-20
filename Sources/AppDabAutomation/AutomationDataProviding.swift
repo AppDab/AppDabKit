@@ -8,6 +8,7 @@ public protocol AutomationDataProviding: Sendable {
     func startXcodeCloudBuild(accountID: String, request: XcodeCloudBuildRequest) async throws -> XcodeCloudBuildRun
     func getXcodeCloudBuild(accountID: String, buildRunID: String) async throws -> XcodeCloudBuildRun
 
+    func versionMedia() throws -> any VersionMediaServing
     func accountStore() throws -> any AutomationAccountStoring
     func listAccounts() async throws -> [AccountSummary]
     func verifyAccount(accountID: String) async throws -> AccountVerification
@@ -77,6 +78,10 @@ public extension AutomationDataProviding {
 
     func getXcodeCloudBuild(accountID _: String, buildRunID _: String) async throws -> XcodeCloudBuildRun {
         throw ServiceError.upstream("Xcode Cloud is unavailable for this data provider.")
+    }
+
+    func versionMedia() throws -> any VersionMediaServing {
+        UnavailableVersionMediaService()
     }
 
     func setBuildExportCompliance(accountID _: String, request _: BuildExportComplianceRequest) async throws -> BuildExportComplianceResult {

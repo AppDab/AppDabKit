@@ -11,9 +11,13 @@ public enum AutomationExecutionError: Error, Equatable, LocalizedError, Sendable
     case preconditionFailed(String)
     case idempotencyCollision
     case commitBlocked(AutomationAuditStatus)
-    case indeterminate
+    case indeterminate(cause: AutomationActionError?)
     case reconciliationUnresolved
     case persistence(String)
+
+    public static var indeterminate: Self {
+        .indeterminate(cause: nil)
+    }
 
     public var code: String {
         switch self {
@@ -55,8 +59,12 @@ public enum AutomationExecutionError: Error, Equatable, LocalizedError, Sendable
             "The idempotency key was already used with different input."
         case let .commitBlocked(status):
             "The mutation preview or idempotency key already has a \(status.rawValue) outcome. Use the original idempotency key to recover the operation."
-        case .indeterminate:
-            "The mutation outcome is indeterminate. Reconcile remote state before retrying."
+        case let .indeterminate(cause):
+            if let cause {
+                "The mutation outcome is indeterminate. \(cause.localizedDescription) Reconcile remote state before retrying."
+            } else {
+                "The mutation outcome is indeterminate. Reconcile remote state before retrying."
+            }
         case .reconciliationUnresolved:
             "Remote state did not resolve the indeterminate mutation outcome."
         case let .persistence(message):

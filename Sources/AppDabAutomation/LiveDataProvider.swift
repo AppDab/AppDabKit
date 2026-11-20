@@ -10,6 +10,10 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         storedAccounts = accountStore
     }
 
+    public func versionMedia() throws -> any VersionMediaServing {
+        services.versionMediaService
+    }
+
     public func accountStore() throws -> any AutomationAccountStoring {
         storedAccounts
     }

@@ -7,6 +7,18 @@ public struct AutomationRegistry: Sendable {
     public static let standard: AutomationRegistry = {
         do {
             return try AutomationRegistry(actions: [
+                AnyAutomationAction(ListScreenshotsAction.self),
+                AnyAutomationAction(GetScreenshotAction.self),
+                AnyAutomationAction.guarded(UploadScreenshotAction.self),
+                AnyAutomationAction(DownloadScreenshotAction.self),
+                AnyAutomationAction.guarded(RemoveScreenshotAction.self),
+                AnyAutomationAction.guarded(ReorderScreenshotsAction.self),
+                AnyAutomationAction(ListAppPreviewsAction.self),
+                AnyAutomationAction(GetAppPreviewAction.self),
+                AnyAutomationAction.guarded(UploadAppPreviewAction.self),
+                AnyAutomationAction(DownloadAppPreviewAction.self),
+                AnyAutomationAction.guarded(RemoveAppPreviewAction.self),
+                AnyAutomationAction.guarded(ReorderAppPreviewsAction.self),
                 AnyAutomationAction(ListAccountsAction.self),
                 AnyAutomationAction(AddAccountAction.self),
                 AnyAutomationAction(RemoveAccountAction.self),
@@ -127,6 +139,13 @@ public struct AutomationRegistry: Sendable {
 
     public func descriptor(for id: AutomationActionID) -> AutomationActionDescriptor? {
         actionsByID[id]?.descriptor
+    }
+
+    /// Indicates whether a registered write executes directly instead of using a mutation plan.
+    /// Adapters use this capability when publishing their execution options and result schemas.
+    /// Returns false for unknown actions.
+    public func supportsDirectWriteExecution(for id: AutomationActionID) -> Bool {
+        actionsByID[id]?.supportsDirectWriteExecution ?? false
     }
 
     public func descriptor(named name: String) -> AutomationActionDescriptor? {
