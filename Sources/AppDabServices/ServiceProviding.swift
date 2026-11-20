@@ -3,6 +3,7 @@
 /// Implement this protocol to provide alternate service implementations to
 /// automation consumers.
 public protocol ServiceProviding: Sendable {
+    var xcodeCloudService: any XcodeCloudServing { get }
     var versionMediaService: any VersionMediaServing { get }
     var accountProvider: any AccountProviding { get }
     var appCatalogService: any AppCatalogServing { get }

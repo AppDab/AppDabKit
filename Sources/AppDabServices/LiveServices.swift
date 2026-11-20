@@ -3,6 +3,7 @@
 /// Create an instance with an account provider to use the Bagbutik backed
 /// services, or inject service implementations with the full initializer.
 public struct LiveServices: ServiceProviding {
+    public let xcodeCloudService: any XcodeCloudServing
     public let versionMediaService: any VersionMediaServing
     public let accountProvider: any AccountProviding
     public let appCatalogService: any AppCatalogServing
@@ -17,6 +18,7 @@ public struct LiveServices: ServiceProviding {
     /// Creates the live services using an account provider that also supplies API keys.
     public init(accountProvider: some AccountProviding & APIKeyProviding) {
         self.accountProvider = accountProvider
+        xcodeCloudService = XcodeCloudService(accountProvider: accountProvider)
         versionMediaService = VersionMediaService(accountProvider: accountProvider)
         appCatalogService = AppCatalogService(accountProvider: accountProvider)
         buildService = BuildService(accountProvider: accountProvider)
@@ -41,6 +43,7 @@ public struct LiveServices: ServiceProviding {
         betaGroupService: any BetaGroupServing,
         betaAppTestingService: any BetaAppTestingServing,
         customerReviewService: any CustomerReviewServing,
+        xcodeCloudService: any XcodeCloudServing,
         versionMediaService: any VersionMediaServing = UnavailableVersionMediaService(),
     ) {
         self.versionMediaService = versionMediaService
@@ -53,5 +56,6 @@ public struct LiveServices: ServiceProviding {
         self.betaGroupService = betaGroupService
         self.betaAppTestingService = betaAppTestingService
         self.customerReviewService = customerReviewService
+        self.xcodeCloudService = xcodeCloudService
     }
 }

@@ -40,12 +40,13 @@ struct AutomationActionCatalogTests {
         ]
         let betaTestingWrites: [AutomationActionID] = [.createBetaAppLocalization, .updateBetaAppLocalization, .deleteBetaAppLocalization, .updateBetaAppReviewDetail, .updateBetaLicenseAgreement]
         let mediaWrites: [AutomationActionID] = [.uploadScreenshot, .downloadScreenshot, .removeScreenshot, .reorderScreenshots, .uploadAppPreview, .downloadAppPreview, .removeAppPreview, .reorderAppPreviews]
-        let writes = Set(mediaWrites + buildWrites + betaTestingWrites + [.addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup, .inviteBetaTester, .sendBetaTesterInvitation])
+        let writes = Set(mediaWrites + buildWrites + betaTestingWrites + [.startXcodeCloudBuild, .addAccount, .removeAccount, .createAppVersion, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup, .inviteBetaTester, .sendBetaTesterInvitation])
         #expect(descriptors.map(\.id) == [
             .listScreenshots, .getScreenshot, .uploadScreenshot, .downloadScreenshot, .removeScreenshot, .reorderScreenshots,
             .listAppPreviews, .getAppPreview, .uploadAppPreview, .downloadAppPreview, .removeAppPreview, .reorderAppPreviews,
             .listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp,
             .listAppVersions, .getAppVersion, .listBuilds, .getBuild,
+            .startXcodeCloudBuild, .getXcodeCloudBuild, .getXcodeCloudWorkflow, .listXcodeCloudGitReferences, .listXcodeCloudWorkflows,
             .listBetaGroups, .getBetaGroup, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup,
             .addBuildToBetaGroup, .removeBuildFromBetaGroup,
         ] + buildWrites.filter { $0 != .addBuildToBetaGroup && $0 != .removeBuildFromBetaGroup } + [
@@ -119,7 +120,14 @@ struct AutomationActionCatalogTests {
             primaryLocale: "en-US", iconURL: URL(string: "https://example.com/icon.png"),
             contentRightsDeclaration: "DOES_NOT_USE_THIRD_PARTY_CONTENT", displayVersions: [version],
         )
+        let cloudWorkflow = XcodeCloudWorkflow(workflowID: "workflow-1", name: "Release", repositoryID: "repository-1", isEnabled: true, isLockedForEditing: false, lastModifiedDate: .now)
+        let cloudRun = XcodeCloudBuildRun(buildRunID: "run-1", number: 42, workflowID: "workflow-1", sourceBranchOrTagID: "reference-1", executionProgress: "COMPLETE", completionStatus: "SUCCEEDED", createdDate: .now, startedDate: .now, finishedDate: .now)
         let examples: [(AutomationActionID, JSONValue)] = try [
+            (.listXcodeCloudWorkflows, .fromEncodable(XcodeCloudWorkflowList(appID: "app-1", workflows: [cloudWorkflow], pagination: pagination))),
+            (.getXcodeCloudWorkflow, .object(["workflow": .fromEncodable(cloudWorkflow)])),
+            (.listXcodeCloudGitReferences, .fromEncodable(XcodeCloudGitReferenceList(repositoryID: "repository-1", gitReferences: [.init(gitReferenceID: "reference-1", name: "main", canonicalName: "refs/heads/main", kind: "BRANCH", repositoryID: "repository-1", isDeleted: false)], pagination: pagination))),
+            (.startXcodeCloudBuild, .object(["buildRun": .fromEncodable(cloudRun)])),
+            (.getXcodeCloudBuild, .object(["buildRun": .fromEncodable(cloudRun)])),
             (.listBetaGroups, .fromEncodable(BetaGroupList(appID: "app-1", betaGroups: [
                 .init(betaGroupID: "group-1", name: "Internal", isInternalGroup: true),
             ], pagination: pagination))),

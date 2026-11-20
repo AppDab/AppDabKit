@@ -30,6 +30,7 @@ let package = Package(
             .product(name: "BagbutikCore", package: "Bagbutik"),
             .product(name: "BagbutikAppStore", package: "Bagbutik"),
             .product(name: "BagbutikTestFlight", package: "Bagbutik"),
+            .product(name: "BagbutikXcodeCloud", package: "Bagbutik"),
             .product(name: "ConnectAccounts", package: "AppStoreConnectKit"),
         ]),
         .target(name: "AppDabBagbutikExtensions", dependencies: [
