@@ -5,7 +5,7 @@ import ConnectAccounts
 public final class BuildService: BuildServing, @unchecked Sendable {
     public typealias ListBuildsHandler = @Sendable (APIKey, String, PaginationRequest) async throws -> BuildList
     public typealias GetBuildHandler = @Sendable (APIKey, String) async throws -> BuildSummary
-    private let listBuildsHandler: ListBuildsHandler
+    private let listBuildsHandler: ListBuildsHandler?
     private let getBuildHandler: GetBuildHandler
 
     private let accountProvider: any APIKeyProviding
@@ -16,16 +16,26 @@ public final class BuildService: BuildServing, @unchecked Sendable {
         getBuildHandler: GetBuildHandler? = nil,
     ) {
         self.accountProvider = accountProvider
-        self.listBuildsHandler = listBuildsHandler ?? Self.listBuildsLive
+        self.listBuildsHandler = listBuildsHandler
         self.getBuildHandler = getBuildHandler ?? Self.getBuildLive
     }
 
     public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest = .init()) async throws -> BuildList {
+        try await listBuilds(accountID: accountID, appID: appID, pagination: pagination, sort: .uploadedDate)
+    }
+
+    public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest, sort: BuildListSort) async throws -> BuildList {
         try pagination.validate()
         guard !appID.isEmpty else { throw ServiceError.invalidArguments("Argument appID must be a nonempty string.") }
         let key = try await accountProvider.apiKey(forAccountID: accountID)
         do {
-            return try await listBuildsHandler(key, appID, pagination)
+            if let listBuildsHandler {
+                guard sort == .uploadedDate else {
+                    throw ServiceError.invalidArguments("This build service does not support version sorting.")
+                }
+                return try await listBuildsHandler(key, appID, pagination)
+            }
+            return try await Self.listBuildsLive(key: key, appID: appID, pagination: pagination, sort: sort)
         } catch {
             throw try ServiceError.classify(error)
         }
@@ -42,24 +52,30 @@ public final class BuildService: BuildServing, @unchecked Sendable {
     }
 
     static func buildsRequest(
-        appID: String, pagination: PaginationRequest,
+        appID: String, pagination: PaginationRequest, sort: BuildListSort = .uploadedDate,
     ) throws -> Request<BuildsResponse, ErrorResponse> {
         let request: Request<BuildsResponse, ErrorResponse> = try .listBuildsV1(
             filters: [.app([appID])],
-            includes: [.preReleaseVersion],
-            sorts: [.uploadedDateDescending],
+            includes: [.preReleaseVersion, .buildBetaDetail],
+            sorts: sort == .version ? [.preReleaseVersionDescending, .versionDescending] : [.uploadedDateDescending],
             limits: [.limit(pagination.resolvedLimit())],
         )
         return try request.withPaginationCursor(pagination.validatedCursor())
     }
 
-    private static func listBuildsLive(key: APIKey, appID: String, pagination: PaginationRequest) async throws -> BuildList {
+    private static func listBuildsLive(key: APIKey, appID: String, pagination: PaginationRequest, sort: BuildListSort) async throws -> BuildList {
         let service = BagbutikService(jwt: key.jwt)
-        let response = try await service.request(buildsRequest(appID: appID, pagination: pagination))
+        let response = try await service.request(buildsRequest(appID: appID, pagination: pagination, sort: sort))
         return try .init(
             appID: appID,
             builds: response.data.map { build in
-                BuildSummary(build: build, platform: response.getPreReleaseVersion(for: build)?.attributes?.platform?.prettyName)
+                let version = response.getPreReleaseVersion(for: build)?.attributes
+                return BuildSummary(
+                    build: build,
+                    platform: version?.platform?.prettyName,
+                    prereleaseVersion: version?.version,
+                    externalBetaState: response.getBuildBetaDetail(for: build)?.attributes?.externalBuildState?.rawValue,
+                )
             },
             pagination: paginationMetadata(
                 limit: pagination.resolvedLimit(),

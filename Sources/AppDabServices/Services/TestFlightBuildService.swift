@@ -34,18 +34,6 @@ public struct TestFlightBuild: Codable, Equatable, Sendable {
     }
 }
 
-public struct TestFlightBuildList: Codable, Equatable, Sendable {
-    public let appID: String
-    public let builds: [TestFlightBuild]
-    public let pagination: PaginationMetadata
-
-    public init(appID: String, builds: [TestFlightBuild], pagination: PaginationMetadata) {
-        self.appID = appID
-        self.builds = builds
-        self.pagination = pagination
-    }
-}
-
 public struct TestFlightBuildDetail: Codable, Equatable, Sendable {
     public struct Localization: Codable, Equatable, Sendable {
         public let id: String
@@ -127,7 +115,6 @@ public struct TestFlightBuildDetail: Codable, Equatable, Sendable {
 }
 
 public protocol TestFlightBuildServing: Sendable {
-    func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> TestFlightBuildList
     func getBuild(accountID: String, appID: String, buildID: String) async throws -> TestFlightBuildDetail
 }
 
@@ -136,28 +123,6 @@ public struct TestFlightBuildService: TestFlightBuildServing {
 
     public init(accountProvider: any APIKeyProviding) {
         self.accountProvider = accountProvider
-    }
-
-    public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest = .init()) async throws -> TestFlightBuildList {
-        guard !appID.isEmpty else { throw ServiceError.invalidArguments("Argument appID must be a nonempty string.") }
-        let request = try Self.listRequest(appID: appID, pagination: pagination)
-        let key = try await accountProvider.apiKey(forAccountID: accountID)
-        do {
-            let response = try await BagbutikService(jwt: key.jwt).request(request)
-            return try .init(
-                appID: appID,
-                builds: response.data.map { build in
-                    Self.summary(build, version: response.getPreReleaseVersion(for: build),
-                                 betaDetail: response.getBuildBetaDetail(for: build))
-                },
-                pagination: BuildService.paginationMetadata(
-                    limit: pagination.resolvedLimit(), total: response.meta?.paging.total,
-                    nextCursor: PaginationCursor.extract(from: response.links.next),
-                ),
-            )
-        } catch {
-            throw try ServiceError.classify(error)
-        }
     }
 
     public func getBuild(accountID: String, appID: String, buildID: String) async throws -> TestFlightBuildDetail {
@@ -175,16 +140,6 @@ public struct TestFlightBuildService: TestFlightBuildServing {
         } catch {
             throw try ServiceError.classify(error)
         }
-    }
-
-    static func listRequest(appID: String, pagination: PaginationRequest) throws -> Request<BuildsResponse, ErrorResponse> {
-        let request: Request<BuildsResponse, ErrorResponse> = try .listBuildsV1(
-            filters: [.app([appID])],
-            includes: [.buildBetaDetail, .preReleaseVersion],
-            sorts: [.preReleaseVersionDescending, .versionDescending],
-            limits: [.limit(pagination.resolvedLimit())],
-        )
-        return try request.withPaginationCursor(pagination.validatedCursor())
     }
 
     static func detail(_ response: BuildResponse, appID: String) throws -> TestFlightBuildDetail {

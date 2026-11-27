@@ -29,7 +29,6 @@ public struct AutomationRegistry: Sendable {
                 AnyAutomationAction(GetAppVersionAction.self),
                 AnyAutomationAction(ListBuildsAction.self),
                 AnyAutomationAction(GetBuildAction.self),
-                AnyAutomationAction(ListTestFlightBuildsAction.self),
                 AnyAutomationAction(GetTestFlightBuildAction.self),
                 AnyAutomationAction(StartXcodeCloudBuildAction.self),
                 AnyAutomationAction(GetXcodeCloudBuildAction.self),

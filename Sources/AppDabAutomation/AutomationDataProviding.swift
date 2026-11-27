@@ -19,6 +19,7 @@ public protocol AutomationDataProviding: Sendable {
     func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion
     func testFlightBuilds() throws -> any TestFlightBuildServing
     func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BuildList
+    func listBuilds(accountID: String, appID: String, pagination: PaginationRequest, sort: BuildListSort) async throws -> BuildList
     func getBuild(accountID: String, buildID: String) async throws -> BuildSummary
     func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot
     func mutateBuild(accountID: String, buildID: String, mutation: BuildTestFlightMutation) async throws -> BuildSummary
@@ -57,6 +58,13 @@ public protocol AutomationDataProviding: Sendable {
 }
 
 public extension AutomationDataProviding {
+    func listBuilds(accountID: String, appID: String, pagination: PaginationRequest, sort: BuildListSort) async throws -> BuildList {
+        guard sort == .uploadedDate else {
+            throw ServiceError.invalidArguments("This data provider does not support version sorting.")
+        }
+        return try await listBuilds(accountID: accountID, appID: appID, pagination: pagination)
+    }
+
     func testFlightBuilds() throws -> any TestFlightBuildServing {
         throw ServiceError.upstream("TestFlight build reads are unavailable for this data provider.")
     }

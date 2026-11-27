@@ -100,6 +100,11 @@ struct AppCatalogServiceTests {
         #expect(request.parameters?.customs?["cursor"] == "cursor-2")
     }
 
+    @Test func buildServiceCanSortByVersionAndBuildNumber() throws {
+        let request = try BuildService.buildsRequest(appID: "app-1", pagination: .init(), sort: .version)
+        #expect(request.parameters?.sorts?.map(\.value) == ["-preReleaseVersion", "-version"])
+    }
+
     @Test func buildServiceRejectsAMissingAppStoreConnectPagingTotal() {
         #expect(throws: ServiceError.upstream("App Store Connect did not provide a paging total.")) {
             try BuildService.paginationMetadata(limit: 50, total: nil, nextCursor: "cursor-1")
