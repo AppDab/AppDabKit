@@ -52,10 +52,15 @@ public protocol AutomationDataProviding: Sendable {
         platform: String,
         version: String,
     ) async throws -> AppVersion
+    func testFlightScreenshotFeedback() throws -> any TestFlightScreenshotFeedbackServing
     func listCustomerReviews(accountID: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList
 }
 
 public extension AutomationDataProviding {
+    func testFlightScreenshotFeedback() throws -> any TestFlightScreenshotFeedbackServing {
+        throw ServiceError.upstream("TestFlight screenshot feedback is unavailable for this data provider.")
+    }
+
     func listXcodeCloudWorkflows(accountID _: String, appID _: String, pagination _: PaginationRequest) async throws -> XcodeCloudWorkflowList {
         throw ServiceError.upstream("Xcode Cloud is unavailable for this data provider.")
     }

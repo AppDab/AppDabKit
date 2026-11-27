@@ -172,6 +172,13 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         )
     }
 
+    public func testFlightScreenshotFeedback() throws -> any TestFlightScreenshotFeedbackServing {
+        guard let service = services.testFlightScreenshotFeedbackService else {
+            throw ServiceError.upstream("TestFlight screenshot feedback is unavailable for these services.")
+        }
+        return service
+    }
+
     public func listCustomerReviews(accountID: String, appID: String, pagination: PaginationRequest) async throws -> ReviewList {
         try await services.customerReviewService.listCustomerReviews(accountID: accountID, appID: appID, pagination: pagination)
     }

@@ -14,9 +14,14 @@ public protocol ServiceProviding: Sendable {
     var betaGroupService: any BetaGroupServing { get }
     var betaAppTestingService: any BetaAppTestingServing { get }
     var customerReviewService: any CustomerReviewServing { get }
+    var testFlightScreenshotFeedbackService: (any TestFlightScreenshotFeedbackServing)? { get }
 }
 
 public extension ServiceProviding {
+    var testFlightScreenshotFeedbackService: (any TestFlightScreenshotFeedbackServing)? {
+        nil
+    }
+
     var versionMediaService: any VersionMediaServing {
         UnavailableVersionMediaService()
     }
