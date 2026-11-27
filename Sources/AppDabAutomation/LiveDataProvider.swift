@@ -42,6 +42,13 @@ public struct ServiceAutomationDataProvider: AutomationDataProviding {
         try await services.appCatalogService.getAppVersion(accountID: accountID, appID: appID, versionID: versionID)
     }
 
+    public func testFlightBuilds() throws -> any TestFlightBuildServing {
+        guard let service = services.testFlightBuildService else {
+            throw ServiceError.upstream("TestFlight build reads are unavailable for these services.")
+        }
+        return service
+    }
+
     public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BuildList {
         try await services.buildService.listBuilds(accountID: accountID, appID: appID, pagination: pagination)
     }

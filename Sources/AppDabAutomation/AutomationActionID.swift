@@ -10,6 +10,8 @@ public struct AutomationActionID: RawRepresentable, Codable, Equatable, Hashable
     public static let listAppVersions = AutomationActionID(rawValue: "list_app_versions")
     public static let listBuilds = AutomationActionID(rawValue: "list_builds")
     public static let getBuild = AutomationActionID(rawValue: "get_build")
+    public static let listTestFlightBuilds = AutomationActionID(rawValue: "list_testflight_builds")
+    public static let getTestFlightBuild = AutomationActionID(rawValue: "get_testflight_build")
     public static let listBetaGroups = AutomationActionID(rawValue: "list_beta_groups")
     public static let getBetaGroup = AutomationActionID(rawValue: "get_beta_group")
     public static let createBetaGroup = AutomationActionID(rawValue: "create_beta_group")

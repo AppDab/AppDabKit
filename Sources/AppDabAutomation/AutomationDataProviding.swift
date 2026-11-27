@@ -17,6 +17,7 @@ public protocol AutomationDataProviding: Sendable {
     func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview
     func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList
     func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion
+    func testFlightBuilds() throws -> any TestFlightBuildServing
     func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BuildList
     func getBuild(accountID: String, buildID: String) async throws -> BuildSummary
     func buildSnapshot(accountID: String, buildID: String, scope: BuildTestFlightSnapshotScope) async throws -> BuildTestFlightSnapshot
@@ -56,6 +57,10 @@ public protocol AutomationDataProviding: Sendable {
 }
 
 public extension AutomationDataProviding {
+    func testFlightBuilds() throws -> any TestFlightBuildServing {
+        throw ServiceError.upstream("TestFlight build reads are unavailable for this data provider.")
+    }
+
     func listXcodeCloudWorkflows(accountID _: String, appID _: String, pagination _: PaginationRequest) async throws -> XcodeCloudWorkflowList {
         throw ServiceError.upstream("Xcode Cloud is unavailable for this data provider.")
     }
