@@ -3,9 +3,9 @@ import BagbutikCore
 import ConnectAccounts
 
 public final class BuildService: BuildServing, @unchecked Sendable {
-    public typealias ListBuildsHandler = @Sendable (APIKey, String, PaginationRequest) async throws -> BuildList
+    public typealias ListBuildsHandler = @Sendable (APIKey, String, PaginationRequest, BuildListSort) async throws -> BuildList
     public typealias GetBuildHandler = @Sendable (APIKey, String) async throws -> BuildSummary
-    private let listBuildsHandler: ListBuildsHandler?
+    private let listBuildsHandler: ListBuildsHandler
     private let getBuildHandler: GetBuildHandler
 
     private let accountProvider: any APIKeyProviding
@@ -16,26 +16,18 @@ public final class BuildService: BuildServing, @unchecked Sendable {
         getBuildHandler: GetBuildHandler? = nil,
     ) {
         self.accountProvider = accountProvider
-        self.listBuildsHandler = listBuildsHandler
+        self.listBuildsHandler = listBuildsHandler ?? Self.listBuildsLive
         self.getBuildHandler = getBuildHandler ?? Self.getBuildLive
     }
 
-    public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest = .init()) async throws -> BuildList {
-        try await listBuilds(accountID: accountID, appID: appID, pagination: pagination, sort: .uploadedDate)
-    }
-
-    public func listBuilds(accountID: String, appID: String, pagination: PaginationRequest, sort: BuildListSort) async throws -> BuildList {
+    public func listBuilds(
+        accountID: String, appID: String, pagination: PaginationRequest = .init(), sort: BuildListSort = .uploadedDate,
+    ) async throws -> BuildList {
         try pagination.validate()
         guard !appID.isEmpty else { throw ServiceError.invalidArguments("Argument appID must be a nonempty string.") }
         let key = try await accountProvider.apiKey(forAccountID: accountID)
         do {
-            if let listBuildsHandler {
-                guard sort == .uploadedDate else {
-                    throw ServiceError.invalidArguments("This build service does not support version sorting.")
-                }
-                return try await listBuildsHandler(key, appID, pagination)
-            }
-            return try await Self.listBuildsLive(key: key, appID: appID, pagination: pagination, sort: sort)
+            return try await listBuildsHandler(key, appID, pagination, sort)
         } catch {
             throw try ServiceError.classify(error)
         }

@@ -108,7 +108,7 @@ public extension AutomationDataProviding {
         throw ServiceError.upstream("Version lookup is unavailable in this fixture.")
     }
 
-    func listBuilds(accountID _: String, appID _: String, pagination _: PaginationRequest) async throws -> BuildList {
+    func listBuilds(accountID _: String, appID _: String, pagination _: PaginationRequest, sort _: BuildListSort) async throws -> BuildList {
         throw ServiceError.upstream("Build listing is unavailable in this fixture.")
     }
 

@@ -61,10 +61,12 @@ struct AppCatalogServiceTests {
         #expect(apps.pagination.hasMore)
     }
 
-    @Test func buildServiceListsBuildsForTheRequestedAppUsingTheUpstreamPage() async throws {
+    @Test(arguments: BuildListSort.allCases)
+    func buildServicePassesSortAndPaginationToTheUpstreamHandler(sort: BuildListSort) async throws {
         let apiKey = try previewAPIKey()
         let provider = StoredAccountProvider(loadAPIKeys: { [apiKey] })
-        let service = BuildService(accountProvider: provider, listBuildsHandler: { key, appID, pagination in
+        let service = BuildService(accountProvider: provider, listBuildsHandler: { key, appID, pagination, requestedSort in
+            #expect(requestedSort == sort)
             #expect(key.id == apiKey.id)
             #expect(appID == "app-1")
             #expect(pagination == .init(cursor: "cursor-1", limit: 25))
@@ -79,7 +81,7 @@ struct AppCatalogServiceTests {
         })
 
         let page = try await service.listBuilds(
-            accountID: apiKey.id, appID: "app-1", pagination: .init(cursor: "cursor-1", limit: 25),
+            accountID: apiKey.id, appID: "app-1", pagination: .init(cursor: "cursor-1", limit: 25), sort: sort,
         )
 
         #expect(page.builds.map(\.buildID) == ["build-1"])
