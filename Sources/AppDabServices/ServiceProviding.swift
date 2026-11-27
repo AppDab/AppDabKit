@@ -8,7 +8,6 @@ public protocol ServiceProviding: Sendable {
     var accountProvider: any AccountProviding { get }
     var appCatalogService: any AppCatalogServing { get }
     var buildService: any BuildServing { get }
-    var testFlightBuildService: (any TestFlightBuildServing)? { get }
     var buildExportComplianceService: any BuildExportComplianceServing { get }
     var buildTestFlightService: any BuildTestFlightServing { get }
     var betaGroupTesterService: any BetaGroupTesterServing { get }
@@ -18,10 +17,6 @@ public protocol ServiceProviding: Sendable {
 }
 
 public extension ServiceProviding {
-    var testFlightBuildService: (any TestFlightBuildServing)? {
-        nil
-    }
-
     var versionMediaService: any VersionMediaServing {
         UnavailableVersionMediaService()
     }

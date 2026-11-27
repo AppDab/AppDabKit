@@ -87,10 +87,37 @@ public final class BuildService: BuildServing, @unchecked Sendable {
 
     private static func getBuildLive(key: APIKey, buildID: String) async throws -> BuildSummary {
         let service = BagbutikService(jwt: key.jwt)
-        let response = try await service.request(.getBuildV1(id: buildID, includes: [.preReleaseVersion]))
+        let response = try await service.request(.getBuildV1(
+            id: buildID,
+            includes: [.app, .preReleaseVersion, .buildBetaDetail, .betaBuildLocalizations, .buildBundles],
+            limits: [.betaBuildLocalizations(50), .buildBundles(50)],
+        ))
+        return buildDetails(response)
+    }
+
+    static func buildDetails(_ response: BuildResponse) -> BuildSummary {
+        let version = response.getPreReleaseVersion()?.attributes
+        let beta = response.getBuildBetaDetail()?.attributes
+        let detail = TestFlightBuildDetail(
+            appID: response.data.relationships?.app?.data?.id ?? response.getApp()?.id,
+            internalState: beta?.internalBuildState?.rawValue,
+            localizations: response.getBetaBuildLocalizations().map {
+                .init(id: $0.id, locale: $0.attributes?.locale, whatToTest: $0.attributes?.whatsNew)
+            },
+            bundles: response.getBuildBundles().map { bundle in
+                let attributes = bundle.attributes
+                return .init(
+                    id: bundle.id, bundleID: attributes?.bundleId, bundleType: attributes?.bundleType?.rawValue,
+                    sdkBuild: attributes?.sdkBuild, platformBuild: attributes?.platformBuild,
+                    fileName: attributes?.fileName, minimumOSVersion: attributes?.minimumOsVersion,
+                    hasOnDemandResources: attributes?.hasOnDemandResources, includesSymbols: attributes?.includesSymbols,
+                    hasSiriKit: attributes?.hasSirikit, entitlements: attributes?.entitlements ?? [:],
+                )
+            },
+        )
         return .init(
-            build: response.data,
-            platform: response.getPreReleaseVersion()?.attributes?.platform?.prettyName,
+            build: response.data, platform: version?.platform?.prettyName, prereleaseVersion: version?.version,
+            externalBetaState: beta?.externalBuildState?.rawValue, testFlight: detail,
         )
     }
 

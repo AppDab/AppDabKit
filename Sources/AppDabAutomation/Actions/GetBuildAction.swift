@@ -4,7 +4,7 @@ public struct GetBuildAction: AutomationAction {
     public static let descriptor = AutomationActionDescriptor(
         id: .getBuild,
         title: "Get Build",
-        description: "Fetch one authoritative build by identifier.",
+        description: "Fetch a build by identifier, including its TestFlight states, What to Test, and bundle metadata.",
         inputSchema: Schema.object(properties: [
             "accountID": Schema.string(description: "The AppDab account identifier."),
             "buildID": Schema.string(description: "The App Store Connect build identifier."),

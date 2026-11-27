@@ -17,7 +17,6 @@ public protocol AutomationDataProviding: Sendable {
     func getCustomerReview(accountID: String, reviewID: String) async throws -> CustomerReview
     func listAppVersions(accountID: String, appID: String, filter: AppVersionFilter, pagination: PaginationRequest) async throws -> AppVersionList
     func getAppVersion(accountID: String, appID: String, versionID: String) async throws -> AppVersion
-    func testFlightBuilds() throws -> any TestFlightBuildServing
     func listBuilds(accountID: String, appID: String, pagination: PaginationRequest) async throws -> BuildList
     func listBuilds(accountID: String, appID: String, pagination: PaginationRequest, sort: BuildListSort) async throws -> BuildList
     func getBuild(accountID: String, buildID: String) async throws -> BuildSummary
@@ -63,10 +62,6 @@ public extension AutomationDataProviding {
             throw ServiceError.invalidArguments("This data provider does not support version sorting.")
         }
         return try await listBuilds(accountID: accountID, appID: appID, pagination: pagination)
-    }
-
-    func testFlightBuilds() throws -> any TestFlightBuildServing {
-        throw ServiceError.upstream("TestFlight build reads are unavailable for this data provider.")
     }
 
     func listXcodeCloudWorkflows(accountID _: String, appID _: String, pagination _: PaginationRequest) async throws -> XcodeCloudWorkflowList {

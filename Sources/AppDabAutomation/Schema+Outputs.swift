@@ -38,6 +38,7 @@ extension Schema {
         "prereleaseVersion": outputString,
         "iconURL": outputString,
         "externalBetaState": outputString,
+        "testFlight": testFlightBuildDetailOutput,
         "buildID": outputString,
         "version": outputString,
         "platform": outputString,

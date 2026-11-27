@@ -46,7 +46,6 @@ struct AutomationActionCatalogTests {
             .listAppPreviews, .getAppPreview, .uploadAppPreview, .downloadAppPreview, .removeAppPreview, .reorderAppPreviews,
             .listAccounts, .addAccount, .removeAccount, .verifyAccount, .listApps, .getApp,
             .listAppVersions, .getAppVersion, .listBuilds, .getBuild,
-            .getTestFlightBuild,
             .startXcodeCloudBuild, .getXcodeCloudBuild, .getXcodeCloudWorkflow, .listXcodeCloudGitReferences, .listXcodeCloudWorkflows,
             .listBetaGroups, .getBetaGroup, .createBetaGroup, .updateBetaGroup, .deleteBetaGroup,
             .addBuildToBetaGroup, .removeBuildFromBetaGroup,

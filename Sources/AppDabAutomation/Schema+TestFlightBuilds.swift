@@ -1,12 +1,6 @@
 extension Schema {
-    static let testFlightBuildOutput = object(properties: [
-        "id": outputString, "buildNumber": outputString, "version": outputString, "platform": outputString,
-        "iconURL": outputString, "externalState": outputString, "processingState": outputString,
-    ], required: ["id"])
-
     static let testFlightBuildDetailOutput = object(properties: [
-        "appID": outputString, "build": testFlightBuildOutput, "internalState": outputString,
-        "uploadedDate": outputDate, "expirationDate": outputDate,
+        "appID": outputString, "internalState": outputString,
         "localizations": array(items: object(properties: [
             "id": outputString, "locale": outputString, "whatToTest": outputString,
         ], required: ["id"])),
@@ -16,5 +10,5 @@ extension Schema {
             "hasOnDemandResources": outputBoolean, "includesSymbols": outputBoolean, "hasSiriKit": outputBoolean,
             "entitlements": .object(["type": .string("object")]),
         ], required: ["id", "entitlements"])),
-    ], required: ["appID", "build", "localizations", "bundles"])
+    ], required: ["localizations", "bundles"])
 }

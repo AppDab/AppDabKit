@@ -8,7 +8,6 @@ public struct LiveServices: ServiceProviding {
     public let accountProvider: any AccountProviding
     public let appCatalogService: any AppCatalogServing
     public let buildService: any BuildServing
-    public let testFlightBuildService: (any TestFlightBuildServing)?
     public let buildExportComplianceService: any BuildExportComplianceServing
     public let buildTestFlightService: any BuildTestFlightServing
     public let betaGroupTesterService: any BetaGroupTesterServing
@@ -23,7 +22,6 @@ public struct LiveServices: ServiceProviding {
         versionMediaService = VersionMediaService(accountProvider: accountProvider)
         appCatalogService = AppCatalogService(accountProvider: accountProvider)
         buildService = BuildService(accountProvider: accountProvider)
-        testFlightBuildService = TestFlightBuildService(accountProvider: accountProvider)
         buildExportComplianceService = BuildExportComplianceService(accountProvider: accountProvider)
         buildTestFlightService = BuildTestFlightService(accountProvider: accountProvider)
         betaGroupTesterService = BetaGroupTesterService(accountProvider: accountProvider)
@@ -47,13 +45,11 @@ public struct LiveServices: ServiceProviding {
         customerReviewService: any CustomerReviewServing,
         xcodeCloudService: any XcodeCloudServing,
         versionMediaService: any VersionMediaServing = UnavailableVersionMediaService(),
-        testFlightBuildService: (any TestFlightBuildServing)? = nil,
     ) {
         self.versionMediaService = versionMediaService
         self.accountProvider = accountProvider
         self.appCatalogService = appCatalogService
         self.buildService = buildService
-        self.testFlightBuildService = testFlightBuildService
         self.buildExportComplianceService = buildExportComplianceService
         self.buildTestFlightService = buildTestFlightService
         self.betaGroupTesterService = betaGroupTesterService

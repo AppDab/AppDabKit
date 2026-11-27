@@ -30,12 +30,21 @@ public struct SetBuildExportComplianceAction: GuardedAutomationAction {
 
     public func prepareMutation(input: SetBuildExportComplianceInput, dataProvider: any AutomationDataProviding) async throws -> AutomationMutationPreparation {
         let build = try await dataProvider.getBuild(accountID: input.accountID, buildID: input.buildID)
-        return try .init(targetIdentifiers: [input.accountID, input.appID, input.buildID], redactedSummary: "Set export compliance for build \(build.version).", remotePreconditions: ["build": .fromEncodable(build)])
+        return try .init(targetIdentifiers: [input.accountID, input.appID, input.buildID], redactedSummary: "Set export compliance for build \(build.version).", remotePreconditions: ["build": Self.buildPrecondition(build)])
     }
 
     public func validateMutation(input: SetBuildExportComplianceInput, plan: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws {
         let build = try await dataProvider.getBuild(accountID: input.accountID, buildID: input.buildID)
-        guard try plan.remotePreconditions["build"] == JSONValue.fromEncodable(build) else { throw AutomationExecutionError.preconditionFailed("Build state changed after preview.") }
+        guard try plan.remotePreconditions["build"] == Self.buildPrecondition(build) else { throw AutomationExecutionError.preconditionFailed("Build state changed after preview.") }
+    }
+
+    private static func buildPrecondition(_ build: BuildSummary) throws -> JSONValue {
+        // Preserve the snapshot format used by existing previews and exclude read-only TestFlight metadata.
+        try .fromEncodable(BuildSummary(
+            buildID: build.buildID, version: build.version, platform: build.platform,
+            processingState: build.processingState, uploadedDate: build.uploadedDate,
+            expirationDate: build.expirationDate, expired: build.expired,
+        ))
     }
 
     public func commitMutation(input: SetBuildExportComplianceInput, plan _: AutomationMutationPlan, dataProvider: any AutomationDataProviding) async throws -> BuildExportComplianceResult {

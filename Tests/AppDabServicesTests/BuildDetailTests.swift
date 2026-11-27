@@ -3,7 +3,7 @@ import BagbutikAppStoreModels
 import Foundation
 import Testing
 
-struct TestFlightBuildServiceTests {
+struct BuildDetailTests {
     @Test func detailIdentifiesTheOwningApp() throws {
         let response = try JSONDecoder().decode(BuildResponse.self, from: Data("""
         {
@@ -22,14 +22,14 @@ struct TestFlightBuildServiceTests {
         }
         """.utf8))
 
-        let detail = try TestFlightBuildService.detail(response)
-        #expect(detail.appID == "app-1")
-        #expect(detail.build.buildNumber == "42")
-        #expect(detail.build.version == "2.1")
-        #expect(detail.build.platform == "IOS")
+        let build = BuildService.buildDetails(response)
+        #expect(build.testFlight?.appID == "app-1")
+        #expect(build.buildNumber == "42")
+        #expect(build.prereleaseVersion == "2.1")
+        #expect(build.testFlight?.localizations == [])
+        #expect(build.testFlight?.bundles == [])
+
         let missingOwner = BuildResponse(data: .init(id: "build-2"), links: response.links)
-        #expect(throws: ServiceError.upstream("App Store Connect did not return the build’s app.")) {
-            try TestFlightBuildService.detail(missingOwner)
-        }
+        #expect(BuildService.buildDetails(missingOwner).testFlight?.appID == nil)
     }
 }
