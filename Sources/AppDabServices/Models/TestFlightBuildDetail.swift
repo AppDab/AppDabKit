@@ -52,18 +52,15 @@ public struct TestFlightBuildDetail: Codable, Equatable, Sendable {
     }
 
     public let appID: String?
-    public let internalState: String?
     public let localizations: [Localization]
     public let bundles: [Bundle]
 
     public init(
         appID: String?,
-        internalState: String?,
         localizations: [Localization],
         bundles: [Bundle],
     ) {
         self.appID = appID
-        self.internalState = internalState
         self.localizations = localizations
         self.bundles = bundles
     }

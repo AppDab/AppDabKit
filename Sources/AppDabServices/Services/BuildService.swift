@@ -62,11 +62,13 @@ public final class BuildService: BuildServing, @unchecked Sendable {
             appID: appID,
             builds: response.data.map { build in
                 let version = response.getPreReleaseVersion(for: build)?.attributes
+                let beta = response.getBuildBetaDetail(for: build)?.attributes
                 return BuildSummary(
                     build: build,
                     platform: version?.platform?.prettyName,
                     prereleaseVersion: version?.version,
-                    externalBetaState: response.getBuildBetaDetail(for: build)?.attributes?.externalBuildState?.rawValue,
+                    internalBetaState: beta?.internalBuildState?.rawValue,
+                    externalBetaState: beta?.externalBuildState?.rawValue,
                 )
             },
             pagination: paginationMetadata(
@@ -92,7 +94,6 @@ public final class BuildService: BuildServing, @unchecked Sendable {
         let beta = response.getBuildBetaDetail()?.attributes
         let detail = TestFlightBuildDetail(
             appID: response.data.relationships?.app?.data?.id ?? response.getApp()?.id,
-            internalState: beta?.internalBuildState?.rawValue,
             localizations: response.getBetaBuildLocalizations().map {
                 .init(id: $0.id, locale: $0.attributes?.locale, whatToTest: $0.attributes?.whatsNew)
             },
@@ -109,6 +110,7 @@ public final class BuildService: BuildServing, @unchecked Sendable {
         )
         return .init(
             build: response.data, platform: version?.platform?.prettyName, prereleaseVersion: version?.version,
+            internalBetaState: beta?.internalBuildState?.rawValue,
             externalBetaState: beta?.externalBuildState?.rawValue, testFlight: detail,
         )
     }

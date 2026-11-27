@@ -1,6 +1,6 @@
 extension Schema {
     static let testFlightBuildDetailOutput = object(properties: [
-        "appID": outputString, "internalState": outputString,
+        "appID": outputString,
         "localizations": array(items: object(properties: [
             "id": outputString, "locale": outputString, "whatToTest": outputString,
         ], required: ["id"])),

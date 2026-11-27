@@ -16,6 +16,7 @@ public struct BuildSummary: Codable, Equatable, Sendable {
 
     public let prereleaseVersion: String?
     public let iconURL: URL?
+    public let internalBetaState: String?
     public let externalBetaState: String?
     public let testFlight: TestFlightBuildDetail?
 
@@ -29,6 +30,7 @@ public struct BuildSummary: Codable, Equatable, Sendable {
         expired: Bool?,
         prereleaseVersion: String? = nil,
         iconURL: URL? = nil,
+        internalBetaState: String? = nil,
         externalBetaState: String? = nil,
         testFlight: TestFlightBuildDetail? = nil,
     ) {
@@ -41,12 +43,14 @@ public struct BuildSummary: Codable, Equatable, Sendable {
         self.expired = expired
         self.prereleaseVersion = prereleaseVersion
         self.iconURL = iconURL
+        self.internalBetaState = internalBetaState
         self.externalBetaState = externalBetaState
         self.testFlight = testFlight
     }
 
     init(
         build: Build, platform: String?, prereleaseVersion: String? = nil,
+        internalBetaState: String? = nil,
         externalBetaState: String? = nil, testFlight: TestFlightBuildDetail? = nil,
     ) {
         self.init(
@@ -59,6 +63,7 @@ public struct BuildSummary: Codable, Equatable, Sendable {
             expired: build.attributes?.expired,
             prereleaseVersion: prereleaseVersion,
             iconURL: build.attributes?.iconAssetToken?.url,
+            internalBetaState: internalBetaState,
             externalBetaState: externalBetaState,
             testFlight: testFlight,
         )

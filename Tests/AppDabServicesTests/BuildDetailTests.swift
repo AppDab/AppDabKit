@@ -11,12 +11,16 @@ struct BuildDetailTests {
             "type": "builds", "id": "build-1", "attributes": { "version": "42" },
             "relationships": {
               "app": { "data": { "type": "apps", "id": "app-1" } },
-              "preReleaseVersion": { "data": { "type": "preReleaseVersions", "id": "version-1" } }
+              "preReleaseVersion": { "data": { "type": "preReleaseVersions", "id": "version-1" } },
+              "buildBetaDetail": { "data": { "type": "buildBetaDetails", "id": "beta-1" } }
             }
           },
           "included": [{
             "type": "preReleaseVersions", "id": "version-1",
             "attributes": { "version": "2.1", "platform": "IOS" }
+          }, {
+            "type": "buildBetaDetails", "id": "beta-1",
+            "attributes": { "internalBuildState": "IN_BETA_TESTING", "externalBuildState": "READY_FOR_BETA_TESTING" }
           }],
           "links": { "self": "https://api.appstoreconnect.apple.com/v1/builds/build-1" }
         }
@@ -26,6 +30,8 @@ struct BuildDetailTests {
         #expect(build.testFlight?.appID == "app-1")
         #expect(build.buildNumber == "42")
         #expect(build.prereleaseVersion == "2.1")
+        #expect(build.internalBetaState == "IN_BETA_TESTING")
+        #expect(build.externalBetaState == "READY_FOR_BETA_TESTING")
         #expect(build.testFlight?.localizations == [])
         #expect(build.testFlight?.bundles == [])
 
