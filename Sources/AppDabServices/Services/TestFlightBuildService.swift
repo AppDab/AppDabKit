@@ -115,7 +115,7 @@ public struct TestFlightBuildDetail: Codable, Equatable, Sendable {
 }
 
 public protocol TestFlightBuildServing: Sendable {
-    func getBuild(accountID: String, appID: String, buildID: String) async throws -> TestFlightBuildDetail
+    func getBuild(accountID: String, buildID: String) async throws -> TestFlightBuildDetail
 }
 
 public struct TestFlightBuildService: TestFlightBuildServing {
@@ -125,9 +125,9 @@ public struct TestFlightBuildService: TestFlightBuildServing {
         self.accountProvider = accountProvider
     }
 
-    public func getBuild(accountID: String, appID: String, buildID: String) async throws -> TestFlightBuildDetail {
-        guard !appID.isEmpty, !buildID.isEmpty else {
-            throw ServiceError.invalidArguments("Arguments appID and buildID must be nonempty strings.")
+    public func getBuild(accountID: String, buildID: String) async throws -> TestFlightBuildDetail {
+        guard !buildID.isEmpty else {
+            throw ServiceError.invalidArguments("Argument buildID must be a nonempty string.")
         }
         let key = try await accountProvider.apiKey(forAccountID: accountID)
         do {
@@ -136,17 +136,16 @@ public struct TestFlightBuildService: TestFlightBuildServing {
                 includes: [.app, .preReleaseVersion, .buildBetaDetail, .betaBuildLocalizations, .buildBundles],
                 limits: [.betaBuildLocalizations(50), .buildBundles(50)],
             ))
-            return try Self.detail(response, appID: appID)
+            return try Self.detail(response)
         } catch {
             throw try ServiceError.classify(error)
         }
     }
 
-    static func detail(_ response: BuildResponse, appID: String) throws -> TestFlightBuildDetail {
+    static func detail(_ response: BuildResponse) throws -> TestFlightBuildDetail {
         let build = response.data
-        let ownerID = build.relationships?.app?.data?.id ?? response.getApp()?.id
-        guard ownerID == appID else {
-            throw ServiceError.invalidArguments("The build is unavailable for the selected app.")
+        guard let appID = build.relationships?.app?.data?.id ?? response.getApp()?.id, !appID.isEmpty else {
+            throw ServiceError.upstream("App Store Connect did not return the build’s app.")
         }
         let betaDetail = response.getBuildBetaDetail()
         return .init(
