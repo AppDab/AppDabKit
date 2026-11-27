@@ -65,6 +65,8 @@ public struct AutomationRegistry: Sendable {
                 AnyAutomationAction.guarded(CreateAppVersionAction.self),
                 AnyAutomationAction(ListCustomerReviewsAction.self),
                 AnyAutomationAction(GetCustomerReviewAction.self),
+                AnyAutomationAction(ListTestFlightScreenshotFeedbackAction.self),
+                AnyAutomationAction(GetTestFlightScreenshotFeedbackAction.self),
             ])
         } catch {
             preconditionFailure("Invalid standard automation registry: \(error.localizedDescription)")

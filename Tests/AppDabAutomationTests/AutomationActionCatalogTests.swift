@@ -54,6 +54,7 @@ struct AutomationActionCatalogTests {
             .getBetaAppReviewDetail, .updateBetaAppReviewDetail, .getBetaLicenseAgreement, .updateBetaLicenseAgreement,
             .listBetaTesters, .inviteBetaTester, .sendBetaTesterInvitation,
             .createAppVersion, .listCustomerReviews, .getCustomerReview,
+            .listTestFlightScreenshotFeedback, .getTestFlightScreenshotFeedback,
         ])
         #expect(descriptors.allSatisfy { $0.safety == (writes.contains($0.id) ? .write : .read) })
         #expect(AutomationActionCatalog.descriptor(named: "list_apps")?.outputType == "apps")

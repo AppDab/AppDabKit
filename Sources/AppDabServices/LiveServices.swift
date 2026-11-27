@@ -14,6 +14,7 @@ public struct LiveServices: ServiceProviding {
     public let betaGroupService: any BetaGroupServing
     public let betaAppTestingService: any BetaAppTestingServing
     public let customerReviewService: any CustomerReviewServing
+    public let testFlightScreenshotFeedbackService: (any TestFlightScreenshotFeedbackServing)?
 
     /// Creates the live services using an account provider that also supplies API keys.
     public init(accountProvider: some AccountProviding & APIKeyProviding) {
@@ -28,6 +29,7 @@ public struct LiveServices: ServiceProviding {
         betaGroupService = BetaGroupService(accountProvider: accountProvider)
         betaAppTestingService = BetaAppTestingService(accountProvider: accountProvider)
         customerReviewService = CustomerReviewService(accountProvider: accountProvider)
+        testFlightScreenshotFeedbackService = TestFlightScreenshotFeedbackService(accountProvider: accountProvider)
     }
 
     /// Creates the service collection from explicit service implementations.
@@ -45,6 +47,7 @@ public struct LiveServices: ServiceProviding {
         customerReviewService: any CustomerReviewServing,
         xcodeCloudService: any XcodeCloudServing,
         versionMediaService: any VersionMediaServing = UnavailableVersionMediaService(),
+        testFlightScreenshotFeedbackService: (any TestFlightScreenshotFeedbackServing)? = nil,
     ) {
         self.versionMediaService = versionMediaService
         self.accountProvider = accountProvider
@@ -56,6 +59,7 @@ public struct LiveServices: ServiceProviding {
         self.betaGroupService = betaGroupService
         self.betaAppTestingService = betaAppTestingService
         self.customerReviewService = customerReviewService
+        self.testFlightScreenshotFeedbackService = testFlightScreenshotFeedbackService
         self.xcodeCloudService = xcodeCloudService
     }
 }

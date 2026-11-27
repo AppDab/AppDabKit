@@ -40,6 +40,8 @@ public struct AutomationActionID: RawRepresentable, Codable, Equatable, Hashable
     public static let updateBetaBuildLocalization = AutomationActionID(rawValue: "update_beta_build_localization")
     public static let getAppVersion = AutomationActionID(rawValue: "get_app_version")
     public static let getCustomerReview = AutomationActionID(rawValue: "get_customer_review")
+    public static let listTestFlightScreenshotFeedback = AutomationActionID(rawValue: "list_testflight_screenshot_feedback")
+    public static let getTestFlightScreenshotFeedback = AutomationActionID(rawValue: "get_testflight_screenshot_feedback")
 
     public static let listXcodeCloudWorkflows = AutomationActionID(rawValue: "list_xcode_cloud_workflows")
 
