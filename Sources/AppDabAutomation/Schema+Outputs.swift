@@ -35,6 +35,11 @@ extension Schema {
     ])
 
     static let buildSummaryOutput = object(properties: [
+        "prereleaseVersion": outputString,
+        "iconURL": outputString,
+        "internalBetaState": outputString,
+        "externalBetaState": outputString,
+        "testFlight": testFlightBuildDetailOutput,
         "buildID": outputString,
         "version": outputString,
         "platform": outputString,

@@ -153,7 +153,7 @@ public struct MockAutomationDataProvider: AutomationDataProviding {
         return appVersion
     }
 
-    public func listBuilds(accountID _: String, appID: String, pagination: PaginationRequest) async throws -> BuildList {
+    public func listBuilds(accountID _: String, appID: String, pagination: PaginationRequest, sort _: BuildListSort) async throws -> BuildList {
         if let appError {
             throw appError
         }
