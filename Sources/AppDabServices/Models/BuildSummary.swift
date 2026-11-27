@@ -9,11 +9,8 @@ public struct BuildSummary: Codable, Equatable, Sendable {
     public let uploadedDate: Date?
     public let expirationDate: Date?
     public let expired: Bool?
-    /// The legacy version field holds the build number.
-    public var buildNumber: String {
-        version
-    }
-
+    // swiftformat:disable:next wrapPropertyBodies
+    public var buildNumber: String { version }
     public let prereleaseVersion: String?
     public let iconURL: URL?
     public let internalBetaState: String?
